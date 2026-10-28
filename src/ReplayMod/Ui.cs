@@ -11,6 +11,8 @@ internal static class Ui
     private static CanvasLayer? _playLayer,_recordLayer;
     private static Control? _inputBlock;
     private static Button? _play,_step,_back,_stop,_seal,_inject;
+    private static OptionButton? _seekPoints;
+    private static Button? _seekGo;
     private static bool Valid(GodotObject? node)=>node is not null&&GodotObject.IsInstanceValid(node);
     private static Label Label(string text)=>new(){Text=text,AutowrapMode=TextServer.AutowrapMode.WordSmart,CustomMinimumSize=new Vector2(350,0)};
     private static Button Button(BoxContainer box,string text,Action clicked)
@@ -33,6 +35,8 @@ internal static class Ui
         }
         catch(Exception ex){info="片段暂不可打开："+(ex is InvalidDataException?ex.Message:ex.GetType().Name);}
         box.AddChild(Label(info));
+        var seekOpen=Button(box,"SEEK-001 · 猎人选牌／跨回合",()=>TaskHelper.RunSafely(PlayerLoop.Open(NativeSeek.HunterClip,nativeSeek:true)));
+        try{Runtime.ReadClip(NativeSeek.HunterClip);}catch{seekOpen.Disabled=true;seekOpen.Text="SEEK-001 · 固定猎人片不可用";}
         var open=Button(box,"打开最近片段",()=>{if(id is not null)TaskHelper.RunSafely(PlayerLoop.Open(id));});open.Disabled=clip is null;
         const string continuousSample="fc6432b4c0af41d69defda73f1770824";
         if(File.Exists(Path.Combine(Runtime.Root,"clips",continuousSample+".json")))
@@ -88,6 +92,12 @@ internal static class Ui
         var box=new VBoxContainer();panel.AddChild(box);_playStatus=Label(Runtime.Status);box.AddChild(_playStatus);
         _choiceStatus=Label("");box.AddChild(_choiceStatus);
         var controls=new HBoxContainer();box.AddChild(controls);
+        if(NativeSeek.Enabled)
+        {
+            var navigation=new HBoxContainer();box.AddChild(navigation);
+            _seekPoints=new OptionButton{CustomMinimumSize=new Vector2(430,40)};navigation.AddChild(_seekPoints);
+            _seekGo=Button(navigation,"Seek · 直达并暂停",()=>Runtime.Guard(()=>NativeSeek.RequestSeek(_seekPoints.GetSelectedId())));
+        }
         _play=Button(controls,"播放 / 暂停",()=>PlayerLoop.Control("toggle"));
         _step=Button(controls,"Step · 下一操作",()=>PlayerLoop.Control("step"));
         _step.ButtonDown+=NativeDisplayTrace.MarkStepPointerDown;
@@ -99,20 +109,41 @@ internal static class Ui
         _play.Disabled=true;_step.Disabled=true;_back.Disabled=true;
         block.AddChild(panel);Runtime.Game.AddChild(_playLayer);
     }
-    internal static void ClosePlayback(){if(Valid(_playLayer))_playLayer!.QueueFree();_playLayer=null;_inputBlock=null;_playStatus=null;_choiceStatus=null;_play=null;_step=null;_back=null;_stop=null;_inject=null;}
+    internal static void ClosePlayback(){if(Valid(_playLayer))_playLayer!.QueueFree();_playLayer=null;_inputBlock=null;_playStatus=null;_choiceStatus=null;_play=null;_step=null;_back=null;_stop=null;_inject=null;_seekPoints=null;_seekGo=null;}
     internal static void Refresh()
     {
         if(Valid(_menuStatus))_menuStatus!.Text=Runtime.Status;
         if(Valid(_playStatus))
         {
-            _playStatus!.Text=Runtime.Status+(DecisionRoute.Enabled?DecisionRoute.PendingDisplay:"");
+            _playStatus!.Text=Runtime.Status+(NativeSeek.Enabled?NativeSeek.Pending:DecisionRoute.Enabled?DecisionRoute.PendingDisplay:"");
             _choiceStatus!.Text=ChoiceTape.VisibleDisplay;_choiceStatus.Visible=_choiceStatus.Text.Length>0;
             var cursor=PlayerLoop.Cursor;
             var choosing=ChoiceTape.Controllable;
             _inputBlock!.MouseFilter=(DecisionRoute.Enabled?DecisionRoute.Ready:choosing)?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
             _inject!.Disabled=!PlayerLoop.CanInject;_inject.Text=PlayerLoop.InjectOnContinue?"STATE扰动：已启用，点播放检验纠偏":"STATE扰动：关闭";
             _inject.Visible=PlayerLoop.CanInject;
-            if(DecisionRoute.Enabled)
+            if(NativeSeek.Enabled)
+            {
+                _inputBlock.MouseFilter=NativeSeek.Ready?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
+                _step!.Disabled=!NativeSeek.CanStep;_step.Text="Step · 下一原生节点";
+                _play!.Disabled=NativeSeek.Stopping||NativeSeek.Restoring;_play.Text="播放 / 暂停";
+                _back!.Disabled=!NativeSeek.CanBack;_back.Text="Back · 直达上一节点";
+                _stop!.Disabled=NativeSeek.Stopping||PlayerLoop.TearingDown;
+                _inject.Visible=false;
+                if(_seekPoints is not null)
+                {
+                    var points=NativeSeek.Index;
+                    if(points.Length!=_seekPoints.ItemCount)
+                    {
+                        var selected=_seekPoints.ItemCount>0?_seekPoints.GetSelectedId():0;_seekPoints.Clear();
+                        foreach(var point in points)_seekPoints.AddItem(point.Value,point.Key);
+                        var item=Array.FindIndex(points,p=>p.Key==selected);if(points.Length>0)_seekPoints.Select(Math.Max(0,item));
+                    }
+                    _seekPoints.Disabled=NativeSeek.Restoring||NativeSeek.Stopping;
+                    _seekGo!.Disabled=points.Length==0||NativeSeek.Restoring||NativeSeek.Stopping;
+                }
+            }
+            else if(DecisionRoute.Enabled)
             {
                 RoutePresentation.Access();
                 // Disabling a Godot button clears its held press. Never apply legacy disabled states

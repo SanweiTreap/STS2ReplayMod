@@ -1,5 +1,6 @@
 using System.Reflection;
 using ReplayMod;
+if(args.Length>2&&args[1]=="seek"){SeekContracts.Run(args[0],args[2]);return;}
 if(args.Length>1&&args[1]=="queue"){QueueContracts.Run(args[0]);return;}
 if(args.Length>2&&args[1]=="verify-queue"){QueueContracts.VerifyRecording(args[0],args[2]);return;}
 if(args.Length>1&&args[1]=="log-writer"){await LogWriterContracts.Run(args[0]);return;}

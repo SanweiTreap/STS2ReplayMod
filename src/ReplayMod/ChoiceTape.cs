@@ -52,7 +52,7 @@ internal static class ChoiceTape
     internal static ChoiceScope? Scope=>_scope;
     internal static bool Watching=>_watch&&PlayerLoop.Active;
     internal static bool Recording=>_record&&Recorder.CollectingChoices;
-    internal static bool Controllable=>DecisionRoute.Enabled?DecisionRoute.HasView:Watching&&_scope is {Ui:not null,Completed:false,Closed:false};
+    internal static bool Controllable=>NativeSeek.Enabled?NativeSeek.HasView:DecisionRoute.Enabled?DecisionRoute.HasView:Watching&&_scope is {Ui:not null,Completed:false,Closed:false};
     internal static double WaitingSeconds=>_waitingSeconds+(_scope is {} s?Stopwatch.GetElapsedTime(s.Started).TotalSeconds:0);
     internal static string Display="";
     private static double _showUntil;
@@ -151,12 +151,13 @@ internal static class ChoiceTape
     internal static bool Remote(Player player,uint id,ref Task<PlayerChoiceResult> result)
     {
         if(!_watch||!PlayerLoop.Active)return true;
+        if(NativeSeek.Enabled){result=NativeSeek.OpenChoice(_scope??throw new InvalidDataException("unscoped-seek-choice"),player,id);return false;}
         if(DecisionRoute.Enabled){result=DecisionRoute.Open(_scope??throw new InvalidDataException("unscoped-route-choice"),player,id);return false;}
         result=Task.FromException<PlayerChoiceResult>(new InvalidDataException("unexpected-remote-choice-in-native-ui-playback"));return false;
     }
     internal static bool Local(ref bool result)
     {
-        if(!_watch||!PlayerLoop.Active)return true;result=!DecisionRoute.Enabled;return false;
+        if(!_watch||!PlayerLoop.Active)return true;result=!DecisionRoute.Enabled&&!NativeSeek.Enabled;return false;
     }
     private static void Complete(ChoiceScope s,IEnumerable<CardModel?> returned)
     {
@@ -193,6 +194,7 @@ internal static class ChoiceTape
     }
     internal static void Opened(object ui)
     {
+        if(NativeSeek.Enabled)return;
         if(DecisionRoute.Enabled)return;
         if(!(Recording||Watching)||_scope is not {} s||s.Ui is not null)return;
         s.Ui=ui;Codec.Require(!s.Frame.Automated,"unexpected-ui-for-automatic-choice");
@@ -207,6 +209,7 @@ internal static class ChoiceTape
     }
     internal static void Closed(object ui)
     {
+        if(NativeSeek.Enabled){NativeSeek.Closed(ui);return;}
         if(DecisionRoute.Enabled){DecisionRoute.Closed(ui);return;}
         if(!(Recording||Watching)||_scope is not {} s||!ReferenceEquals(s.Ui,ui)||s.Closed||s.Cancelled)return;
         if(Recording)Event("Close");
@@ -220,6 +223,7 @@ internal static class ChoiceTape
     }
     internal static void ClosureSettled(object ui)
     {
+        if(NativeSeek.Enabled){NativeSeek.Closed(ui,settled:true);return;}
         if(DecisionRoute.Enabled){DecisionRoute.ClosureSettled(ui);return;}
         if(_scope is {} s&&ReferenceEquals(s.Ui,ui)&&s.Closed&&!s.Cancelled)s.UiClosed.TrySetResult(true);
     }
