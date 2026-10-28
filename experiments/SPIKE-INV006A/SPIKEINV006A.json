@@ -1,0 +1,12 @@
+{
+  "id": "SPIKEINV006A",
+  "name": "SPIKE-INV006A Scope-Safe Outer Cloud Gate",
+  "author": "STS2ReplayMod experiment",
+  "description": "Read-only main-menu observer for the production outer-cloud timing gate.",
+  "version": "0.1.0-timing-v1",
+  "min_game_version": "0.111.0",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": false
+}

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors><AssemblyName>Det001Offline</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="SPIKE001B">
+      <HintPath>../SPIKE-001B-r2/artifacts-phase0-r2/SPIKE001B.dll</HintPath><Private>true</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

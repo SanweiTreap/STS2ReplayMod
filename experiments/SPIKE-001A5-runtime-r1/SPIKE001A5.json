@@ -1,0 +1,12 @@
+{
+  "id": "SPIKE001A5",
+  "name": "SPIKE-001A5 room-before A/B control",
+  "author": "STS2ReplayMod",
+  "description": "Diagnostic experiment, manual actions only, private checkpoint evidence, no restore.",
+  "version": "0.0.3-runtime-r1",
+  "min_game_version": "0.111.0",
+  "has_dll": true,
+  "has_pck": false,
+  "affects_gameplay": true,
+  "dependencies": []
+}

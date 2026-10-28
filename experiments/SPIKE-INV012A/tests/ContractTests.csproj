@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework><OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\Core\DiagnosticCore.cs" Link="DiagnosticCore.cs" />
+    <Compile Include="..\Core\PrebusinessGate.cs" Link="PrebusinessGate.cs" />
+    <Compile Include="..\EvidenceSink.cs" Link="EvidenceSink.cs" />
+    <Compile Remove="PatchSmoke\**\*.cs" />
+    <Compile Remove="NonInterferenceSmoke\**\*.cs" />
+  </ItemGroup>
+</Project>

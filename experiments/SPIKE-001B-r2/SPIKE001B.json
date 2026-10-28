@@ -1,0 +1,12 @@
+{
+  "id": "SPIKE001B",
+  "name": "SPIKE-001B two accepted actions control",
+  "author": "STS2ReplayMod",
+  "description": "Developer probe: one Defend and one EndTurn; private room-before evidence; no restore.",
+  "version": "0.1.0-phase0-r2",
+  "min_game_version": "0.111.0",
+  "has_dll": true,
+  "has_pck": false,
+  "affects_gameplay": true,
+  "dependencies": []
+}

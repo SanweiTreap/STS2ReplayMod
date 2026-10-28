@@ -1,0 +1,12 @@
+{
+  "id": "SPIKEINV006B",
+  "name": "SPIKE-INV006B Direct Write Isolation Sentinel",
+  "author": "STS2ReplayMod experiment",
+  "description": "Single-run live-seeded isolated direct progress-write sentinel.",
+  "version": "0.1.0-direct-write-v1",
+  "min_game_version": "0.111.0",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": true
+}

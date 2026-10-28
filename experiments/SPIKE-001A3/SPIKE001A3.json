@@ -1,0 +1,12 @@
+{
+  "id": "SPIKE001A3",
+  "name": "SPIKE-001A3 Reconstruction Control",
+  "author": "STS2ReplayMod experiment",
+  "description": "One-shot production checkpoint A/B reconstruction control for v0.111.0.",
+  "version": "0.1.0-r2",
+  "min_game_version": "0.111.0",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": true
+}

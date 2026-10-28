@@ -1,0 +1,12 @@
+{
+  "id": "SPIKEINV004B",
+  "name": "SPIKE-INV004B Deep-Copy Diagnostic",
+  "author": "STS2ReplayMod experiment",
+  "description": "Main-menu-only disk/live seeded SaveManager equivalence and reference-independence diagnostic.",
+  "version": "0.1.0-deep-copy-diagnostic",
+  "min_game_version": "0.111.0",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": false
+}

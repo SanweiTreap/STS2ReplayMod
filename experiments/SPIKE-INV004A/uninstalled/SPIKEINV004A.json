@@ -1,0 +1,12 @@
+{
+  "id": "SPIKEINV004A",
+  "name": "SPIKE-INV004A Direct Progress-Write Sentinel",
+  "author": "STS2ReplayMod experiment",
+  "description": "Disposable direct production progress update/save isolation sentinel with no replay-event dispatch.",
+  "version": "0.1.0-direct-write-sentinel",
+  "min_game_version": "0.111.0",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": true
+}

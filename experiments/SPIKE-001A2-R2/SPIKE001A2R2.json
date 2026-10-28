@@ -1,0 +1,12 @@
+{
+  "id": "SPIKE001A2R2",
+  "name": "SPIKE-001A2-R2 Reconstruction Control",
+  "author": "STS2ReplayMod experiment",
+  "description": "One-shot room-before checkpoint A/B reconstruction control for v0.111.0.",
+  "version": "0.1.2",
+  "min_game_version": "0.111.0",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": true
+}
