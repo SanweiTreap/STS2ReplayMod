@@ -33,6 +33,15 @@ internal static class ActionMonitor
     internal static bool Outstanding=>Pending is not null||Accepted.Count>0;
     internal static PendingOperation? Submitted(int index)=>PlaybackAccepted.GetValueOrDefault(index);
     internal static void Reset(){Pending=null;Completed=null;Error=null;StartTurnTask=null;Generation=0;Accepted.Clear();PlaybackAccepted.Clear();BattleEnd.Reset();}
+    internal static void RebaseNativeSeek()
+    {
+        Codec.Require(NativeSeek.CanRestore&&Error is null,"seek-rebase-requires-quiescent-native-context");
+        Pending=null;Completed=null;Accepted.Clear();PlaybackAccepted.Clear();Generation++;
+        // Keep the currently pending turn-loop signals, never the saved checkpoint's old TCS.
+        // All previous action/effect/choice tasks have completed before the data is applied.
+        StartTurnTask=Task.CompletedTask;BattleEnd.Begin();
+        Runtime.Log("native-seek-context-rebased",new{Generation,OldActionTasksResumed=false,LiveTurnWaitersPreserved=true});
+    }
     internal static void Queue(GameAction action)
     {
         double? accepted=Recorder.Active&&LiveState.Format>=5?RecordingClock.Now:null;
@@ -90,7 +99,8 @@ internal static class ActionMonitor
         }
         if(PlayerLoop.Active)PlayerLoop.VerifySubmittedStart(operation);
         Runtime.Log("native-input-executing",new{Kind=operation.Template.Kind.ToString(),operation.Template.Card,
-            operation.Template.HandIndex,AcceptedMilliseconds=operation.Template.Timing?.AcceptedMilliseconds,UnfinishedInputs=Accepted.Count});
+            operation.Template.HandIndex,AcceptedMilliseconds=operation.Template.Timing?.AcceptedMilliseconds,UnfinishedInputs=Accepted.Count,
+            NativeActionId=action.Id,SeekGeneration=NativeSeek.Enabled?(int?)NativeSeek.Generation:null});
     }
     internal static void ActionTask(GameAction action,Task task){if(ReferenceEquals(action,Pending?.Action))Pending.ActionTask=task;}
     internal static void CardTask(CardModel card,bool auto,Task task)
@@ -130,7 +140,7 @@ internal static class ActionMonitor
     }
     private static void Complete(PendingOperation p,bool victory,string boundary)
     {
-        ChoiceTape.AssertBoundary(PlayerLoop.Active?PlayerLoop.Cursor!.Position+1:Recorder.ChoiceBoundary);
+        ChoiceTape.AssertBoundary(PlayerLoop.Active?(NativeSeek.Enabled?NativeSeek.Host:PlayerLoop.Cursor!.Position+1):Recorder.ChoiceBoundary);
         var completion=Recorder.Active&&p.Template.Timing is {} time?time with{CompletedMilliseconds=RecordingClock.Now}:null;
         Completed=p.Template with{After=victory?BattleEnd.Projection!:LiveState.Capture(),Victory=victory,Timing=completion};Pending=null;Accepted.Remove(p.Action);
         if(PlayerLoop.Active&&boundary=="before-next-action")DecisionRoute.QueuedBoundary(p.PlaybackIndex+1);

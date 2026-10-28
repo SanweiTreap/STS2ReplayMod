@@ -109,7 +109,7 @@ internal sealed class DirectCheckpoint
     internal async Task Restore(Action? fileData=null)
     {
         var started=Stopwatch.GetTimestamp();
-        if(!_route)RequireReady();else Codec.Require(DecisionRoute.CanRestore,"route-data-restore-while-business-running");
+        if(!_route)RequireReady();else Codec.Require(NativeSeek.Enabled?NativeSeek.CanRestore:DecisionRoute.CanRestore,"route-data-restore-while-business-running");
         if(_route)await NativeDisplayTrace.RetireSourceVisuals();
         var retired=Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         Codec.Require(ReferenceEquals(_run,LiveState.Run)&&ReferenceEquals(_combat,((CombatRoom)LiveState.Run.CurrentRoom!).CombatState)&&

@@ -1420,32 +1420,32 @@ internal sealed class NativeDisplayTrace
     }
     private static void PowerApplied(PowerModel __0,int __1,bool __2,NPowerAppliedVfx? __result)
     {
-        if(_capture is null||__result is null)return;VisualCreated(__result);
+        VisualCreated(__result);if(_capture is null||__result is null)return;
         Record("power-applied",r=>r.PowerEffect(NPowerAppliedVfx.Create(__0,__1,__2)));
     }
     private static void PowerFlash(PowerModel __0,NPowerFlashVfx? __result)
     {
-        if(_capture is null||__result is null)return;VisualCreated(__result);
+        VisualCreated(__result);if(_capture is null||__result is null)return;
         Record("power-flash",r=>r.PowerEffect(NPowerFlashVfx.Create(__0)));
     }
     private static void PowerBuff(Vector2 __0,NPowerAppliedBuffVfx? __result)
     {
-        if(_capture is null||__result is null)return;VisualCreated(__result);Record("power-buff",r=>r.PowerEffect(NPowerAppliedBuffVfx.Create(__0)));
+        VisualCreated(__result);if(_capture is null||__result is null)return;Record("power-buff",r=>r.PowerEffect(NPowerAppliedBuffVfx.Create(__0)));
     }
     private static void PowerDebuff(Vector2 __0,NPowerAppliedDebuffVfx? __result)
     {
-        if(_capture is null||__result is null)return;VisualCreated(__result);Record("power-debuff",r=>r.PowerEffect(NPowerAppliedDebuffVfx.Create(__0)));
+        VisualCreated(__result);if(_capture is null||__result is null)return;Record("power-debuff",r=>r.PowerEffect(NPowerAppliedDebuffVfx.Create(__0)));
     }
     private static void Vfx(Vector2 __0,string __1,Control? __2,out Node[]? __state)
     {
-        __state=_capture is not null?__2?.GetChildren().ToArray():null;
+        __state=_capture is not null||NativeSeek.Enabled?__2?.GetChildren().ToArray():null;
         Record("scene:"+__1,r=>VfxCmd.PlayVfx(__0,__1,r.Root));
     }
     private static void VfxCreated(Control? __2,Node[]? __state)
     {
-        if(_capture is not null&&__state is not null&&__2 is not null)foreach(var child in __2.GetChildren().Except(__state))SourceVisuals.Add(child);
+        if((_capture is not null||NativeSeek.Enabled)&&__state is not null&&__2 is not null)foreach(var child in __2.GetChildren().Except(__state))SourceVisuals.Add(child);
     }
-    private static void VisualCreated(Node? __result){if(_capture is not null&&__result is not null)SourceVisuals.Add(__result);}
+    private static void VisualCreated(Node? __result){if((_capture is not null||NativeSeek.Enabled)&&__result is not null)SourceVisuals.Add(__result);}
     private static void Damage(Vector2 __0,int __1)=>Record("damage-number",r=>{var fx=NDamageNumVfx.Create(__0,__1);if(fx is not null)r.Root.AddChild(fx);});
     private static void Splash(Vector2 __0,Color __1)=>Record("potion-splash",r=>{var fx=NSplashVfx.Create(__0,__1);if(fx is not null)r.Root.AddChild(fx);});
     private static void Spark(Creature __0,NHitSparkVfx? __result)
@@ -1475,11 +1475,12 @@ internal sealed class NativeDisplayTrace
     private static bool BlockBreakFactory(ref NBlockBrokenVfx? __result)
     {
         // Restoring data/UI is not a new block loss. The source-clock cue owns history effects.
-        if(_creatingBlockBreakDisplay||!Replaying&&!DecisionRoute.CanRestore)return true;
+        if(_creatingBlockBreakDisplay||!Replaying&&!DecisionRoute.CanRestore&&!NativeSeek.CanRestore)return true;
         __result=null;return false;
     }
     private static bool OneShot(string __0,Dictionary<string,float> __1,float __2)
     {
+        if(NativeSeek.SilentRebuild)return false;
         if(Replaying&&!_recordedSound)return __0=="event:/sfx/enemy/enemy_fade";
         if(_capture is null||__0=="event:/sfx/enemy/enemy_fade")return true;
         var path=__0;var parameters=new Dictionary<string,float>(__1);var volume=__2;
@@ -1497,6 +1498,7 @@ internal sealed class NativeDisplayTrace
     }
     private static bool Shake(MethodBase __originalMethod,object[] __args)
     {
+        if(NativeSeek.SilentRebuild)return false;
         // Native display coroutines can emit their own shake (e.g. projectile impact). During a
         // sampled history segment the source clock already owns it. Keep exactly that recorded cue.
         if(Replaying&&!_recordedShake)return false;

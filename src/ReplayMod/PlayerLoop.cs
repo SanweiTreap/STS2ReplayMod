@@ -35,6 +35,7 @@ internal static class PlayerLoop
     internal static void Control(string control)
     {
         var cursor=Cursor;if(!Active||cursor is null||TearingDown)return;
+        if(NativeSeek.Enabled){NativeSeek.Control(control);return;}
         if(DecisionRoute.Enabled){DecisionRoute.Control(control);return;}
         var from=cursor.Position;
         var accepted=false;
@@ -60,7 +61,7 @@ internal static class PlayerLoop
         };
     }
 
-    internal static async Task Open(string id,bool fromFile=false)
+    internal static async Task Open(string id,bool fromFile=false,bool nativeSeek=false)
     {
         if(Active)return;
         Active=true;TearingDown=false;Loading=true;VictoryReached=false;ChoiceAbort=false;IsolatedManager=null;Error=null;Cursor=null;Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;Prequeued.Clear();Committed.Clear();
@@ -69,11 +70,15 @@ internal static class PlayerLoop
         {
             Runtime.CheckEnvironment();Codec.Require(RunManager.Instance.DebugOnlyGetState() is null,"open-from-main-menu-only");
             var clip=Runtime.ReadClip(id);_playingClip=clip;LiveState.Format=clip.Format;Cursor=new(clip.Operations.Length);
-            DecisionRoute.Start(clip);
+            if(nativeSeek){DecisionRoute.Clear();NativeSeek.Start(clip);}else DecisionRoute.Start(clip);
             Runtime.Status="加载回放：独立内存会话";Ui.Playback();ActionMonitor.Reset();ChoiceTape.Play(clip);
             if(SaveManager.Instance.CurrentRunSaveTask is {} saving)await saving;
             memory=new();memory.Install();IsolatedManager=memory.Isolated;
             await LoadRoom(clip);checks.Add("initial");
+            if(nativeSeek)
+            {
+                await NativeSeek.Run();Cursor.Stop();checks.Add("native-seek-slice");return;
+            }
             if(clip.Authority is not null)_fileBindings=RecordedState.Bind(_roster!);
             if(fromFile)
             {
@@ -136,8 +141,8 @@ internal static class PlayerLoop
             {
                 // Restore even when scene cleanup fails, while reporting the failure rather than claiming isolation passed.
                 if(memory is not null&&!ReferenceEquals(SaveManager.Instance,memory.Original))try{restored=memory.Restore();}catch{restored=false;}
-                Runtime.Log("playback-closed",new{Id=id,Checks=checks,Position=Cursor?.Rebuilding==true?(int?)null:Cursor?.Position,AllOperationsMatched=complete,VictoryReached,Error,OriginalManagerRestored=memory is not null&&ReferenceEquals(SaveManager.Instance,memory.Original),NormalContinueAndOriginalProgressUnchanged=restored,OriginalProgressFileIncluded=true,WallMilliseconds=Stopwatch.GetElapsedTime(started).TotalMilliseconds});
-                Active=false;TearingDown=false;ChoiceAbort=false;Prequeuing=false;DispatchIndex=-1;_playingClip=null;Prequeued.Clear();Committed.Clear();IsolatedManager=null;Ui.ClosePlayback();ActionMonitor.Reset();ChoiceTape.Clear();DecisionRoute.Clear();Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;
+                Runtime.Log("playback-closed",new{Id=id,Checks=checks,Position=NativeSeek.Enabled?(int?)NativeSeek.Position:Cursor?.Rebuilding==true?(int?)null:Cursor?.Position,AllOperationsMatched=complete,VictoryReached,Error,NativeSeek=NativeSeek.Enabled,OriginalManagerRestored=memory is not null&&ReferenceEquals(SaveManager.Instance,memory.Original),NormalContinueAndOriginalProgressUnchanged=restored,OriginalProgressFileIncluded=true,WallMilliseconds=Stopwatch.GetElapsedTime(started).TotalMilliseconds});
+                Active=false;TearingDown=false;ChoiceAbort=false;Prequeuing=false;DispatchIndex=-1;_playingClip=null;Prequeued.Clear();Committed.Clear();IsolatedManager=null;Ui.ClosePlayback();ActionMonitor.Reset();ChoiceTape.Clear();NativeSeek.Clear();DecisionRoute.Clear();Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;
                 await Runtime.FlushLog();
             }
         }
@@ -163,7 +168,7 @@ internal static class PlayerLoop
         Runtime.Log("playback-character-verified",new{Character=LiveState.Player.Character.Id.ToString(),RecordedCharacter=clip.Character,
             Relics=LiveState.Player.Relics.Select(r=>r.Id.ToString()).ToArray(),NativeCharacterAssets=true,Authority=clip.Authority});
         EnsureRoster();
-        if(DecisionRoute.Enabled)await NativeDisplayTrace.WaitForOpeningPresentation();
+        if(DecisionRoute.Enabled||NativeSeek.Enabled)await NativeDisplayTrace.WaitForOpeningPresentation();
     }
 
     private static async Task ClearRoom(MemorySession memory)
@@ -218,7 +223,7 @@ internal static class PlayerLoop
         }
     }
 
-    private static async Task<bool> Execute(Clip clip,int index,string mode)
+    internal static async Task<bool> Execute(Clip clip,int index,string mode)
     {
         var op=clip.Operations[index];
         if(ActionMonitor.Submitted(index) is {} submitted)return await AwaitSubmitted(clip,index,submitted,mode);
