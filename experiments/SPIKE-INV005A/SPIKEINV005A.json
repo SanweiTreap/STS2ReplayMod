@@ -1,0 +1,12 @@
+{
+  "id": "SPIKEINV005A",
+  "name": "SPIKE-INV005A Startup Barrier Probe",
+  "author": "STS2ReplayMod experiment",
+  "description": "Read-only main-menu startup timing and stable-gate probe.",
+  "version": "0.1.0-startup-barrier",
+  "min_game_version": "0.111.0",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": false
+}

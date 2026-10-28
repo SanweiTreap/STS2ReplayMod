@@ -1,0 +1,59 @@
+# Build outputs and IDE/cache files
+**/[Bb]in/
+**/[Bb]in-*/
+**/[Oo]bj/
+**/[Oo]bj-*/
+**/artifacts*/
+**/TestResults/
+.vs/
+.idea/
+*.user
+*.suo
+*.cache
+/.config/dotnet9/
+
+# Compiled dependencies and release artifacts are not source history
+*.dll
+*.pdb
+*.exe
+*.deps.json
+*.runtimeconfig.json
+
+# Local runtime evidence, saves, recordings, backups and game source cache
+/evidence/*
+!/evidence/README.md
+**/runtime/
+**/runtime-*/
+**/backups/
+**/recovery/
+**/decompiled/
+*.save
+*.save.*
+*.replay
+*.log
+*.dmp
+*.tmp
+*.bak
+
+# Downloaded third-party archives/source stay local; retain provenance/licenses
+/references/*
+!/references/README.md
+!/references/*LICENSE*
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+
+# Local credentials and machine overrides
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.local
+*.local.json
+Thumbs.db
+Desktop.ini

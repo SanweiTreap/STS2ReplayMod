@@ -1,0 +1,12 @@
+{
+  "id": "SPIKEINV008A",
+  "name": "SPIKE-INV008A Controlled Owner Fault Matrix",
+  "author": "STS2ReplayMod experiment",
+  "description": "Four-process controlled owner-fault and restart-isolation probe.",
+  "version": "0.6.0",
+  "min_game_version": "0.111.0",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": true
+}

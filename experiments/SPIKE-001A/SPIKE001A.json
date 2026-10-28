@@ -1,0 +1,12 @@
+{
+  "id": "SPIKE001A",
+  "name": "SPIKE-001A Disposable Restore Probe",
+  "author": "STS2ReplayMod experiment",
+  "description": "Disposable developer-only probe for native SerializableRun restore validation. Not product code.",
+  "version": "0.1.0-spike",
+  "min_game_version": "0.111.0",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": true
+}

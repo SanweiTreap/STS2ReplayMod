@@ -1,0 +1,12 @@
+{
+  "id": "SPIKEINV003A",
+  "name": "SPIKE-INV003A Replay Isolation Probe",
+  "author": "STS2ReplayMod experiment",
+  "description": "Disposable transactional in-memory SaveManager replay-isolation probe with ordered teardown and fail-closed audit.",
+  "version": "0.4.0-transaction-probe",
+  "min_game_version": "0.111.0",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": true
+}

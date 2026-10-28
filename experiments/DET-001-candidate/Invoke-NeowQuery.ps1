@@ -1,0 +1,11 @@
+param([Parameter(Mandatory=$true)][string]$OutputDirectory)
+$ErrorActionPreference='Stop';$workspace=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'));$dest=[IO.Path]::GetFullPath($OutputDirectory)
+if(-not $dest.StartsWith((Join-Path $workspace 'evidence/det-001/candidate-r1')+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or (Test-Path -LiteralPath $dest)){throw 'NEW_OUTPUT_SCOPE'}
+$query=Join-Path $workspace 'evidence/inv-002/Invoke-NarrowIlQuery.ps1';$cecil=Join-Path $env:USERPROFILE '.nuget/packages/ilspycmd/9.1.0.7988/tools/net8.0/any/Mono.Cecil.dll'
+$pattern='((GoldenPearl|BurningBlood).*::|Neow::(get_PositiveOptions|GenerateInitialOptions)\(|AncientEventModel::RelicOption|AncientEventModel/<.*(Relic|Chosen).*::MoveNext\(|RelicModel::IsAllowedAtNeow\(|AbstractModel::(BeforeHandDraw|AfterShuffle|ModifyShuffleOrder|ModifyHandDraw|AfterCardDrawn)\(|ModelId::(SlugifyEntry|SlugifyCategory)\()'
+$lines=& $query -Mode Disassemble -Pattern $pattern -CecilPath $cecil;if(-not $lines){throw 'EMPTY'}
+[void][IO.Directory]::CreateDirectory($dest);function Save([string]$name,[string]$text){$b=[Text.Encoding]::UTF8.GetBytes($text+[Environment]::NewLine);$s=[IO.File]::Open((Join-Path $dest $name),[IO.FileMode]::CreateNew);try{$s.Write($b)}finally{$s.Dispose()}}
+Save 'golden-pearl-neow.il.txt' ($lines -join [Environment]::NewLine)
+Add-Type -LiteralPath $cecil;$module=[Mono.Cecil.ModuleDefinition]::ReadModule('C:/Program Files (x86)/Steam/steamapps/common/Slay the Spire 2/data_sts2_windows_x86_64/sts2.dll')
+try{$type=$module.Types|Where-Object FullName -CEQ 'MegaCrit.Sts2.Core.Models.Relics.GoldenPearl';$data=[ordered]@{Type=$type.FullName;Sealed=$type.IsSealed;BaseType=$type.BaseType.FullName;DeclaredMethods=@($type.Methods|ForEach-Object {$_.FullName});RelevantInheritedHooks=@(foreach($name in @('BeforeHandDraw','AfterCardDrawn','AfterShuffle','ModifyShuffleOrder','ModifyHandDraw')){$owner=$type;while($owner -and @($owner.Methods|Where-Object Name -CEQ $name).Count -eq 0){$owner=$module.GetType($owner.BaseType.FullName)};@{Name=$name;DeclaringType=$owner.FullName}})};Save 'golden-pearl-metadata.json' ($data|ConvertTo-Json -Depth 6)}finally{$module.Dispose()}
+'PASS hash-gated GoldenPearl Neow reachability, acquisition, inherited draw/shuffle hooks metadata/IL'

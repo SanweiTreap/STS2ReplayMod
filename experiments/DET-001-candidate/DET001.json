@@ -1,0 +1,10 @@
+{
+  "id": "DET001",
+  "name": "DET-001 first natural reshuffle developer probe",
+  "author": "STS2ReplayMod",
+  "description": "Finite five-point four-action developer experiment; runtime authorization required.",
+  "version": "0.1.0",
+  "has_dll": true,
+  "has_pck": false,
+  "affects_gameplay": true
+}

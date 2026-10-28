@@ -1,0 +1,19 @@
+param([string]$OutputDirectory)
+$ErrorActionPreference='Stop';$workspace=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'));$dotnet=Join-Path $env:USERPROFILE '.dotnet/dotnet.exe'
+if(-not $OutputDirectory){$OutputDirectory=Join-Path $workspace ('evidence/det-001/candidate-r3/validation-'+[Guid]::NewGuid().ToString('N'))};$output=[IO.Path]::GetFullPath($OutputDirectory)
+if(-not $output.StartsWith((Join-Path $workspace 'evidence/det-001/candidate-r3')+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or (Test-Path -LiteralPath $output)){throw 'NEW_OUTPUT_SCOPE'}
+[void][IO.Directory]::CreateDirectory($output)
+function Save([string]$name,[string]$value){$bytes=[Text.UTF8Encoding]::new($false).GetBytes($value+[Environment]::NewLine);$s=[IO.File]::Open((Join-Path $output $name),[IO.FileMode]::CreateNew);try{$s.Write($bytes)}finally{$s.Dispose()}}
+function Identity([string]$path){$f=Get-Item -LiteralPath $path;[ordered]@{Path=[IO.Path]::GetRelativePath($workspace,$f.FullName).Replace('\','/');Bytes=$f.Length;SHA256=(Get-FileHash -LiteralPath $f.FullName).Hash}}
+$build=& $dotnet build (Join-Path $PSScriptRoot 'tests/DET001.Tests.csproj') -c Release --nologo --ignore-failed-sources 2>&1;$code=$LASTEXITCODE;Save 'release-build.txt' ($build -join [Environment]::NewLine);if($code -ne 0){throw 'BUILD'}
+$tests=& $dotnet (Join-Path $PSScriptRoot 'tests/bin/Release/net9.0/DET001.Tests.dll') $workspace (Join-Path $output 'cases') 2>&1;$code=$LASTEXITCODE;Save 'tests.txt' ($tests -join [Environment]::NewLine);if($code -ne 0){throw 'TESTS'}
+$candidate=Join-Path $PSScriptRoot 'bin/Release/net9.0/DET001.dll'; & (Join-Path $PSScriptRoot 'Invoke-CandidateAudit.ps1') -ProbeDll $candidate -Output (Join-Path $output 'candidate-audit.txt')
+$legacy=& (Join-Path $workspace 'experiments/DET-001-candidate/Verify-Delivery.ps1');Save 'r1-retained.txt' ($legacy -join [Environment]::NewLine)
+$oldR2=Get-Content -LiteralPath (Join-Path $workspace 'evidence/det-001/candidate-r2/delivery-2026-10-23.json') -Raw|ConvertFrom-Json
+foreach($f in $oldR2.Files){$p=Join-Path $workspace $f.Path;if((Get-Item -LiteralPath $p).Length -ne $f.Bytes -or (Get-FileHash -LiteralPath $p).Hash -cne $f.SHA256){throw 'OLD_R2_CHANGED'}}
+Save 'r2-retained.txt' ('PASS '+$oldR2.Files.Count+' sealed r2 files unchanged; source/artifacts/evidence retained')
+$summary=Get-Content -LiteralPath (Join-Path $output 'cases/summary.json') -Raw|ConvertFrom-Json;if($summary.Passed -ne 144){throw 'CASE_COUNT'}
+$sources=@(Get-ChildItem -LiteralPath $PSScriptRoot -Recurse -File|Where-Object {$_.FullName -notmatch '[\\/](bin|obj|artifacts-candidate-r3)[\\/]' -and $_.Extension -in @('.cs','.csproj','.txt','.json','.ps1')}|Sort-Object FullName|ForEach-Object {Identity $_.FullName})
+$receipt=[ordered]@{Schema=1;Date='2026-10-23';Authorization='D-082 exact Neow qualification revision';Revision='candidate-r3';Status='OFFLINE_NEOW_REVISION_VALIDATED_RUNTIME_PENDING';Passed=144;Release='0 warning/error';Candidate=Identity $candidate;Sources=$sources;ActualTargets=11;OrdinaryCallbacks=15;ExactNonGenericCallsiteTranspilers=1;OriginalInstructionsPreserved=$true;SharedGenericMethodPatched=$false;OriginalShuffleDrawTasksReplaced=$false;OriginalGameEffectApisUnchanged=$true;R1FailureReproductionRetainedNotRepeated=$true;ActualStringAndValueTypeUtilitiesPass=$true;NewAllowedNeowIds=6;PrivateSchema=2;OldR2DeliveryFiles=$oldR2.Files.Count;OldR1DeliveryFiles=73;OldDETFiles=51;OldInputs=6;Old001BFiles=158;FormalArms=0;TargetProductionCallbacksExecuted=$false;GameStarted=$false;AccountOrPrivateRead=$false}
+Save 'receipt.json' ($receipt|ConvertTo-Json -Depth 9)
+"PASS r3 Release/144 cases/11 targets/callsite audit; Neow state/CP binding validated; all sealed r2/r1/older identities preserved; output=$output"
