@@ -92,7 +92,11 @@ internal static class PlayerLoop
                 {
                     complete=false;await Rewind(clip);complete=!Cursor.Rebuilding&&Cursor.Finished;continue;
                 }
-                if(!DecisionRoute.CanExecute||!Cursor.TryBegin()){await Runtime.NextFrame();continue;}
+                // A native lookahead already consumed its user request. Enter its bookkeeping
+                // host without requesting another Step or dispatching the card a second time.
+                var submitted=Committed.Contains(Cursor.Position);
+                if(!DecisionRoute.CanExecute||!Cursor.TryBegin(alreadySubmitted:submitted)){await Runtime.NextFrame();continue;}
+                if(submitted)Runtime.Log("playback-committed-host-entered",new{Sequence=Cursor.Position+1,UserRequestConsumedAgain=false,NativeDispatchRepeated=false});
                 var index=Cursor.Position;
                 if(!await Execute(clip,index,"forward"))break;VictoryReached=clip.Operations[index].Victory;
                 if(!VictoryReached&&!DecisionRoute.Enabled)await CaptureCheckpoint(index+1,clip.Operations[index].After);
@@ -309,6 +313,13 @@ internal static class PlayerLoop
         {
             Codec.Require(Stopwatch.GetElapsedTime(started).TotalSeconds<60,"committed-queue-did-not-drain");
             ThrowIfError();await Runtime.NextFrame();
+        }
+        foreach(var index in Committed)
+        {
+            var actual=await ActionMonitor.Submitted(index)!.Delivery.Task;var expected=_playingClip!.Operations[index];
+            Codec.Require(actual.Victory==expected.Victory,"committed-drain-victory-mismatch");
+            Check("committed-drain-"+expected.Sequence,expected.After,actual.After);
+            Runtime.Log("playback-committed-drained",new{expected.Sequence,StateMatched=true,NativeDispatchRepeated=false});
         }
         Prequeued.Clear();Committed.Clear();
     }

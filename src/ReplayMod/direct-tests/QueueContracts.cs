@@ -50,6 +50,20 @@ internal static class QueueContracts
         Need(ahead.Take()&&ahead.Take()&&ahead.Count==1,"current-and-native-lookahead-not-counted-once");
         // A checkpoint publication consumes no second request for the already submitted lookahead.
         Need(ahead.Count==1&&ahead.Take()&&!ahead.Take(),"lookahead-checkpoint-double-consumed-request");
+        // Real two-level handoff: the native card was submitted by lookahead, while the outer
+        // playback cursor has consumed only the first Step. This is the 002 stall regression.
+        var engine=new PlaybackCursor(3);var route=new DecisionCursor();var clicks=new AdvanceRequests();route.Append();
+        for(var i=0;i<3;i++)clicks.Add();
+        Need(clicks.Take()&&route.Step()&&route.Take()==1&&engine.Step()&&engine.TryBegin(),"begin-first-native-host");route.EngineWait();
+        Need(clicks.Take()&&clicks.Count==1,"reserve-second-native-input");
+        route.Append();Need(route.Step()&&route.Take()==1,"checkpoint-first-reserve-second-route");route.EngineWait();engine.Complete();
+        Need(!engine.TryBegin()&&!route.Ready,"002-stall-shape-not-reproduced");
+        Need(engine.TryBegin(alreadySubmitted:true)&&engine.Busy&&engine.Position==1&&clicks.Count==1,"committed-host-needed-another-user-step");
+        engine.Complete();route.Append();Need(engine.Position==2&&route.Position==2&&clicks.Count==1,"two-hosts-did-not-arrive-independently");
+        Need(clicks.Take()&&route.Step()&&route.Take()==1&&engine.Step()&&engine.TryBegin(),"third-click-lost-after-lookahead");
+        route.EngineWait();engine.Complete();route.Append();Need(engine.Position==3&&route.Position==3&&!clicks.Take(),"three-clicks-not-exactly-three-after-native-queue");
+        var stoppedEngine=new PlaybackCursor(2);Need(stoppedEngine.Step()&&stoppedEngine.TryBegin(),"stop-setup");stoppedEngine.Complete();stoppedEngine.Stop();
+        Need(!stoppedEngine.TryBegin(alreadySubmitted:true),"committed-bookkeeping-restarted-stopped-viewer");
         foreach(var command in new[]{"pause","back","stop","terminal","new-session"})
         {requests.Add();requests.Add();Need(requests.Take(),command);requests.Clear();Need(!requests.Take()&&requests.Count==0,"stale-request-after-"+command);}
         // One choice-open, one selection and one confirm are three existing nodes, not one host.
@@ -73,7 +87,7 @@ internal static class QueueContracts
         var store=new ClipStore(Path.Combine(folder,"queue-file-fixture"));store.Seal(clip);var loaded=store.Read(clip.Id,"game","mod","scope");
         Need(Codec.Bytes(clip).SequenceEqual(Codec.Bytes(loaded)),"production-queue-time-readback");
         File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_CUMULATIVE_REQUEST_AND_FORMAT6_OVERLAP_CONTRACTS",NativeQueueExecuted=false,
-            Checks=new[]{"three clicks include current move once","cancel and generation clear unsent work","choice nodes remain distinct",
+            Checks=new[]{"three clicks include current move once","outer playback and route cursor consume committed second host without another Step","third request survives committed handoff","Stop rejects committed bookkeeping restart","cancel and generation clear unsent work","choice nodes remain distinct",
                 "format6 accepts overlapping input with ordered completion","format5 serial time unchanged","reversed input/completion rejected","production readback preserves timestamps"}}));
         Console.WriteLine("PASS_CUMULATIVE_REQUEST_AND_FORMAT6_OVERLAP_CONTRACTS");
     }

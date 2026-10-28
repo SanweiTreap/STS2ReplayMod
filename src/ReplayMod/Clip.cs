@@ -162,9 +162,9 @@ public sealed class PlaybackCursor(int count)
         Position=arrived;RewindTarget=null;Rebuilding=false;Busy=false;Playing=false;_step=false;
     }
     public void Stop(){StopRequested=true;Playing=false;_step=false;_choiceStep=false;}
-    public bool TryBegin()
+    public bool TryBegin(bool alreadySubmitted=false)
     {
-        if(Busy||StopRequested||Position>=count||(!Playing&&!_step))return false;
+        if(Busy||StopRequested||Position>=count||(!Playing&&!_step&&!alreadySubmitted))return false;
         Busy=true;_step=false;return true;
     }
     public void Complete(){Codec.Require(Busy&&!Rebuilding,"no-active-operation");Position++;Busy=false;if(Position==count)Playing=false;}

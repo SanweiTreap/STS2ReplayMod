@@ -4,7 +4,7 @@
 
 目前处于开发原型阶段，固定目标为 **STS2 public-beta v0.111.0**。已有单场战斗的真实录制、独立回放、选择界面和观看会话内的直接后退；铁甲、猎人、储君的部分机制组合已有实测。尚未完成整局录制、全内容覆盖、一般文件状态恢复或发布性能保证。
 
-当前开发任务为 **PLAYBACK-001：累计Step与普通牌连续入队**。分支中的开发代码可能包含未实测完成的改动；首次导入Git是开发快照，不是正式发布版本。最新事实、限制和下一步以[项目状态](project-management/CURRENT_STATUS.md)及[当前工作包](project-management/handoffs/PLAYBACK-001.md)为准。
+当前开发任务为 **SEEK-001：可续播状态恢复与统一原生前进**，先验证跨回合/选牌状态跳转后继续原生执行；旧PLAYBACK-001停放，不能据此称最终架构已完成。分支包含开发快照，不是正式发布版本。最新事实、限制和下一步以[项目状态](project-management/CURRENT_STATUS.md)及[当前工作包](project-management/handoffs/SEEK-001.md)为准。
 
 ## 目录
 

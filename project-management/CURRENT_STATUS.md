@@ -1,10 +1,10 @@
 # 当前项目状态
 
-更新：2026-10-28。当前PLAYBACK-001/D-117启动；CONTENT-004按固定组合DONE_WITH_LIMITATIONS，CONTENT-003/002保持关闭。交互沿D-117累计Step、D-112正常时钟与D-115 Back高亮，权限沿D-092。开始工作先读本页，详细历史按需查报告。
+更新：2026-10-29。D-119确认基本导航体验，当前SEEK-001验证可续播状态恢复与统一原生前进；讨论HOLD对新包结束。旧PLAYBACK-001停放，003结果未反馈仍Unknown；CONTENT-004/003/002保持收束。开始工作先读本页，详细历史按需查报告。
 
 ## 玩家现在能用到什么
 
-已有能实际体验的单场战斗回放原型，还不能自动记录、观看一整局正常游戏。CONTENT-004按储君资源/可变卡牌/时间的固定实测组合收束，见[验收](../evidence/content-004/project-lead-review-2026-10-28.md)；全内容/发布性能仍未完成。用户已选连点Step累计步数，PLAYBACK-001将先打通普通两牌原生连续入队及录制/回放/Back/Stop，尚无新能力通过；008保留，不要求重测008。
+已有能实际体验的单场战斗回放原型，还不能自动记录、观看整局正常游戏。CONTENT-004按储君资源/可变卡牌/时间固定组合收束，见[验收](../evidence/content-004/project-lead-review-2026-10-28.md)；全内容/发布性能未完成。旧PLAYBACK-001有真实排队录制证据、002观看失败、003未反馈结果。当前SEEK-001先验证恢复后原生续播，不把新产品规格当新能力已实现；旧可用版保留。
 
 在已经支持并实测的战斗范围内，可以：
 
@@ -30,7 +30,7 @@ CONTENT-002已收束：默认展示最终确认的选择，原始41事件保留�
 
 ## 当前范围与缺口
 
-当前固定STS2 v0.111.0、仅ReplayMod、默认modded profile1。格式5入口开放铁甲/猎人/储君A0首幕首排普通战斗、无额外run modifiers；储君资源/时间与观看恢复按固定组合验收，连续输入及播放手感由PLAYBACK-001推进；其他角色未开放，Continue不录制。旧格式1–4时间未知，原片校验保持；STATE-001仍铁甲格式3固定文件点，固定组合不代表全内容通过。
+当前固定STS2 v0.111.0、仅ReplayMod、默认modded profile1。入口开放铁甲/猎人/储君A0首幕首排普通战斗、无额外run modifiers；储君格式5资源/时间与观看恢复按固定组合验收。新录格式6允许接受/完成交叠，目前仅铁甲真实排队片录成，观看待验证；其他角色未开放，Continue不录制。旧格式1–4时间未知，原片校验保持；STATE-001仍铁甲格式3固定文件点，固定组合不代表全内容通过。
 
 还没有面向玩家完成：
 
@@ -42,7 +42,13 @@ CONTENT-002已收束：默认展示最终确认的选择，原始41事件保留�
 
 用户报告的拖牌取消后换位、凋萎与抽牌互卡尚未复现。官方历史修复及本地源码支持这类异步时序风险存在，不能把具体根因写成已确认。见[动画与时序笔记](technical-notes/NATIVE-ANIMATION-TIMING.md)。
 
-## 下一步怎么选
+## 当前决定与下一步
+
+用户已认可D-119基本体验：Step正常展示到下一操作/选择停点、点击累计；Back直达上一节点暂停；Seek直接呈现目标、默认暂停。D-118保持A当前效果/自动连锁收尾、B仅排队则不开始，背景idle/浏览可用；敌方每敌人或整轮暂停由实现便利选择。优先参考原生多人共用队列/动画，减少自建模拟；见[体验基线](technical-notes/PLAYBACK-EXPERIENCE.md)。
+
+现启动[SEEK-001](handoffs/SEEK-001.md)：少量可恢复索引、跨回合/选牌相关状态的跳转与原生续播，Step/Back/Seek共用新路线。可用新入口/策略先验证，不先删除旧实现、整局预计算或建设无头平台。新路径允许恢复后正常重执行业务/RNG，核对各次结果与原记录一致，不沿用旧历史显示RngUnchanged要求；旧Task不能复活、进度隔离与只读保留。任意未访问位置/精确帧、通用文件恢复和缓存策略仍未证明，见[架构评估](technical-notes/SEEK-FIRST-ARCHITECTURE.md)。普通bug/重构/备份安装/人工测试沿D-092同包自行推进，无新阶段审批。
+
+## 旧路线已获得的执行进展（供新包参考，不续跑清单）
 
 CONTENT-004原片cd3baa3b1be7466f9cb94d385c3db420已实际录成13操作/3回合，Stars3→6→4，剑13/克隆14的降费/重置与手里/弃牌18→33均核对；两剑IsDupe=false，双持单候选自动选择，非人工UI覆盖。13组接受/完成时间已真实落盘及生产读回；24.833秒是指定两操作间全部等待，不分离成精确5秒。旧片时间未知、原始节奏模式未实现，见[r1复核](../evidence/content-004/runtime-verification-r1.json)。
 
@@ -54,17 +60,22 @@ CONTENT-004原片cd3baa3b1be7466f9cb94d385c3db420已实际录成13操作/3回合
 
 用户已确认D-117：每次Step计一现有操作/选择节点，连点累计，Pause/Back/Stop清尚未提交请求；已提交业务按安全边界处理。现签[PLAYBACK-001](handoffs/PLAYBACK-001.md)，先做普通两牌真正原生连续入队，区分输入/动作归属/完成/恢复点，验证累计Step和录制/首次/历史/Back/Stop。仅扩Step请求容量与自然提交条件，不靠快进跳动画；具体队列恢复仍待证明。相关普通bug同包迭代，不另开INV/逐阶段审批。
 
-PLAYBACK-001/build-001录制候选已安装，待人工两防御快速连续输入、正常胜利封存；步骤见[实现报告](investigation-reports/PLAYBACK-001-report.md)。按GameAction归属接受/执行/完成、累计请求与格式6交叠时间合同已有离线证据，旧片保持；验真实排队还须确认第二接受时前原生Task确未完成，不只比较观察器时间。观看前沿目前仍串行，尚无原生排队录制/提前入队观看/逐节点恢复通过结论，0.8/0.55等等待尚未改。取得真实样本后在同包直接继续，无新审批。
+PLAYBACK-001/001的真实13操作胜利片3eb6baeb507043259b4e59562ae510a5已封存，格式6/SHA2C278C4F…126CC8。Implementation r1摘要记60事件、13接受/执行/完成，首两防御实例3/2，能量3→2→1、格挡0→5→10；第二接受时前原生Task未完成，交叠32.8004ms，生产读回一致，见[r1摘要](../evidence/playback-001/runtime-verification-r1.json)。原生日志6 InvalidTaskID与12退出诊断保留，未据此定因或称全干净；PM本次读摘要/报告，未重数全部原事件。
+
+002/r2实测FAIL：461事件、8 opens/Stop，4次提前提交第二防御，原生完成2次而外层仅核对1次，卡在1/AwaitingEngine；历史播放0、无完整胜利。Implementation定位累计请求已被预提交消费，DecisionCursor已EngineWait而PlaybackCursor.TryBegin仍要求另一_step；源码/生产游标合同覆盖此旧失活形态。8次原manager/所比较Continue进度恢复不代替流程通过，见[r2失败摘要](../evidence/playback-001/runtime-verification-r2.json)。
+
+003只让当前本会话已Committed的宿主进入外层核对，不重复扣请求/派业务；Stop drain新增已提交真实结果/胜利核对。离线通过、原生未验；下一缩为同新片三击精确到3、Back两次到1、Step到2(E1/B10)、Stop正常退出，先解除阻塞并触及历史，再同包继续显示/取消/终点和既有选择回归。提前入队仍仅格式6同回合无选择非终结Self/None技能单张lookahead，格式6去自动0.55，末动作/选择/终点保护保留；不把002未触及的历史尾部称通过，不重录/重测008或加审批。
 
 MVP目标仍为自动录制、尽可能覆盖单人场景、独立Replay入口、不占用正常Continue、双向导航和可配置节奏。全部卡牌、遗物、药水是覆盖目标，固定样本通过不缩小该目标。多人为MVP后第一优先，跨版本为后续大目标；接管游戏不在MVP内。
 
 ## 当前工程与恢复点
 
 - 可演进工程：[src/ReplayMod](../src/ReplayMod/README.md)。已有本地反编译C#缓存，日常定位/hook源码优先，IL仅用于歧义，不逐方法复证。
-- 当前安装PLAYBACK-001/build-001，SHA-256 `6A4B1730418177CEC01CCDAE0A4D5FDE72541D34DEBD3BC2A83ED521F654EC10`，[收据](../evidence/playback-001/preparation/build-001-55332b1e.json)记pair匹配、仅ReplayMod/modded1及安装时game0；尚未runtime验证。已测CONTENT-004/008 pair与设置/selector保留在旧恢复点preparations/build-001-55332b1e；不重测008，不将其完整观看证据用于证明新排队实现。
+- Git：私有仓库[SanweiTreap/STS2ReplayMod](https://github.com/SanweiTreap/STS2ReplayMod)，main已首次推送；源码/文档入库，原始证据/存档/构建与第三方快照留本地，见[协作规则](REPOSITORY.md)。开发快照不是实测发布。
+- 当前安装PLAYBACK-001/build-003，SHA-256 `AB1186D0E4D5C9A1D0499FA28807C317FC304527CD12C010E13658F583ADAE4A`，[收据](../evidence/playback-001/preparation/build-003-5a07c62b.json)记pair匹配及安装时game0；用户测试已结束但结果暂未反馈，不认PASS/FAIL。002失败pair/config、461事件/片/Godot及003源码检查保留；001真实录制与008旧结论各自保持，不混用各版证据。
 - 最新完整恢复点按收据为`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，1280文件、132063795 bytes，来源/副本读回且来源稳定。Implementation按真实清单复核r4的54个saves内容保持；旧r2汇总53是沿旧点硬编码，原比较循环覆盖新清单54项，已加注更正，原日志不改。内容相同不证明无同值写入；更早progress备份差异/前后副本与全部重要原片/事件保留，PM不重复整账号审计。
-- 部分快照：同恢复点下CONTENT004-current-saves-20261028-150051为41文件/4471059 bytes；PLAYBACK001-current-saves-20261028-203942为49文件/4348913 bytes，Implementation记录已知save/config/native replay父目录来源稳定及逐hash读回。它们不替代旧完整恢复点、不表示重审历史run；未执行恢复/扫描另一账号。
-- 当前Implementation对话：`01a17814-d254-7df0-8c01-affe43d0e04c`，沿PLAYBACK-001/D-117继续实现，保留008；可直接相关重构/构建/必要备份安装和请求人工测试，不重跑旧包或先等新批准。PM只维护管理文档及验收。
+- 部分快照：同恢复点下CONTENT004-current-saves-20261028-150051为41文件/4471059 bytes；PLAYBACK001的203942快照49文件/4348913 bytes、最新20261028-223031快照51文件/4439940 bytes，Implementation记录已知save/config/native replay父目录来源稳定及逐hash读回。它们不替代旧完整恢复点、不表示重审历史run；未执行恢复/扫描另一账号。
+- 当前Implementation对话：`01a17814-d254-7df0-8c01-affe43d0e04c`，沿SEEK-001/D-119恢复工作，保留003与旧可用版；可自主相关改动/构建/必要备份安装和请求人工实测，不补跑003或先等批准。PM维护管理文档及验收。
 - 实验文件格式有精确身份/已知前驱build限制，不代表一般跨版本播放。
 
 ## 有效开发授权与工作方式
