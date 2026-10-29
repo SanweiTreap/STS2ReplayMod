@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。PLAYBACK-003/build-001新录主闭环与build-002单独Fine暂停入队/到点暂停已验；Complete Fine后显式请求混排截断已修并安装build-003/源码0f1f3a1，当前仅待相关短测收束。PM覆盖静态材料已交，仓库按D-129公开。旧PLAYBACK-002/003验收保留，旧PLAYBACK001/003仍Unknown。
+更新：2026-10-30。D-130后用户进一步提出取消独立Play/Pause，改为手动等待/Auto自动推进，当前按D-131讨论模型；不先按旧控件方案出包。PLAYBACK-003新录主闭环和旧控制证据保留，不继续扩Partial Fine暂停预排。PM覆盖材料已交，仓库公开。旧PLAYBACK001/003仍Unknown。
 
 ## 玩家现在能用到什么
 
@@ -62,7 +62,11 @@ PLAYBACK-003/001首轮已验：PM读取报告/摘要及用户“这个好了，�
 
 单Fine的r4已验：PM核摘要及471原事件，37次原生结果/RNG匹配（1..21及1..16），Stop21/16无Error/Outstanding且原manager/所比较Continue进度恢复。Fine11/12在暂停时真实enqueued、BusinessStarted=false，Play后到各目标Running=false/Auto=true。混排Fine14/Whole15/Fine16后两项仍延至Play，作为独立缺口保留；见[r4摘要](../evidence/playback-003/runtime-verification-r4.json)。原12秒间隔是用户主动暂停，不称引擎卡顿。
 
-混排修复已装build-003/87F3039C…2D8F6，源码0f1f3a1：去掉Complete Fine后无条件截断，已有显式请求共用原三项合法卡窗口，不生成Auto/未预约后继，内部选择/同宿主阶段与Pause业务门保持；最后Fine无后续显式请求仍暂停/保留Auto。12请求/4路线及原片读取离线检查由Implementation通过，原生混排短测Pending。只需同片开场三小刀“>、>>、>”预入队→Play到最后Fine暂停→Stop；保留新片和主链，不重录或重跑整场矩阵。
+旧混排修复build-003/87F3039C…2D8F6、源码0f1f3a1已安装；用户随后反馈三小刀混排符合预期，但HiddenDaggers首Fine指向选择阶段时未入队，旧Partial候选过滤为静态原因，运行证据由Implementation封存。用户此时改定D-130，停止继续扩展暂停Fine预入队，不要求为旧交互追加测试。
+
+当前实施目标：>新请求仅Running&&!Auto可受理，暂停/Auto开时UI与入口均拒绝；到细阶段保持Running，Auto关且无新请求就等待，可继续>或>>。Pause/Play保留目标/精细等待，不凭空创建WholeContinuation跨过选择；主动开Auto按连续模式继续。>>暂停预约、Back/Seek/Stop原规则保持。新规则沿当前包实现和同片短测，不重录或重跑整场；旧控件结果不当新规则PASS。
+
+后续用户又提议D-131：去掉独立Play/Pause，让Auto关的等待状态承担精细观察，>推进细阶段，>>收尾完整动作。PM先整理两模式方案及显式队列中途停留的取舍，不将前述D-130当作最终UI继续出包。Implementation保留未交付草稿并封存r5/分析影响；新方案具体模型尚在讨论，不能提前宣布实现或验收完成。
 
 游玩后当前51文件补充备份已由Implementation完成并读回，是已知当前文件补充，不称新完整账号快照。初始选择/全部内容和其他胜利形态仍未证明，覆盖研究不扩本包。
 
