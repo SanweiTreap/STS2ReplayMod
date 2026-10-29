@@ -4,7 +4,7 @@
 
 目前处于开发原型阶段，固定目标为 **STS2 public-beta v0.111.0**。已有单场战斗的真实录制、独立回放、选择界面和观看会话内的直接后退；铁甲、猎人、储君的部分机制组合已有实测。尚未完成整局录制、全内容覆盖、一般文件状态恢复或发布性能保证。
 
-**PLAYBACK-003/build-001已通过本轮真实新录→普通入口完整播放→后退续播→退出重开的单场闭环**，另有参考猎人和既有铁甲录像验证。暂停精细前进的普通牌入队反馈已修为build-002，待相关短测后收束本包；不代表全内容、任意位置或通用文件Seek完成。仓库为开发快照，最新事实与限制见[项目状态](project-management/CURRENT_STATUS.md)和[PLAYBACK-003范围](project-management/handoffs/PLAYBACK-003.md)。
+**PLAYBACK-003/build-001已通过本轮真实新录→普通入口完整播放→后退续播→退出重开的单场闭环**，另有参考猎人和既有铁甲录像验证。暂停精细/完整操作混排的入队反馈仍在原包修复，本包尚未收束；不代表全内容、任意位置或通用文件Seek完成。仓库为开发快照，最新事实与限制见[项目状态](project-management/CURRENT_STATUS.md)和[PLAYBACK-003范围](project-management/handoffs/PLAYBACK-003.md)。
 
 ## 目录
 
