@@ -32,6 +32,20 @@ internal static class ActionMonitor
     private static readonly Dictionary<int,PendingOperation> PlaybackAccepted=[];
     internal static bool Outstanding=>Pending is not null||Accepted.Count>0;
     internal static PendingOperation? Submitted(int index)=>PlaybackAccepted.GetValueOrDefault(index);
+    internal static PendingOperation? Find(GameAction action)=>Accepted.GetValueOrDefault(action);
+    internal static void Cancelled(GameAction action)
+    {
+        if(!Accepted.TryGetValue(action,out var pending))return;
+        NativeSeek.Cancelled(pending);Accepted.Remove(action);PlaybackAccepted.Remove(pending.PlaybackIndex);
+        if(ReferenceEquals(Pending,pending))Pending=null;
+        pending.Delivery.TrySetCanceled();
+    }
+    internal static void CompleteAtQueueBoundary()
+    {
+        if(!NativeSeek.Enabled||Pending is not {Executing:true} p||p.Template.Kind==OperationKind.EndTurn||
+            p.Action.State!=MegaCrit.Sts2.Core.Entities.Actions.GameActionState.Finished||ChoiceTape.Waiting||BattleEnd.Ending)return;
+        if(Success(p.ActionTask)&&Success(p.EffectTask)&&p.DerivedTasks.All(Success))Complete(p,false,"before-next-action");
+    }
     internal static void Reset(){Pending=null;Completed=null;Error=null;StartTurnTask=null;Generation=0;Accepted.Clear();PlaybackAccepted.Clear();BattleEnd.Reset();}
     internal static void RebaseNativeSeek()
     {
@@ -97,7 +111,7 @@ internal static class ActionMonitor
             Codec.Require(index>=0,"queued-card-left-hand-before-execution");
             operation.Template=operation.Template with{Turn=LiveState.Turn,HandIndex=index,CardState=LiveState.CardIdentity(card)};
         }
-        if(PlayerLoop.Active)PlayerLoop.VerifySubmittedStart(operation);
+        if(PlayerLoop.Active){if(NativeSeek.Enabled)NativeSeek.Started(operation);else PlayerLoop.VerifySubmittedStart(operation);}
         Runtime.Log("native-input-executing",new{Kind=operation.Template.Kind.ToString(),operation.Template.Card,
             operation.Template.HandIndex,AcceptedMilliseconds=operation.Template.Timing?.AcceptedMilliseconds,UnfinishedInputs=Accepted.Count,
             NativeActionId=action.Id,SeekGeneration=NativeSeek.Enabled?(int?)NativeSeek.Generation:null});
@@ -140,7 +154,7 @@ internal static class ActionMonitor
     }
     private static void Complete(PendingOperation p,bool victory,string boundary)
     {
-        ChoiceTape.AssertBoundary(PlayerLoop.Active?(NativeSeek.Enabled?NativeSeek.Host:PlayerLoop.Cursor!.Position+1):Recorder.ChoiceBoundary);
+        ChoiceTape.AssertBoundary(PlayerLoop.Active?p.PlaybackIndex+1:Recorder.ChoiceBoundary);
         var completion=Recorder.Active&&p.Template.Timing is {} time?time with{CompletedMilliseconds=RecordingClock.Now}:null;
         Completed=p.Template with{After=victory?BattleEnd.Projection!:LiveState.Capture(),Victory=victory,Timing=completion};Pending=null;Accepted.Remove(p.Action);
         if(PlayerLoop.Active&&boundary=="before-next-action")DecisionRoute.QueuedBoundary(p.PlaybackIndex+1);
@@ -148,6 +162,7 @@ internal static class ActionMonitor
         if(LiveState.Format>=3)Runtime.Log("operation-mechanics",new{Mode=PlayerLoop.Active?"playback":"recording",Kind=p.Template.Kind.ToString(),p.Template.Turn,
             p.Template.Card,p.Template.CardState,p.Template.Potion,p.Template.Target,Victory=victory,Before=p.BeforeMechanics,After=victory?null:LiveState.Mechanics()});
         if(Recorder.Active)Recorder.Append(Completed);
+        if(NativeSeek.Enabled)NativeSeek.Completed(p,Completed);
         p.Delivery.TrySetResult(Completed);
     }
 }

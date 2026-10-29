@@ -3,6 +3,7 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.GameActions;
+using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Audio;
 using MegaCrit.Sts2.Core.Rooms;
@@ -77,7 +78,7 @@ internal static class PlayerLoop
             await LoadRoom(clip);checks.Add("initial");
             if(nativeSeek)
             {
-                await NativeSeek.Run();Cursor.Stop();checks.Add("native-seek-slice");return;
+                await NativeSeek.Run();Cursor.Stop();checks.Add("playback002-operation-navigation");return;
             }
             if(clip.Authority is not null)_fileBindings=RecordedState.Bind(_roster!);
             if(fromFile)
@@ -261,6 +262,21 @@ internal static class PlayerLoop
             NativeEnqueueMilliseconds=Stopwatch.GetElapsedTime(verified).TotalMilliseconds});
         var pending=ActionMonitor.Submitted(index)??throw new InvalidDataException("dispatch-not-observed");
         return await AwaitSubmitted(clip,index,pending,mode);
+    }
+    internal static void SubmitOperation(Operation op,int index,CardModel? card)
+    {
+        Dispatching=true;DispatchIndex=index;Prequeuing=true;
+        try
+        {
+            if(op.Kind==OperationKind.Card)Codec.Require(card!.TryManualPlay(LiveState.Resolve(op.Target)),"operation-native-play-rejected");
+            else if(op.Kind==OperationKind.Potion)
+            {
+                var key=op.Potion!;var potion=LiveState.Player.GetPotionAtSlotIndex(key.Slot)??throw new InvalidDataException("operation-potion-missing");
+                Codec.Require(LiveState.PotionIdentity(potion,key.Slot)==key,"operation-potion-identity");potion.EnqueueManualUse(LiveState.Resolve(op.Target));
+            }
+            else RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new EndPlayerTurnAction(LiveState.Player,op.Turn));
+        }
+        finally{Prequeuing=false;Dispatching=false;DispatchIndex=-1;}
     }
     private static async Task<bool> AwaitSubmitted(Clip clip,int index,PendingOperation pending,string mode)
     {

@@ -9,6 +9,7 @@
   <ItemGroup><Compile Include="../AdvanceRequests.cs" Link="AdvanceRequests.cs" /><Compile Include="QueueContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../SeekPlan.cs" Link="SeekPlan.cs" /><Compile Include="SeekContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../SeekPlayback.cs" Link="SeekPlayback.cs" /><Compile Include="SeekPlaybackContracts.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../OperationRequests.cs" Link="OperationRequests.cs" /><Compile Include="OperationContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="CharacterContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="TimingContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="RegentRecordingContracts.cs" /></ItemGroup>

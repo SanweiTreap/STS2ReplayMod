@@ -151,13 +151,13 @@ internal static class ChoiceTape
     internal static bool Remote(Player player,uint id,ref Task<PlayerChoiceResult> result)
     {
         if(!_watch||!PlayerLoop.Active)return true;
-        if(NativeSeek.Enabled){result=NativeSeek.OpenChoice(_scope??throw new InvalidDataException("unscoped-seek-choice"),player,id);return false;}
+        if(NativeSeek.Enabled){result=Task.FromException<PlayerChoiceResult>(new InvalidDataException("operation-expected-native-local-choice"));return false;}
         if(DecisionRoute.Enabled){result=DecisionRoute.Open(_scope??throw new InvalidDataException("unscoped-route-choice"),player,id);return false;}
         result=Task.FromException<PlayerChoiceResult>(new InvalidDataException("unexpected-remote-choice-in-native-ui-playback"));return false;
     }
     internal static bool Local(ref bool result)
     {
-        if(!_watch||!PlayerLoop.Active)return true;result=!DecisionRoute.Enabled&&!NativeSeek.Enabled;return false;
+        if(!_watch||!PlayerLoop.Active)return true;result=!DecisionRoute.Enabled;return false;
     }
     private static void Complete(ChoiceScope s,IEnumerable<CardModel?> returned)
     {
@@ -194,7 +194,7 @@ internal static class ChoiceTape
     }
     internal static void Opened(object ui)
     {
-        if(NativeSeek.Enabled)return;
+        if(NativeSeek.Enabled){if(_scope is {} native&&native.Ui is null)NativeSeek.Opened(native,ui);return;}
         if(DecisionRoute.Enabled)return;
         if(!(Recording||Watching)||_scope is not {} s||s.Ui is not null)return;
         s.Ui=ui;Codec.Require(!s.Frame.Automated,"unexpected-ui-for-automatic-choice");
