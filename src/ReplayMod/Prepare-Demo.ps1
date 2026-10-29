@@ -1,4 +1,4 @@
-param([string]$BackupId,[string]$BuildName='build-001',[ValidateSet('demo-001','demo-002','demo-003','demo-004','demo-005','state-001','content-001','content-002','content-003','content-004','playback-001','seek-001','playback-002')][string]$Demo='demo-002',[ValidatePattern('^direct-r\d+$')][string]$Iteration,[switch]$CloudConfirmedOff)
+param([string]$BackupId,[string]$BuildName='build-001',[ValidateSet('demo-001','demo-002','demo-003','demo-004','demo-005','state-001','content-001','content-002','content-003','content-004','playback-001','seek-001','playback-002','playback-003')][string]$Demo='demo-002',[ValidatePattern('^direct-r\d+$')][string]$Iteration,[switch]$CloudConfirmedOff)
 $ErrorActionPreference='Stop';$stage='preflight'
 trap{Write-Output "DEMO001_PREPARATION_FAILED stage=$stage type=$($_.Exception.GetType().Name); private paths withheld; inspect before retry";exit 1}
 function Need($ok,$why){if(!$ok){throw $why}}

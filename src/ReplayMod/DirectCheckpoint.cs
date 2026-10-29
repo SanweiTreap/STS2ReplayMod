@@ -32,6 +32,7 @@ internal sealed class DirectCheckpoint
     private readonly CreaturePresentation[] _presentation;
     private readonly RegentPresentation _regent=new();
     private readonly CombatHudTrace.Sample _combatHud=CombatHudTrace.Capture();
+    private readonly object? _endTurnUiState=Get(NCombatRoom.Instance!.Ui.EndTurnButton,"_state");
     internal readonly int Position;
     internal readonly int Turn=LiveState.Turn;
     internal readonly string Projection;
@@ -109,6 +110,7 @@ internal sealed class DirectCheckpoint
     internal async Task Restore(Action? fileData=null)
     {
         var started=Stopwatch.GetTimestamp();
+        var fromVictory=NativeSeek.Enabled&&PlayerLoop.VictoryReached;
         if(!_route)RequireReady();else Codec.Require(NativeSeek.Enabled?NativeSeek.CanRestore:DecisionRoute.CanRestore,"route-data-restore-while-business-running");
         if(_route)await NativeDisplayTrace.RetireSourceVisuals();
         var retired=Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -158,6 +160,12 @@ internal sealed class DirectCheckpoint
         if(!_route){ActionMonitor.Pending=null;ActionMonitor.Completed=null;ActionMonitor.Error=null;ActionMonitor.StartTurnTask=Task.CompletedTask;ChoiceTape.Restore(_choicePosition);}
         else ChoiceTape.ViewPosition(_choicePosition);
         await RefreshUi(currentPowers,rebuildEnemies,previousNodes);if(!_route)RequireReady();
+        if(fromVictory)
+        {
+            if(_endTurnUiState is not null)Invoke(NCombatRoom.Instance!.Ui.EndTurnButton,"SetState",_endTurnUiState);
+            using var hud=new CombatHudTrace.View();hud.Prepare();hud.Handoff(_combatHud);
+            Runtime.Log("native-victory-hud-restored",new{Position,HandEntrance=false,NativeHudSnapshot=true});
+        }
         var ui=Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         Codec.Require((_route?LiveState.ChoiceProjection():LiveState.Capture())==Projection,"direct-back-restored-projection-differs");
         if(_route)Codec.Require(_extraProjection==ExtraProjection(),"route-owned-source-or-candidate-state-mismatch");
