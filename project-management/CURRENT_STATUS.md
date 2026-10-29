@@ -1,10 +1,10 @@
 # 当前项目状态
 
-更新：2026-10-29。用户已明确继续SEEK-001的r1窄修复：D-120修显示/控制、短等待暂接受；D-121运行门/连续模式/有限余量独立，Step只排队。002 r1原生续播有局部证据，视觉/交互未整包验收；下一候选待实现。旧PLAYBACK停放、003Unknown。
+更新：2026-10-29。D-122验收SEEK-001固定猎人切片，DONE_WITH_LIMITATIONS；保留build-003，当前用户/PM整体架构讨论，无待测/新实现任务。旧PLAYBACK停放，其003仍Unknown，与SEEK/003不混同；D-120/D-121规格保持。
 
 ## 玩家现在能用到什么
 
-已有单场战斗回放原型，还不能录制/观看整局。CONTENT-004等固定组合按原范围收束，全内容/发布性能未完成。新SEEK-001/002在猎人前4宿主中取得跨回合/选牌恢复后原生续播数据证据；用户称基本符合预期，另报告弃牌Seek手牌/耗时与有限队列继续问题，不能据此认视觉/交互全部通过。
+已有单场战斗回放原型，还不能录制/观看整局。CONTENT-004等固定组合按原范围收束，全内容/发布性能未完成。SEEK-001猎人前4宿主/9节点已证明恢复后重新原生执行，003所测选牌布局/独立控制获用户确认并阶段验收；不外推所有内容/节点或完整战斗。
 
 在已经支持并实测的战斗范围内，可以：
 
@@ -46,11 +46,11 @@ CONTENT-002已收束：默认展示最终确认的选择，原始41事件保留�
 
 用户已认可导航体验：D-121修订Step为只加入下一操作/选择节点请求、点击累计，暂停时按Play后才执行；运行门/连续开关/余量独立。Back直达上一节点暂停，Seek到达默认暂停。D-118保持A当前效果/自动连锁收尾、B仅排队不开始，背景idle/浏览可用；敌方每敌人或整轮停交实现便利选择。优先原生共用队列/动画，见[体验基线](technical-notes/PLAYBACK-EXPERIENCE.md)。
 
-现启动[SEEK-001](handoffs/SEEK-001.md)：少量可恢复索引、跨回合/选牌相关状态的跳转与原生续播，Step/Back/Seek共用新路线。可用新入口/策略先验证，不先删除旧实现、整局预计算或建设无头平台。新路径允许恢复后正常重执行业务/RNG，核对各次结果与原记录一致，不沿用旧历史显示RngUnchanged要求；旧Task不能复活、进度隔离与只读保留。任意未访问位置/精确帧、通用文件恢复和缓存策略仍未证明，见[架构评估](technical-notes/SEEK-FIRST-ARCHITECTURE.md)。普通bug/重构/备份安装/人工测试沿D-092同包自行推进，无新阶段审批。
+[SEEK-001](handoffs/SEEK-001.md)固定切片已阶段收束；当前不改码/换版/测试，由用户/PM讨论整体实现。新路线恢复后正常重执行业务/RNG并核对结果，不套旧纯显示RngUnchanged；只读/隔离/不复活旧Task保持。现有稳定点数据恢复、选择点先到牌前锚点再原生重建等待两类入口；未访问位置、精确帧、通用文件及缓存策略待证。下一讨论索引如何生成、两类点如何推广和真实多牌队列衔接，见[架构评估](technical-notes/SEEK-FIRST-ARCHITECTURE.md)，尚未签新包。
 
 SEEK-001/002 r1两Runtime/1070事件、3次打开；Implementation摘要记41原生宿主结果-RNG核对、38新选择上下文/提交、22次到达匹配，3次退出无PendingHost且原manager/所比较Continue进度恢复，见[r1摘要](../evidence/seek-001/runtime-verification-r1.json)。仅猎人片前4宿主/9节点、同战斗与已建索引，无旧trace.Play；不是全场/通用Seek或多牌排队通过。PM读取摘要/报告及关键源码，未重计全部原事件；001未运行、003未反馈结论保持。
 
-隐藏NRun影响布局，是手牌问题高可信解释，修复未实测；稳定Seek约9–83ms、选择重建约1.86–2.40秒，选择源点离开还可能退役旧宿主1.79秒、应用约25ms。用户已要求继续：现只修逻辑可见/选择布局和D-121控制，精细Seek与既有退役/重建策略保持，不加lookahead。Step只加量，暂停等Play；Pause保留量/模式，连续关且量尽时等新请求，运行门不暗改。Implementation直接修复/构建/必要备份安装并给受影响短测，无新阶段审批。见[体验](technical-notes/PLAYBACK-EXPERIENCE.md)、[评估](technical-notes/SEEK-FIRST-ARCHITECTURE.md)、[报告](investigation-reports/SEEK-001-report.md)；三击选择仍不是多牌入队证据。
+003/r2用户确认符合预期。Implementation摘要626事件/2 opens、16原生结果-RNG匹配、14次匹配/暂停/清旧余量到达、7次选择布局核对；有限三步、量尽门保持、暂停保留4步再恢复、Auto独立及两种Stop/短重开通过，见[r2摘要](../evidence/seek-001/runtime-verification-r2.json)/[报告](investigation-reports/SEEK-001-report.md)。关闭节点4/1，无PendingHost、控制全清、原manager/所比较Continue进度恢复。PM读用户消息/摘要关键项，未重计626事件。Auto与有限量同时非零去重仍只合同、Auto Pause在末端前、003仅1次EndTurn；不认完整矩阵/多牌入队/整场胜利。选择重建等待按D-120暂接受，不承诺发布性能。
 
 ## 旧路线已获得的执行进展（供新包参考，不续跑清单）
 
@@ -75,11 +75,11 @@ MVP目标仍为自动录制、尽可能覆盖单人场景、独立Replay入口�
 ## 当前工程与恢复点
 
 - 可演进工程：[src/ReplayMod](../src/ReplayMod/README.md)。已有本地反编译C#缓存，日常定位/hook源码优先，IL仅用于歧义，不逐方法复证。
-- Git：私有仓库[SanweiTreap/STS2ReplayMod](https://github.com/SanweiTreap/STS2ReplayMod)，源码候选2e57ad7已推送，本轮仅诊断报告/README再提交3959124并推送；PM管理页工作区修改未混入该提交。原始证据/存档/构建/第三方快照留本地，见[协作规则](REPOSITORY.md)。开发快照不是发布。
-- 当前保持SEEK-001/build-002，SHA-256 `E2295412EDE81B4A1BDFABE25BE02CE448B39EE92743124176AEB5D7FD893AB2`，[收据](../evidence/seek-001/preparation/build-002-6be9a30e.json)；r1已实测但视觉/交互未通过整体验收，诊断时game0、无新代码/DLL/人工要求。SEEK/001未运行，旧PLAYBACK/003未反馈仍Unknown，证据分别保持。
+- Git：私有仓库[SanweiTreap/STS2ReplayMod](https://github.com/SanweiTreap/STS2ReplayMod)，规格/恢复指令57a455b、当前003源码/检查/报告1e54b9c均已推送。原始证据/存档/构建/第三方快照留本地，见[协作规则](REPOSITORY.md)。开发快照不是发布。
+- 保留安装SEEK-001/build-003，SHA-256 `1D2A4848166951E9623015DEBE37744E9424F3CF37CCE33BB0BFB99F867AB919`，[收据](../evidence/seek-001/preparation/build-003-9705e1cb.json)；r2所测范围按D-122验收，收尾game0，无后续换版/测试。002 pair/settings/selector及003源码/原片/失败保留；SEEK/001未运行，旧PLAYBACK/003仍Unknown，证据分开。
 - 最新完整恢复点按收据为`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，1280文件、132063795 bytes，来源/副本读回且来源稳定。Implementation按真实清单复核r4的54个saves内容保持；旧r2汇总53是沿旧点硬编码，原比较循环覆盖新清单54项，已加注更正，原日志不改。内容相同不证明无同值写入；更早progress备份差异/前后副本与全部重要原片/事件保留，PM不重复整账号审计。
 - 部分快照：同恢复点下CONTENT004-current-saves-20261028-150051为41文件/4471059 bytes；PLAYBACK001的203942快照49文件/4348913 bytes、最新20261028-223031快照51文件/4439940 bytes，Implementation记录已知save/config/native replay父目录来源稳定及逐hash读回。它们不替代旧完整恢复点、不表示重审历史run；未执行恢复/扫描另一账号。
-- 当前Implementation对话：`01a17814-d254-7df0-8c01-affe43d0e04c`，按用户“按你说的继续”恢复r1窄修复，范围见SEEK-001附录和D-120/D-121；可自主相关改码/构建/备份安装/人工短测，普通bug同包。002及旧003资料保留，不补旧包或扩新功能，PM维护管理页。
+- 当前Implementation对话：`01a17814-d254-7df0-8c01-affe43d0e04c`，已交回003/r2通过结果，当前不改码/换版/追加测试，等待用户/PM整体实现讨论；不扩新目标或补旧PLAYBACK/003。源码1e54b9c保持、结果文档e0f38fc已推送，PM维护状态/决策。
 - 实验文件格式有精确身份/已知前驱build限制，不代表一般跨版本播放。
 
 ## 有效开发授权与工作方式
