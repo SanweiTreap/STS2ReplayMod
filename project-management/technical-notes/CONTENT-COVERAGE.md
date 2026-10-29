@@ -87,7 +87,7 @@
 
 PLAYBACK-003/006的r7共308事件，PM已读取封存首个observer-error完整栈，新CARD.SHIV在NetCombatCardDb.GetCardId中无ID，经CardStateEntry/Mechanics/Capture与ActionMonitor.Complete/FilterReady失败。固定源码确认OnCombatEnded解绑各牌堆ContentsChanged并清_subscriptions，而DirectCheckpoint恢复ID双向表/_nextId、排除Delegate/_subscriptions，原先只重挂StateTracker。数据身份恢复与新卡自动登记监听是两项义务，前者恢复不保证后者存在。
 
-修复build-007/bdb3000已安装：按当前pile引用补缺失监听，复用原生OnPileContentsChanged及CombatEnded/退出纯退订，保持原ID/计数，避免StartCombat重编号或恢复旧Delegate。4组实际AttachMissing/IdentityMemento纯模型合同通过，重复恢复幂等、未来新卡登记与退出解绑仍待同片原生验证，不能称修复已通过。此例作为内容恢复契约的实际缺口保留，不扩大为当前所有事件订阅审计或单牌补丁列表。
+修复build-007/bdb3000已由r8原生验证：7次恢复中2次补5个监听、5次附加0，原ID/计数断言保持；最终恢复后生成小刀18/19并完成生成/使用操作10/11，三次退出无Outstanding，原生胜利/Stop清理剩余0。4组AttachMissing/IdentityMemento模型合同与实际证据分开。当前008仅附片尾Auto关闭小改；此例证明该登记恢复缺口在所测路径已修，不外推所有事件订阅或单牌全覆盖，不新增订阅审计任务。
 
 ## 用户经验与可追加材料
 
