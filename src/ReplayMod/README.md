@@ -6,7 +6,9 @@
 
 原生最后击杀与VictoryTask、奖励前胜利投影核对后才标识完整胜利。胜利后Back回到已访问的结束前完整边界，再原生重播；终局本身不提供直接Seek。开场选择在原生加载阶段按录像完成，仍不作为独立Seek点。暂停真实入队、精细／完整FIFO、选择取消重排、Seek保持Running/Auto和清旧计划、Back整项暂停保持。
 
-build-001 DLL `378309A7604BDC0CFE462BA18164F0CE7528F4CA1ACEF35304AE5B53B8E3CA7F`，构建及4组完整路线／9组请求合同通过；已安装，收据`evidence/playback-003/preparation/build-001-f7f907e1.json`，尚无本包游戏结论。51个已知当前存档／配置补充备份逐文件读回一致，旧pair及完整恢复点保留。先原猎人27项胜利／Back／再胜利，再用本轮新录文件从普通入口证明闭环；新单位、宠物、失败局、一般终局／文件恢复、全内容和性能未承诺。详见[PLAYBACK-003报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
+build-001 DLL `378309A7604BDC0CFE462BA18164F0CE7528F4CA1ACEF35304AE5B53B8E3CA7F`，源码e13d1f4，构建及4组完整路线／9组请求合同通过；已安装，收据`evidence/playback-003/preparation/build-001-f7f907e1.json`。r1真实420事件／两次参考入口：首次完整1..27，三次胜利Back26再胜利，合计31原生结果/RNG匹配、4次真实胜利、4选择；Stop在27/1，原manager和所比较Continue/进度恢复，用户确认通过。原片不变，原始日志已封存；Godot启动/退出诊断保留，不称引擎无警告。
+
+仍缺本轮新录不同ID从普通入口的完整闭环，不能将上述参考入口当recent通过。当前不换DLL，不打断用户正常游玩；待其正常退出后先保留最新进度，再用同一版本验证新录／整项Back／胜利／Stop重开。51个已知当前存档／配置的测试前补充备份及旧pair／完整恢复点保持，新游玩进度不能由旧备份替代。新单位、宠物、失败局、一般终局／文件恢复、全内容和性能未承诺。详见[PLAYBACK-003报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
 
 ## 历史：PLAYBACK-002 / build-003，所测暂停入队／选择退队重排闭环通过
 
