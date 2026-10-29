@@ -1,6 +1,20 @@
 # PLAYBACK-003：普通入口与完整单场原生播放
 
-更新2026-10-30。D-131/build-005已实际完成首轮1..21胜利，但恢复后隐秘匕首的Fine→Whole收尾发生观察器异常，完整D-131未通过。已安装仅补完整异常信息的build-006，等待同片一次针对性重现取得调用栈；尚未确立根因或声称修复。既有新录主链、r1–r5结论和004未安装草稿保留，旧PLAYBACK-001/003仍Unknown。
+更新2026-10-30。006/r7已复现并取得完整栈，根因是胜利后恢复数据却漏恢复NetCombatCardDb的牌堆登记监听，新生成小刀没有战斗ID。已安装build-007修复，离线检查通过，待同片实际验证；不把已定位/已构建当原生PASS。D-131及已有新录主链/r1–r6/004草稿边界保持，旧PLAYBACK-001/003仍Unknown。
+
+## build-007：恢复原生战斗卡牌登记监听
+
+006/runtime `838a7c2c04c64959b13c0feb3dfb9e9a`共308事件再次复现：先21次原生结果/RNG和真实胜利通过，再经胜利Back/Seek恢复重看隐秘匕首时抛出异常。原始栈明确是`NetCombatCardDb.GetCardId`无法为新生成CARD.SHIV取ID，经过`NetCombatCard.FromModel`、`LiveState.CardStateEntry/Mechanics/Capture`、`ActionMonitor.Complete`、`NativeSeek.FilterReady`；完整栈只留私有原事件，报告不复制实例地址/本机路径。闭合在9、Error明确，driver Outstanding=true，原manager及所比较Continue/进度恢复仍true，不称干净Stop。
+
+固定原生源码证实：NetCombatCardDb.StartCombat订阅AllPiles.ContentsChanged，为新卡通过OnPileContentsChanged/IdCardIfNecessary分配双向ID；OnCombatEnded会解除并清_subscriptions。DirectCheckpoint的数据memento恢复_idToCard/_cardToId/_nextId，但刻意排除订阅/委托；此前只恢复StateTracker订阅，未恢复NetDb监听。故胜利后Back能使用已保存ID的卡而通过，回到生成新卡前则出现缺ID，并非隐秘匕首专属效果或D-131队列语义问题。
+
+修复在数据恢复后按当前CardPile对象身份补缺失订阅：重新挂原生OnPileContentsChanged回调，创建当前pile/action订阅记录并挂回原生OnCombatEnded清理。已有订阅不重复添加，不复活旧委托/Task，不调用StartCombat重置数据库，不用测试分配ID接口、不改录像/ModHash或跳过缺卡校验。补挂后核对_nextId保持以及所有已有卡的双向映射一致；后续生成仍由原生牌堆事件按保存计数器登记。ClearRoom在原生Run清理后显式调用该纯退订回调，核对订阅剩余0，避免Stop留下新挂的旧牌堆引用，不执行胜利/奖励业务。
+
+新增4组纯模型/生产AttachMissing合同通过：复现仅恢复ID表但无监听时新卡缺ID；补监听不改旧ID/计数器且新卡顺序正确；重复恢复/重复pile来源不多挂；连续胜利/恢复后仍无编号漂移且句柄可清理。这些检查使用实际IdentityMemento和生产缺订阅计算，未执行原生游戏对象/私有绑定，不能替代游戏短测。14组D-131请求、4组完整路线及实际新片生产读回兼容检查保持通过。Release/DirectContracts构建均0警告0错误，见`evidence/playback-003/checks/build-007/`。
+
+308原事件及Godot日志在既有恢复点`runtime/playback-003-r7-20261030/`逐hash封存，摘要`evidence/playback-003/runtime-verification-r7.json`，新片仍保持原字节。已安装007 DLL `1625D7D5EB0E372B30C9E95B2A1CF723F82FAC55714B628643AA312627F5FD79`，收据`evidence/playback-003/preparation/build-007-0f76229a.json`；旧006 pair/settings/selector在既有恢复点同名preparation保留，game0/原账号/固定原生DLL/pair核对，仅ReplayMod/modded1，本批Cloud原确认保持。没有启动游戏/恢复存档，产品模型不改。
+
+同片针对性验证仍沿已成功复现的胜利→Back20→Seek4→Seek9→Fine打开/选一张→Whole完成10；再用一张生成小刀到11，以确认新ID能实际提交执行，Stop后短重开1/Stop并正常退出，核对结果/RNG、登记计数器和退出订阅/Outstanding清理。无需重录或重复旧控制矩阵；007原生结果Pending。
 
 ## build-005 / r6异常与build-006诊断
 

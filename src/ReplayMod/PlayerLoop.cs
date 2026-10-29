@@ -184,7 +184,9 @@ internal static class PlayerLoop
         CleaningRoom=true;
         try
         {
+            var room=RunManager.Instance.DebugOnlyGetState()?.CurrentRoom as CombatRoom;
             if(RunManager.Instance.DebugOnlyGetState() is not null)RunManager.Instance.CleanUp(true);
+            if(room is not null)CombatCardTracking.Cleanup(room);
             // Remove the old NRun before yielding: its _Process uses RunManager's current net service.
             Runtime.Game.RootSceneContainer.SetCurrentScene(new Control{Name="ReplayModRebuilding"});
         }

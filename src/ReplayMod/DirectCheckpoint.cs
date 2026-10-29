@@ -149,6 +149,7 @@ internal sealed class DirectCheckpoint
             CombatManager.Instance.StateTracker.Subscribe(LiveState.Player.PlayerCombatState);
             foreach(var pile in LiveState.Player.PlayerCombatState.AllPiles)CombatManager.Instance.StateTracker.Subscribe(pile);
         }
+        CombatCardTracking.RestoreSubscriptions();
         if(LiveState.Format>=3)ContentPresentation.Restore(keptPotions,refreshRelics:!_route);
         if(rebuildEnemies)_roster.AddEnemyDisplays(_combat,onlyMissing:forwardHandoff);
         for(var i=0;i<_creatures.Length;i++)if(!_creatures[i].IsPlayer)_presentation[i].BindEnemyDisplay();

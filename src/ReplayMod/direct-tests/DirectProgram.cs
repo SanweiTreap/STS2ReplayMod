@@ -1,5 +1,6 @@
 using System.Reflection;
 using ReplayMod;
+if(args.Length>1&&args[1]=="card-tracking"){CardTrackingContracts.Run(args[0]);return;}
 if(args.Length>3&&args[1]=="verify-native-recording"){FullPlaybackContracts.VerifyRecording(args[0],args[2],args[3]);return;}
 if(args.Length>2&&args[1]=="full-playback"){FullPlaybackContracts.Run(args[0],args[2]);return;}
 if(args.Length>2&&args[1]=="operations"){OperationContracts.Run(args[0],args[2]);return;}
