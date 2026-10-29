@@ -1,6 +1,12 @@
 # ReplayMod 0.1.0 · 原生单场回放
 
-## 当前安装：PLAYBACK-003 / build-007，胜利后卡牌登记订阅修复待测
+## 当前安装：PLAYBACK-003 / build-008，片尾自动关闭Auto
+
+007/r8已实际通过：732事件/三次recent打开、50原生结果-RNG、3真实胜利、7匹配恢复；两次补5个登记监听，另外5次恢复不重复添加。恢复后新小刀ID18/19正确生成并使用，Stop21/11/1均无Error/Outstanding，订阅Remaining=0，原manager和所比较Continue进度恢复，新片不变。修复证据与旧失败分开保留，见[报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
+
+用户新增要求已落实：到录像末尾自动关闭Auto，并显示“播放结束”。008 DLL `1E5FABDCB4177C4C9B07363BB960E6F1FCACF50B61BFBEA0B10187EDDCA73D73` 已安装，收据`evidence/playback-003/preparation/build-008-2ea13753.json`，007 pair/配置及原始日志保持；构建0警告0错误，更新的完整路线/终点合同通过。此片尾小改未另取008游戏日志，不要求重跑旧矩阵，不改变D-131片中交互/恢复规则。
+
+## PLAYBACK-003 / build-007登记修复与准备历史
 
 006/r7复现取得完整栈：新生成小刀不在NetCombatCardDb中。胜利时原生会退订牌堆登记事件，原恢复只还原ID表/计数器，漏了监听，已有牌可用而新生牌缺ID。308原事件/栈已私有封存，根因对应固定原生源码，产品交互模型不改。
 

@@ -1,6 +1,18 @@
 # PLAYBACK-003：普通入口与完整单场原生播放
 
-更新2026-10-30。006/r7已复现并取得完整栈，根因是胜利后恢复数据却漏恢复NetCombatCardDb的牌堆登记监听，新生成小刀没有战斗ID。已安装build-007修复，离线检查通过，待同片实际验证；不把已定位/已构建当原生PASS。D-131及已有新录主链/r1–r6/004草稿边界保持，旧PLAYBACK-001/003仍Unknown。
+更新2026-10-30。007/r8已通过胜利恢复后的新牌登记/使用、重复恢复不多挂及Stop/短重开清理；D-131相关手动/Auto/Back/Seek路径取得实际证据。用户另要求片尾自动关Auto，已安装008小改，更新后的终点合同通过，不要求重跑旧矩阵。008不冒充另有原生运行证据，r1–r7历史和004未安装草稿保留，旧PLAYBACK-001/003仍Unknown。
+
+## build-007 / r8 修复实测通过；build-008片尾关闭Auto
+
+用户反馈“应该是好了”，并要求“播放结束后auto自动关闭”。runtime `fc942348dc1445759f584b31b7ed0246`共732事件、三次recent打开新片，50次原生结果/RNG均匹配、11次原生选择、3次真实VictoryTask/原始奖励前胜利投影匹配。7次Back/Seek均状态/RNG/请求时意图匹配、清计划；含Auto开启Seek后继续、关闭后当前整项收尾，以及胜利Back后手动等待。实际不是简单照抄最短草案，按日志所做路径记录。
+
+订阅修复的原生证明：7次恢复中2次胜利后各补5个当前牌堆监听，其余5次Attached=0，已有卡双向ID及保存计数器核对均通过。最后Seek9后，隐秘匕首生成两张小刀的CombatIndex为18/19，随后操作10和11在generation10各匹配完成一次，既能完成生成后的严格投影，也能提交/使用新小刀，没有再报缺ID。三次退出在21/11/1，Error=null、Outstanding=false、控制/请求清空，原manager与所比较Continue/进度恢复。清理订阅Before分别0/5/5、Remaining均0，证明原生胜利退订及Stop主动退订/重开均在所测路径正常。
+
+732原事件及对应Godot日志在既有恢复点`runtime/playback-003-r8-20261030/`逐hash读回封存，摘要`evidence/playback-003/runtime-verification-r8.json`。模组失败事件0，不宣称引擎绝无既有启动/退出诊断；新片hash仍33C47126…99B5F。r6/r7失败及调用栈不覆盖/反写为成功，不外推全部卡牌/一般文件恢复/发布性能。
+
+008只在最终路线边界同时清Auto，并将终点状态文案显示为“播放结束”；片中Auto切换、手动细进、Back/Seek意图、胜利核对和登记修复不变。既有完整路线合同更新为末端Running=false/Auto=false、无余量且不能追加业务，并通过4组检查；Release/DirectContracts构建0警告0错误。变更是用户要求的低影响结束状态，不为此追加整场或旧矩阵，008本身尚无另一次游戏运行。
+
+已安装008 DLL `1E5FABDCB4177C4C9B07363BB960E6F1FCACF50B61BFBEA0B10187EDDCA73D73`，收据`evidence/playback-003/preparation/build-008-2ea13753.json`；旧007 pair/配置在既有恢复点同名preparation保留，game0/原账号/固定原生DLL/pair核对，仅ReplayMod/modded1、本批Cloud原确认保持。没有启动游戏、恢复档或重录。007实际修复通过与008片尾小改离线结论分开交PM收束，不追加订阅审计。
 
 ## build-007：恢复原生战斗卡牌登记监听
 
