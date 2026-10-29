@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。PLAYBACK-003/build-005的r6先完整21项/胜利匹配，恢复后重播隐秘匕首10在选牌收尾时抛observer InvalidOperationException，D-131仅部分通过。build-006已安装，仅补完整异常栈，未修复调度；原包继续诊断/修复，不改产品模型或重录。新录主链/旧证据保留，旧PLAYBACK001/003仍Unknown。
+更新：2026-10-30。PM已核PLAYBACK-003/r7的308原事件中完整异常栈及固定源码，确认恢复漏NetCombatCardDb监听。修复build-007已安装，源码bdb3000；4组修复模型/14政策/4路线及原片读取离线通过，原生修复验证Pending。D-131仍部分通过，不改模型/重录。旧PLAYBACK001/003仍Unknown。
 
 ## 玩家现在能用到什么
 
@@ -68,7 +68,11 @@ PLAYBACK-003/001首轮已验：PM读取报告/摘要及用户“这个好了，�
 
 build-005/r6已核：PM读摘要并核331封存事件，首次1..21结果/RNG全匹配、真实胜利，Back20/Seek4/Seek9匹配；恢复后操作10经Fine开选牌、Fine选第一张、Whole选第二张/确认后抛InvalidOperationException，未交付操作10结果。退出Position9有Error，driver Host10/Outstanding=true；原manager及所比较Continue/进度恢复true。回主菜单后正常退出，不称在途动作清完；Auto切换0，相关行为尚未证明。见[r6摘要](../evidence/playback-003/runtime-verification-r6.json)。
 
-当前build-006/63639812…08C77仅在Runtime.Guard与PlayerLoop失败日志增加私有完整ex.ToString，收据`evidence/playback-003/preparation/build-006-b38dd4b2.json`。根因Unknown，不宣称修复或归咎产品模型。下一步同片恢复链取真实栈、原包修复与相关退出验证；若以Auto简化首次21项，未复现不等于故障消失，可同包调整复现，不判用户协议失败。保持已有结果，不重录/新INV/重跑旧矩阵；失败Outstanding边界与剩余Auto行为按实际修复路径核对。
+诊断版006/r7的308原事件已封存，PM直接读取首个observer-error完整栈：NetCombatCardDb.GetCardId因新CARD.SHIV无ID抛错，经LiveState.CardStateEntry/Mechanics/Capture、ActionMonitor.Complete到NativeSeek.FilterReady。固定v0.111.0源码确认OnCombatEnded解绑AllPiles.ContentsChanged并清_subscriptions；DirectCheckpoint排除Delegate/_subscriptions，只恢复ID表/计数及StateTracker，故已有卡仍可用、新卡失去自动登记。根因与实栈/固定源码对应，不归因Fine或两模式设计；见[r7摘要](../evidence/playback-003/runtime-verification-r7.json)。
+
+build-007/1625D7D5…5FD79已安装，源码bdb3000：数据恢复后按pile引用只补缺失登记监听，后续由原生OnPileContentsChanged登记，并重挂CombatEnded清理；不StartCombat/重编号/绕过校验，保留双向映射/_nextId。ClearRoom在原生清理后调用原生纯退订方法并核Remaining=0，不触发胜利业务。PM读实际修复/清理代码、收据与4组生产AttachMissing/IdentityMemento模型结果；14政策/4路线及原片读取保持通过，均不替代原生验证。
+
+下一步同片胜利→Back20→Seek4/9→细进选择/整项完成10，再使用生成小刀到11、Stop/短重开1/Stop；核首次补监听、重复恢复不多挂、新卡ID/结果/RNG及退出清理。不重录/新INV/旧整场矩阵，D-131仍未整体验收，失败Outstanding与剩余Auto行为按实际路径核对。
 
 游玩后当前51文件补充备份已由Implementation完成并读回，是已知当前文件补充，不称新完整账号快照。初始选择/全部内容和其他胜利形态仍未证明，覆盖研究不扩本包。
 
