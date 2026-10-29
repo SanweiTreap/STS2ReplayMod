@@ -46,9 +46,10 @@ internal sealed class OperationRequests
             // Reserve that card while paused too, without granting its business execution.
             if(request.Target.Host!=expected||request.Kind==ForwardKind.Fine&&!request.Target.Complete)break;
             selected.Add(request);expected++;
-            // Do not pre-submit beyond a fine observation stop. Choice phases keep their
-            // existing continuation path; actual card/turn/target legality is checked later.
-            if(request.Kind==ForwardKind.Fine||selected.Count==3)break;
+            // Explicit complete-card targets share one FIFO window, regardless of kind.
+            // No Auto target is invented here: a final Fine has no following candidate,
+            // and Arrive still closes the running gate at that final observation stop.
+            if(selected.Count==3)break;
         }
         return selected.ToArray();
     }

@@ -1,12 +1,32 @@
 # PLAYBACK-003：普通入口与完整单场原生播放
 
-更新2026-10-30，D-128。build-001已完成原猎人完整27项、旧铁甲普通入口和本轮新猎人录像的真实录制→recent完整胜利→Back再胜利→重开/退出主链。新片另暴露暂停Fine无选择卡未预入队的问题，已同包装build-002，等待该窄修复短测；包不整体关闭。上一包PLAYBACK-002/build-003按D-127固定前22项验收保留，旧PLAYBACK-001/003仍Unknown，不读取其结果补本包证据。
+更新2026-10-30，D-128。build-001新录主链已通过，build-002单独暂停Fine入队/到点暂停已通过；混排另暴露Fine无条件截断预入队窗口，已与PM澄清并安装build-003，待该混排短测，包不整体关闭。上一包PLAYBACK-002/build-003按D-127固定前22项验收保留，旧PLAYBACK-001/003仍Unknown，不读取其结果补本包证据。
+
+## build-003：已预约的Complete Fine/Whole统一预入队窗口
+
+用户报告“先>再>>只能前面进队”，并授权与PM确认是否良定义。PM确认上一轮“不越Fine后继”过严，应与D-125保持一致：有后续显式请求则FIFO继续，仅最后Fine无后续显式请求才暂停。Complete Fine后的已预约连续同回合合法卡可共用原三项窗口，不能因为请求类型为Fine而截断；不新增Auto目标/未预约后继。内部选择阶段和同宿主多个阶段继续阻断，运行门/原生合法性/资源/取消归属不变。
+
+代码只去掉NativeQueueCandidates在Complete Fine后的无条件break，三项上限保留；候选仍来自当前Active与已有Pending，没有拉入自动后继。最后Fine的Arrive暂停规则不变。合同改为Whole/Fine/Whole前缀均可预约，新增暂停Fine/Whole/Fine三请求按序预排、不授予业务/不丢请求、运行逐次消费、最后Fine压住Auto及不生成第四个目标检查；已有单Fine和内部选择阻断合同保留。
+
+build-003 Release/DirectContracts均0警告0错误，12组请求合同、4组完整路线和新片原字节/生产读回兼容检查通过，见`evidence/playback-003/checks/build-003/`。已安装DLL `87F3039C1CB1E6308A2B46C3C19C1D34B693A35B546DCA19CF299E15E622D8F6`，收据`evidence/playback-003/preparation/build-003-c3ecc630.json`，旧build-002 pair/settings/selector在既有恢复点同名preparation保留；game0/原账号/固定原生DLL核对、pair一致、仅ReplayMod/modded1，本批Cloud原确认保持，不启动游戏或恢复档。新片不改、不重录。
+
+待测最短路线：普通最近入口打开同新片，Auto关，`>>`/Play完成1刀刃之舞，暂停并开Auto；依次预约`>`、`>>`、`>`（操作2/3/4三张已生成小刀），三张应都在暂停期间原生入队但不出牌/伤害。Play按2→3→4各执行一次后暂停，Auto仍开、不自行打5；Stop并正常退出。无需再次录制或全场回归，结果仅待此混排增量。
+
+## build-002 / r4：单独Fine通过、混排缺口真实定位
+
+runtime `c0f6c1ea817340bd9e7a7e0c8c67c34e`共471事件、两次recent打开同新片；37次原生结果/RNG全部匹配（1..21及1..16），6原生选择、一次真实胜利，两Stop在21/16，Error=null、Outstanding=false、控制/请求清空，原manager及所比较Continue/进度恢复。没有把第二次描述为短Stop1。用户确认单独Fine正常。
+
+具体证明：第一次打开，暂停/Auto开时Fine预约小刀11与12，分别原生ID15/16，在请求后即AcceptedWhilePaused=true、BusinessStarted=false；直到对应Play才开始，完成目标均Running=false/Auto=true，后续观察期间没有自动跨过。单独Fine入队/业务门/停点已实测通过，不因后续混排问题抹去。
+
+第二次打开在完成13后，00:34:51.920299暂停预约Fine14（原生ID18入队），00:34:52.745381追加Whole15、00:34:57.145538追加Fine16，但后两项直到00:35:01 Play后才提交。执行到14时Running=true，继续15，再到最后Fine16才Running=false/Auto=true；这证实执行FIFO和预入队前缀规则不同，问题在候选过滤，不是导航丢失/重复牌效。另有Fine/Fine队列也受相同截断，统一按上述已预约前缀处理。
+
+471原事件与对应已退出进程Godot日志已在既有恢复点`runtime/playback-003-r4-20261030/`逐hash封存，摘要`evidence/playback-003/runtime-verification-r4.json`。模组失败事件0，混排视觉缺口单列。r3新片hash和主链结论保持；包不因单独Fine通过就关闭，继续build-003相关短测。
 
 ## build-002：暂停Fine完整卡边界的原生入队修复
 
 用户在r3总体认可，指出暂停点`>`出小刀未播放入队动画。原日志精确定位：第二次打开，在已完成11时，00:21:10.001939暂停接受Fine请求13、目标操作12/CARD.SHIV/Complete=true；该卡未预提交，直到00:21:22.203118 Play才提交原生动作。约12.2秒包含用户主动暂停观察，不是引擎卡住12秒。原因是旧FillNativeQueue一概排除Fine；动画没有换绑，牌也已实际生成。
 
-修复按路线目标判断：下一项Fine恰为完整卡边界，且当前实例存在/本回合/目标/原生合法时，也允许暂停提交原生队列；不消费导航请求、不付费/执行牌效。Play后仍由原运行门授予业务，到Fine目标暂停并保留Auto。Fine之后不扩ahead窗口；Fine内部选择阶段、EndTurn、药水、未来未生成/不合法卡及自身选牌保护继续阻断。统一的OperationRequests.NativeQueueCandidates产生FIFO前缀，原生合法性仍在NativeSeek检查；无小刀牌名特例。PM已确认该产品语义不冲突，仍属原包普通修复。
+修复按路线目标判断：下一项Fine恰为完整卡边界，且当前实例存在/本回合/目标/原生合法时，也允许暂停提交原生队列；不消费导航请求、不付费/执行牌效。Play后仍由原运行门授予业务，到Fine目标暂停并保留Auto。build-002当时在Fine之后截断ahead窗口；该条现由build-003的已预约混排澄清修正。Fine内部选择阶段、EndTurn、药水、未来未生成/不合法卡及自身选牌保护继续阻断。统一的OperationRequests.NativeQueueCandidates产生FIFO前缀，原生合法性仍在NativeSeek检查；无小刀牌名特例。
 
 build-002还显式兼容本轮新片录制build-001的hash378309A7…3CA7F，沿原文件格式/校验/Scope检查，不改ModHash或原始录像。这样修复版可直接使用已录新片，无需重录。Release/DirectContracts构建均0警告0错误，11组请求合同通过（新增暂停Fine候选不授予业务/不失停点，以及Whole三项窗口/混排Fine截止/内部选择阻断）；4组完整路线合同保持通过。新片经生产ClipStore精确读回及已知hash兼容、路线全长/原字节不变检查通过，见`evidence/playback-003/checks/build-002/`；离线检查不替代原生入队短测。
 
@@ -74,4 +94,4 @@ build-001 DLL SHA256：`378309A7604BDC0CFE462BA18164F0CE7528F4CA1ACEF35304AE5B53
 
 后续最小新录计划：沿用同一build，不改DLL；先保留用户本次正常游玩的最新进度。用户方便时可开启现有CONTENT-003猎人测试准备，新建猎人A0，首回合爆发→生存者完成两次弃牌，次回合刀刃之舞生成并使用小刀，以普通攻击赢首战；无需复刻原片27项或塞齐全部机制。首战保存后正常回主菜单，从“打开最近片段 · 原生播放器”打开这份新ID录像，完整至胜利，Back整项再完成，Stop后重开一步再Stop。用文件原始hash、记录完整性、Entry=recent、实际新ID/总数和原生结果/隔离日志验证。若用户已有本轮自动录成的受支持首战，也可直接核对并使用，避免无谓重录；不把普通游玩未经检查的文件冒充已保存样本。
 
-上述人工步骤为准备历史，现已由r3取得本轮新录/普通recent主链的真实证明；新片重开也已完成，但两Stop在21。当前剩余build-002暂停Fine入队修复及其短重开检查，沿同一原片继续，不重录或重复旧矩阵。
+上述人工步骤为准备历史，现已由r3取得本轮新录/普通recent主链的真实证明；新片重开也已完成，两Stop在21。r4单Fine修复已通过，当前仅剩build-003已预约混排窗口相关短测，沿同一原片继续，不重录或重复旧矩阵。
