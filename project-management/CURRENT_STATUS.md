@@ -1,12 +1,12 @@
 # 当前项目状态
 
-更新：2026-10-30。D-131两模式已实现并安装PLAYBACK-003/build-005，源码294d533已推送；14组政策/4组路线及原片生产读取离线通过，相关原生短测Pending。PM已读报告/收据/合同与关键控制代码，未重跑检查。新录主闭环/旧证据保留，PM覆盖材料已交，仓库公开；旧PLAYBACK001/003仍Unknown。
+更新：2026-10-30。PLAYBACK-003/build-005的r6先完整21项/胜利匹配，恢复后重播隐秘匕首10在选牌收尾时抛observer InvalidOperationException，D-131仅部分通过。build-006已安装，仅补完整异常栈，未修复调度；原包继续诊断/修复，不改产品模型或重录。新录主链/旧证据保留，旧PLAYBACK001/003仍Unknown。
 
 ## 玩家现在能用到什么
 
 已有单场战斗回放原型，还不能录制/观看整局。PLAYBACK-003已在参考猎人27项和本轮新录猎人21项验证原生完整播放、胜利后Back再胜利与退出重开；精细与完整操作导航、真实队列取消重排另沿PLAYBACK-002已测范围保留。CONTENT旧固定组合不自动算新版所有内容已回归，全内容/发布性能未完成。
 
-PLAYBACK-003已将普通“打开最近片段”接入统一原生核心，并解除固定HunterClip/22项限制。build-001的r1参考猎人27项、r2普通铁甲13项和r3本轮新录猎人21项均有真实完整播放证据；r3还完成同版录成/生产读回和两次recent打开。build-002/r4及build-003/r5为旧控制语义增量；当前build-005落实D-131两模式，尚无自身原生运行结论，不将旧版结果追认为005已实测。
+PLAYBACK-003已将普通“打开最近片段”接入统一原生核心，并解除固定HunterClip/22项限制。build-001的r1参考猎人27项、r2普通铁甲13项和r3新录猎人21项均有完整播放证据，r3还完成同版录成/生产读回和两次recent打开。build-002/r4及build-003/r5为旧控制语义增量；build-005/r6已有完整首次播放，但恢复后选择失败，不能称D-131整体验收。
 
 在已经支持并实测的战斗范围内，可以：
 
@@ -66,9 +66,9 @@ PLAYBACK-003/001首轮已验：PM读取报告/摘要及用户“这个好了，�
 
 当前实施目标为已确认D-131：打开录像默认手动等待/Auto关，无Play/Pause；>仅手动等待时推进细阶段，到点再等，选择页宿主Task未完也可等待/继续>；>>立即请求整项，可累计，选择页补完当前宿主。开Auto连续，关Auto停止自动追加、已开始整动和显式队列自然收尾。Back清计划恢复整项后手动等待/关Auto；Seek清计划并按Auto意图继续或等待，Stop正常退出。不存在自动补Whole的精细等待或隐藏toggle暂停。
 
-候选已装build-005/FE7B24A0…BA084，源码294d533；004仅未安装D-130草稿，不是已发版本。公开原生UI与Control不留Play/Pause/toggle；ManualWaiting加原生Ready允许未完成选择宿主中的细进，Back/Seek导航恢复意图已调整。PM读14政策/4路线与原片兼容读取结果及关键源码，静态交付符合D-131；不把离线结果称原生PASS。收据见`evidence/playback-003/preparation/build-005-d3a79956.json`。
+build-005/r6已核：PM读摘要并核331封存事件，首次1..21结果/RNG全匹配、真实胜利，Back20/Seek4/Seek9匹配；恢复后操作10经Fine开选牌、Fine选第一张、Whole选第二张/确认后抛InvalidOperationException，未交付操作10结果。退出Position9有Error，driver Host10/Outstanding=true；原manager及所比较Continue/进度恢复true。回主菜单后正常退出，不称在途动作清完；Auto切换0，相关行为尚未证明。见[r6摘要](../evidence/playback-003/runtime-verification-r6.json)。
 
-下一步由用户在同片前10项完成相关短测：手动细进与整项累计、隐秘匕首选择细进/>>收尾、Auto切换、Back转手动/Seek按Auto意图、Stop；实际覆盖以运行记录为准。不重录、再次完整胜利或重跑旧矩阵，不继续Partial暂停Host框架。
+当前build-006/63639812…08C77仅在Runtime.Guard与PlayerLoop失败日志增加私有完整ex.ToString，收据`evidence/playback-003/preparation/build-006-b38dd4b2.json`。根因Unknown，不宣称修复或归咎产品模型。下一步同片恢复链取真实栈、原包修复与相关退出验证；若以Auto简化首次21项，未复现不等于故障消失，可同包调整复现，不判用户协议失败。保持已有结果，不重录/新INV/重跑旧矩阵；失败Outstanding边界与剩余Auto行为按实际修复路径核对。
 
 游玩后当前51文件补充备份已由Implementation完成并读回，是已知当前文件补充，不称新完整账号快照。初始选择/全部内容和其他胜利形态仍未证明，覆盖研究不扩本包。
 
