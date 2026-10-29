@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-29。SEEK-001/002 r1原生续播固定片段已有证据、视觉/交互未整包验收。D-120先修显示/控制、短等待暂接受；D-121已定运行门/连续模式/有限余量独立，Step只排队、暂停时按Play后运行。当前仅收束规格，不换版/新测试；旧PLAYBACK停放、003Unknown。
+更新：2026-10-29。用户已明确继续SEEK-001的r1窄修复：D-120修显示/控制、短等待暂接受；D-121运行门/连续模式/有限余量独立，Step只排队。002 r1原生续播有局部证据，视觉/交互未整包验收；下一候选待实现。旧PLAYBACK停放、003Unknown。
 
 ## 玩家现在能用到什么
 
@@ -50,7 +50,7 @@ CONTENT-002已收束：默认展示最终确认的选择，原始41事件保留�
 
 SEEK-001/002 r1两Runtime/1070事件、3次打开；Implementation摘要记41原生宿主结果-RNG核对、38新选择上下文/提交、22次到达匹配，3次退出无PendingHost且原manager/所比较Continue进度恢复，见[r1摘要](../evidence/seek-001/runtime-verification-r1.json)。仅猎人片前4宿主/9节点、同战斗与已建索引，无旧trace.Play；不是全场/通用Seek或多牌排队通过。PM读取摘要/报告及关键源码，未重计全部原事件；001未运行、003未反馈结论保持。
 
-隐藏NRun影响布局，是手牌问题高可信解释，修复未实测；稳定Seek约9–83ms、选择重建约1.86–2.40秒，选择源点离开还可能退役旧宿主1.79秒、应用约25ms。D-120先修显示/控制、短等待暂接受，不改快速上下文/精细Seek。D-121 Step只排队，暂停时等Play；Pause保留模式/余量，Play不变无限；连续关且量尽时等新请求，运行门不暗改。规格已明确，本轮不发代码/测试。见[体验](technical-notes/PLAYBACK-EXPERIENCE.md)、[评估](technical-notes/SEEK-FIRST-ARCHITECTURE.md)、[报告](investigation-reports/SEEK-001-report.md)；三击选择不是多牌入队。
+隐藏NRun影响布局，是手牌问题高可信解释，修复未实测；稳定Seek约9–83ms、选择重建约1.86–2.40秒，选择源点离开还可能退役旧宿主1.79秒、应用约25ms。用户已要求继续：现只修逻辑可见/选择布局和D-121控制，精细Seek与既有退役/重建策略保持，不加lookahead。Step只加量，暂停等Play；Pause保留量/模式，连续关且量尽时等新请求，运行门不暗改。Implementation直接修复/构建/必要备份安装并给受影响短测，无新阶段审批。见[体验](technical-notes/PLAYBACK-EXPERIENCE.md)、[评估](technical-notes/SEEK-FIRST-ARCHITECTURE.md)、[报告](investigation-reports/SEEK-001-report.md)；三击选择仍不是多牌入队证据。
 
 ## 旧路线已获得的执行进展（供新包参考，不续跑清单）
 
@@ -79,7 +79,7 @@ MVP目标仍为自动录制、尽可能覆盖单人场景、独立Replay入口�
 - 当前保持SEEK-001/build-002，SHA-256 `E2295412EDE81B4A1BDFABE25BE02CE448B39EE92743124176AEB5D7FD893AB2`，[收据](../evidence/seek-001/preparation/build-002-6be9a30e.json)；r1已实测但视觉/交互未通过整体验收，诊断时game0、无新代码/DLL/人工要求。SEEK/001未运行，旧PLAYBACK/003未反馈仍Unknown，证据分别保持。
 - 最新完整恢复点按收据为`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，1280文件、132063795 bytes，来源/副本读回且来源稳定。Implementation按真实清单复核r4的54个saves内容保持；旧r2汇总53是沿旧点硬编码，原比较循环覆盖新清单54项，已加注更正，原日志不改。内容相同不证明无同值写入；更早progress备份差异/前后副本与全部重要原片/事件保留，PM不重复整账号审计。
 - 部分快照：同恢复点下CONTENT004-current-saves-20261028-150051为41文件/4471059 bytes；PLAYBACK001的203942快照49文件/4348913 bytes、最新20261028-223031快照51文件/4439940 bytes，Implementation记录已知save/config/native replay父目录来源稳定及逐hash读回。它们不替代旧完整恢复点、不表示重审历史run；未执行恢复/扫描另一账号。
-- 当前Implementation对话：`01a17814-d254-7df0-8c01-affe43d0e04c`，已交回r1诊断；按用户最新要求先作产品/策略复核，当前不继续换版/新增测试。保留002和旧003未反馈资料，不补跑旧包；讨论明确下一迭代后仍沿D-092自主普通修复，不新增常规审批。
+- 当前Implementation对话：`01a17814-d254-7df0-8c01-affe43d0e04c`，按用户“按你说的继续”恢复r1窄修复，范围见SEEK-001附录和D-120/D-121；可自主相关改码/构建/备份安装/人工短测，普通bug同包。002及旧003资料保留，不补旧包或扩新功能，PM维护管理页。
 - 实验文件格式有精确身份/已知前驱build限制，不代表一般跨版本播放。
 
 ## 有效开发授权与工作方式
