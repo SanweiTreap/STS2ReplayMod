@@ -1,12 +1,12 @@
 # 当前项目状态
 
-更新：2026-10-30。PLAYBACK-003/build-001新录21项/两次recent/胜利Back与重开主闭环已验；用户确认build-002单独暂停Fine入队正常，但Fine后显式Whole混排仍被截断，PM更正过严限制，原包继续修复，尚不收束。PM覆盖静态材料已交，仓库按D-129公开。旧PLAYBACK-002/003验收保留，旧PLAYBACK001/003仍Unknown。
+更新：2026-10-30。PLAYBACK-003/build-001新录主闭环与build-002单独Fine暂停入队/到点暂停已验；Complete Fine后显式请求混排截断已修并安装build-003/源码0f1f3a1，当前仅待相关短测收束。PM覆盖静态材料已交，仓库按D-129公开。旧PLAYBACK-002/003验收保留，旧PLAYBACK001/003仍Unknown。
 
 ## 玩家现在能用到什么
 
 已有单场战斗回放原型，还不能录制/观看整局。PLAYBACK-003已在参考猎人27项和本轮新录猎人21项验证原生完整播放、胜利后Back再胜利与退出重开；精细与完整操作导航、真实队列取消重排另沿PLAYBACK-002已测范围保留。CONTENT旧固定组合不自动算新版所有内容已回归，全内容/发布性能未完成。
 
-PLAYBACK-003已将普通“打开最近片段”接入统一原生核心，并解除固定HunterClip/22项限制。build-001的r1参考猎人27项、r2普通铁甲13项和r3本轮新录猎人21项均有真实完整播放证据；r3还完成同版录成/生产读回和两次recent打开。当前build-002在该版本上窄修暂停Fine入队，不能把build-001整场证据改写为002已整场实测。
+PLAYBACK-003已将普通“打开最近片段”接入统一原生核心，并解除固定HunterClip/22项限制。build-001的r1参考猎人27项、r2普通铁甲13项和r3本轮新录猎人21项均有真实完整播放证据；r3还完成同版录成/生产读回和两次recent打开。build-002的r4另有完整新片及单Fine证据；当前build-003只改混排预入队前缀，仍待自身短测，不将旧版结果追认为新候选运行PASS。
 
 在已经支持并实测的战斗范围内，可以：
 
@@ -60,9 +60,9 @@ PLAYBACK-003/001首轮已验：PM读取报告/摘要及用户“这个好了，�
 
 新录r3主链已验：PM读用户反馈、报告/摘要，并从封存700事件重算两次recent/新ID21项、44次原生结果/RNG全匹配、3次真实胜利Task/奖励前投影、Back20与Back0匹配和两Stop21无Error/Outstanding、原manager/所比较Continue进度恢复。原片字节hash匹配，内部录制hash为build-001，21操作/4选择/21时间数据，自动Victory seal与生产ExactPayloadMatched事件对应同一新ID；不是改旧片元数据。第二次为先1→Back0→完整1..21，不改写成短Stop1，也无需为照抄草案重录。见[r3摘要](../evidence/playback-003/runtime-verification-r3.json)。
 
-剩余修复：build-001因只接受Whole而漏掉暂停Fine普通牌入队，build-002已修，用户确认单独Fine小刀入队正常；原12秒间隔是用户主动暂停，不称引擎卡顿。新反馈为Fine后已有显式Whole请求未预入队，PM核NativeQueueCandidates在每个Fine无条件break，而Arrive仅最后Fine无后续显式请求才暂停，二者不一致。PM上一轮限制写得过严，现明确连续同回合合法的已预约请求可沿原三项窗口预入队，不新增Auto/未预约后继，内部选择/同宿主阶段仍阻断；Pause仍不执行业务。
+单Fine的r4已验：PM核摘要及471原事件，37次原生结果/RNG匹配（1..21及1..16），Stop21/16无Error/Outstanding且原manager/所比较Continue进度恢复。Fine11/12在暂停时真实enqueued、BusinessStarted=false，Play后到各目标Running=false/Auto=true。混排Fine14/Whole15/Fine16后两项仍延至Play，作为独立缺口保留；见[r4摘要](../evidence/playback-003/runtime-verification-r4.json)。原12秒间隔是用户主动暂停，不称引擎卡顿。
 
-Implementation继续原包窄修与相关混排短测，保留新片/已有主闭环，不重录或重跑整场矩阵。build-002源码0363d35及11请求/4路线离线结果保留，不追认为混排修复PASS；当前安装身份沿报告。已知录制hash兼容保留格式/完整性/Scope检查，不修改原ModHash。用户本轮反馈的机器证据仍由Implementation封存。
+混排修复已装build-003/87F3039C…2D8F6，源码0f1f3a1：去掉Complete Fine后无条件截断，已有显式请求共用原三项合法卡窗口，不生成Auto/未预约后继，内部选择/同宿主阶段与Pause业务门保持；最后Fine无后续显式请求仍暂停/保留Auto。12请求/4路线及原片读取离线检查由Implementation通过，原生混排短测Pending。只需同片开场三小刀“>、>>、>”预入队→Play到最后Fine暂停→Stop；保留新片和主链，不重录或重跑整场矩阵。
 
 游玩后当前51文件补充备份已由Implementation完成并读回，是已知当前文件补充，不称新完整账号快照。初始选择/全部内容和其他胜利形态仍未证明，覆盖研究不扩本包。
 
