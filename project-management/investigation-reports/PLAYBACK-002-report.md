@@ -1,8 +1,20 @@
 # PLAYBACK-002：精细前进、完整操作与原生退队重排
 
-2026-10-29，D-123–D-126，IN_PROGRESS。当前 **build-003已安装待测：暂停真实入队、显式Seek保持运行/Auto；Back仍整项回退暂停**。PM已据用户两项建议授权立即同包实施；002/r1基础体验确认及退队重排未证的范围保持。旧SEEK-001/003保留其固定范围验收；旧PLAYBACK-001/003仍Unknown，不读取或补判。
+2026-10-29，D-123–D-126。当前 **build-003/r2所测暂停入队、选择退队重排、Seek意图与精细直接Play已有真实通过证据**。用户确认“整体比较符合预期”，另询问入队动画是否原生，已据调用链说明原生队列Tween与回放直接提交的区别。本轮保留003，不改动画／DLL或追加测试，结果交PM按范围验收。002/r1原来未证的结论保留，不反写；旧SEEK-001/003验收与旧PLAYBACK-001/003 Unknown保持。
 
-## build-003：D-126 窄修订候选
+## build-003 / r2 实测闭环与动画来源
+
+runtime `cf723a82c06c49d7966f8a96c31e5d76`，806事件、两次打开，hash8D7B0C…B4AA；57次真实接受，其中11次明确暂停接受且BusinessStarted=false，52次原生开始/完成结果-RNG核对均通过，16次原生选择，11次Seek/Back状态及请求时Running/Auto匹配。显式Seek四种运行/Auto组合都有记录，Back仍暂停；精细停点之后直接Play的Continuation目标在21完成两次。两个Stop分别完成20/9，Error=null、Outstanding=false、控制/请求清空，原manager及所比较Continue/进度恢复。没有把这两次描述为固定步骤1的短重开或全场胜利。读取时game0、原片hash保持。
+
+真实A/B/C证据：generation2，19:30:23–25三次暂停接受20/21/22，原生ID30/31/32均未开始业务；Play后20正常完成。21的选择3在19:30:54取消C（ID32，Retiring=false、StillReserved=true、BusinessStarted=false），原生返回日志明确打击仍在逻辑手牌且有手牌holder。21及连续选择/自动链结束在19:30:56；随后C以新ID35/Attempt2重新提交并开始，ReenteredAfterNativeCancellation=true，同generation中ID35仅完成一次，结果/RNG与原记录一致。请求仍为原ID25完整目标，没有再追加/重复消费。其余4次取消是Stop/Seek退役，不计为选择退队成功。本轮在固定真实样本中首次证明所要求的原生接受→选择取消→归手→必要结算→重入队→C单次结算闭环，不外推所有卡牌/队列。
+
+原始806事件和最新Godot日志在固定恢复点`runtime/playback-002-r2-20261029/`逐文件哈希核对保留；摘要`evidence/playback-002/runtime-verification-r2.json`，独立列出取消原因/新旧ID、同代完成次数和Seek四种意图。模组事件中无失败；没有据此宣称整个引擎日志绝无警告。旧PLAYBACK003资料未读。
+
+动画回答：当前生产提交由`PlayerLoop.SubmitOperation`调用原生CardModel.TryManualPlay，原生ActionQueueSet.ActionEnqueued触发NCardPlayQueue.OnActionEnqueued→OnLocalCardPlayed→TweenCardToQueuePosition。固定反编译版本后者以0.35秒Cubic/EaseOut同时更新队列位置、缩放与alpha；本模组没有patch/替代该队列Tween。Mod控制何时接受与允许业务开始，入队表现使用原生流程。回放没有先执行鼠标拖牌的StartCardPlay/BeginDrag准备过程，因此“入队动画是原生”不等于起始姿态/鼠标轨迹与手动出牌逐帧一致；本轮用户仅询问来源，未据此擅自重写动画。
+
+范围仍为原片前22宿主、当前战斗和已访问完整边界。更广原生队列覆盖、精细/完整所有混排、原始时间/楼层导航/全游戏通用恢复与性能不在本次结论。当前无新增人工要求；后续由PM/用户决定。
+
+## build-003：D-126 窄修订准备历史（待测表述由r2取代）
 
 普通完整请求FIFO中的连续真实卡牌，现在可在运行门暂停时提交原生TryManualPlay／ActionQueueSynchronizer／NCardPlayQueue，窗口最多为当前项及后两张（3项），不消费/完成导航请求，不扣资源或运行牌效。真正开始仍由GetReadyAction中的运行门和目标归属控制。Fine、EndTurn、药水、未来生成或当前不合法项阻断窗口，不越序；自身选择中不挪实际候选，并记住选择所属宿主，直到整个宿主必要结算结束才恢复新接受。接受时解析当前原实例及原生合法性，完整录制前态/资源/升级/动态费用/实例仍在实际开始时核对；遇目标暂不能按原目标序号解析则留待提交，不把ahead尝试变成播放错误。
 
