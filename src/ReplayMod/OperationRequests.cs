@@ -1,6 +1,7 @@
 namespace ReplayMod;
 
 internal enum ForwardKind { Fine, Whole }
+internal readonly record struct PlaybackIntent(bool Running,bool Auto);
 internal sealed record ForwardPoint(int Stage,int Host,int Choice,int Prefix,bool Complete,string Label);
 internal sealed record ForwardRequest(long Id,ForwardKind Kind,ForwardPoint Target,bool Automatic=false,bool Continuation=false);
 
@@ -12,6 +13,7 @@ internal sealed class OperationRequests
     private long _nextId;
     internal bool Running {get;private set;}
     internal bool Auto {get;private set;}
+    internal PlaybackIntent Intent=>new(Running,Auto);
     internal ForwardRequest? Active {get;private set;}
     internal ForwardRequest[] Pending=>_pending.ToArray();
     internal int Stage {get;private set;}
@@ -67,6 +69,10 @@ internal sealed class OperationRequests
     {
         var target=Route.Single(p=>p.Complete&&p.Host==host);
         Running=false;_pending.Clear();Active=null;Stage=target.Stage;
+    }
+    internal void Restore(int host,PlaybackIntent intent)
+    {
+        Seek(host);Running=intent.Running;Auto=intent.Auto;
     }
     internal void Stop(){Running=false;Auto=false;_pending.Clear();Active=null;}
 }

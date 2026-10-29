@@ -68,6 +68,26 @@ internal static class OperationContracts
             p.Seek(0);Need(!p.Running&&p.Auto&&p.Active is null&&p.Pending.Length==0,"seek-carried-request");
             p.Stop();Need(!p.Running&&!p.Auto&&p.Pending.Length==0&&!p.Acquire(),"stop-carried-controls");
         });
+        Test("explicit-seek-restores-captured-gate-and-auto-clears-route-in-all-four-states",()=>
+        {
+            foreach(var running in new[]{false,true})foreach(var auto in new[]{false,true})
+            {
+                var p=new OperationRequests(clip,22);if(auto)p.ToggleAuto();if(running)p.ToggleRunning();
+                p.Add(ForwardKind.Whole);var intent=p.Intent;
+                // Internal retirement may close the gate and clear requests; final restore
+                // must use the intent captured at REQUEST time, not this temporary state.
+                p.Seek(0);p.Restore(19,intent);
+                Need(p.Running==running&&p.Auto==auto&&p.Pending.Length==0&&p.Active is null,"seek-lost-request-time-intent-or-carried-old-route");
+                Need(p.Acquire()==(running&&auto),"seek-started-unrequested-card-or-failed-to-resume-auto");
+                p.Seek(18);Need(!p.Running&&p.Auto==auto&&p.Pending.Length==0&&p.Active is null,"back-no-longer-pauses");
+            }
+        });
+        Test("paused-native-acceptance-does-not-grant-or-consume-navigation",()=>
+        {
+            var p=new OperationRequests(clip,22);p.Seek(19);for(var i=0;i<3;i++)p.Add(ForwardKind.Whole);
+            var reservations=p.Pending;for(var i=0;i<4;i++)Need(!p.Acquire()&&p.Pending.SequenceEqual(reservations)&&p.Active is null,"native-acceptance-opened-business-gate");
+            p.ToggleRunning();Need(p.Acquire()&&p.Active==reservations[0]&&p.Pending.Length==2,"play-consumed-reservation-more-than-once");
+        });
         Test("original-recording-contains-burst-survivor-strike-in-same-turn",()=>
         {
             var ops=clip.Operations[19..22];Need(ops.Select(o=>o.Card).SequenceEqual(new[]{"CARD.BURST","CARD.SURVIVOR","CARD.STRIKE_SILENT"})&&ops.All(o=>o.Turn==5),"sample-sequence-invented");

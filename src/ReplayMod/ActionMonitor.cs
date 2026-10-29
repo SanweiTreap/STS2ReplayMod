@@ -14,12 +14,12 @@ internal sealed class PendingOperation(GameAction action,OperationKind kind,int 
     internal bool Executing;
     internal int PlaybackIndex=-1;
     internal readonly TaskCompletionSource<Operation> Delivery=new();
-    internal readonly long Started=Stopwatch.GetTimestamp();
+    internal long Started=Stopwatch.GetTimestamp();
     internal Operation Template=new(0,kind,turn,index,model,target,"",CardState:card is not null&&LiveState.Format>=3?LiveState.CardIdentity(card):null,
         Potion:potion is not null?LiveState.PotionIdentity(potion,slot!.Value):null,Timing:accepted is {} at?new(at,at):null);
     internal Task? ActionTask,EffectTask;
     internal readonly List<Task> DerivedTasks=[];
-    internal readonly double ChoiceWaitAtStart=ChoiceTape.WaitingSeconds;
+    internal double ChoiceWaitAtStart=ChoiceTape.WaitingSeconds;
 }
 internal static class ActionMonitor
 {
@@ -104,6 +104,7 @@ internal static class ActionMonitor
             Complete(previous,false,"before-next-action");
         }
         Pending=operation;operation.Executing=true;operation.Generation=Generation;
+        operation.Started=Stopwatch.GetTimestamp();operation.ChoiceWaitAtStart=ChoiceTape.WaitingSeconds;
         operation.BeforeMechanics=LiveState.Format>=3?LiveState.Mechanics():null;
         if(operation.Card is {} card)
         {
@@ -138,7 +139,7 @@ internal static class ActionMonitor
     internal static void Tick()
     {
         if(PlayerLoop.Active&&PlayerLoop.ChoiceAbort)return;
-        if(Pending is not {} p||Error is not null)return;
+        if(Pending is not {Executing:true} p||Error is not null)return;
         Codec.Require(Stopwatch.GetElapsedTime(p.Started).TotalSeconds-(ChoiceTape.WaitingSeconds-p.ChoiceWaitAtStart)<60,"operation-did-not-reach-stable-boundary");
         if(!Success(p.ActionTask))return;
         if(p.Template.Kind is OperationKind.Card or OperationKind.Potion){if(!Success(p.EffectTask))return;}
