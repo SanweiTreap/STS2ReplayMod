@@ -76,7 +76,7 @@ internal sealed class OperationRequests
         Active=null;
         // Manual fine arrival keeps the lifecycle gate open. With Auto off, Acquire
         // waits for another explicit target and never invents a Whole continuation.
-        if(point.Stage==Route[^1].Stage){Running=false;_pending.Clear();}
+        if(point.Stage==Route[^1].Stage){Running=false;Auto=false;_pending.Clear();}
         return request;
     }
     internal void Seek(int host)

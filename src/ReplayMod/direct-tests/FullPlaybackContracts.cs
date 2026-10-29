@@ -40,7 +40,7 @@ internal static class FullPlaybackContracts
                 Need(p.Acquire()&&p.Active!.Target.Host==op.Sequence,"whole-route-skipped-host");
                 foreach(var phase in p.Route.Where(n=>n.Host==op.Sequence))p.Arrive(phase);
             }
-            Need(!p.Running&&p.Pending.Length==0&&!p.Acquire()&&p.Auto,"terminal-not-paused-or-extra-operation-granted");
+            Need(!p.Running&&!p.Auto&&p.Pending.Length==0&&!p.Acquire(),"terminal-auto-not-off-or-extra-operation-granted");
             p.Restore(26,new(true,false));p.Add(ForwardKind.Whole);Need(p.Acquire()&&p.Active!.Target.Host==27,"victory-back-could-not-replay-last-operation");
         });
         Test("planning-and-support-do-not-require-reference-id-or-27-operations",()=>

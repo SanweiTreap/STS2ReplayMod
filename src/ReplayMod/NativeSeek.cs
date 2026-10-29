@@ -54,7 +54,7 @@ internal static class NativeSeek
             var active=_requests.Active;var pending=_requests.Pending;
             string Item(ForwardRequest r)=>$"{(r.Kind==ForwardKind.Fine?">":">>")} {r.Target.Host} · {r.Target.Label}"+(r.Continuation?"（续当前）":"")+
                 (ActionMonitor.Submitted(r.Target.Host-1) is {} native?native.Executing?" [结算中]":" [已原生入队]":CancelledAhead.Contains(r.Target.Host)?" [退队待重排]":" [尚待提交]");
-            return $" · {(Auto?"自动连续":_requests.ManualWaiting?"手动等待":"手动执行")} · 待播{pending.Length}项"+
+            return $" · {(Finished?"播放结束":Auto?"自动连续":_requests.ManualWaiting?"手动等待":"手动执行")} · 待播{pending.Length}项"+
                 (_phase.Length>0?$" · {_phase}":"")+"\n"+
                 (active is null?"当前：等待请求":$"当前目标：{Item(active)}")+
                 (pending.Length==0?"":"\n待播："+string.Join(" → ",pending.Take(5).Select(Item))+(pending.Length>5?" …":""));
