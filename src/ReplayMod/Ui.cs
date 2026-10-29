@@ -102,7 +102,7 @@ internal static class Ui
             _seekCover.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);block.AddChild(_seekCover);
             var navigation=new HBoxContainer();box.AddChild(navigation);
             _seekPoints=new OptionButton{CustomMinimumSize=new Vector2(430,40)};navigation.AddChild(_seekPoints);
-            _seekGo=Button(navigation,"Seek · 直达并暂停",()=>Runtime.Guard(()=>NativeSeek.RequestSeek(_seekPoints.GetSelectedId())));
+            _seekGo=Button(navigation,"Seek · 保持播放状态",()=>Runtime.Guard(()=>NativeSeek.RequestSeek(_seekPoints.GetSelectedId())));
         }
         _play=Button(controls,"播放 / 暂停",()=>PlayerLoop.Control("toggle"));
         if(NativeSeek.Enabled)_auto=Button(controls,"Auto：关闭",()=>PlayerLoop.Control("auto"));

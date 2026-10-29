@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Combat;
@@ -12,6 +13,7 @@ namespace ReplayMod;
 // action; ahead submissions reserve existing requests and never count as completion.
 internal static class NativeSeek
 {
+    private sealed record Navigation(int Host,PlaybackIntent Intent,bool Back);
     internal const string HunterClip="1d5346b085b04635ab3e00b43fe9190c";
     internal const int SliceHosts=22;
     private static readonly SortedDictionary<int,DirectCheckpoint> Points=[];
@@ -21,8 +23,8 @@ internal static class NativeSeek
     private static OperationRequests _requests=null!;
     private static ChoiceScope? _choice;
     private static bool _choiceReady,_choiceMoving,_retiring,_restoring,_stopping;
-    private static int _completed,_generation;
-    private static int? _seek;
+    private static int _completed,_generation,_choiceOwner;
+    private static Navigation? _seek;
     private static string _phase="";
     internal static bool Enabled {get;private set;}
     internal static int Host {get;private set;}
@@ -45,7 +47,8 @@ internal static class NativeSeek
         get
         {
             var active=_requests.Active;var pending=_requests.Pending;
-            string Item(ForwardRequest r)=>$"{(r.Kind==ForwardKind.Fine?">":">>")} {r.Target.Host} · {r.Target.Label}"+(r.Continuation?"（续当前）":"");
+            string Item(ForwardRequest r)=>$"{(r.Kind==ForwardKind.Fine?">":">>")} {r.Target.Host} · {r.Target.Label}"+(r.Continuation?"（续当前）":"")+
+                (ActionMonitor.Submitted(r.Target.Host-1) is {} native?native.Executing?" [结算中]":" [已原生入队]":CancelledAhead.Contains(r.Target.Host)?" [退队待重排]":" [尚待提交]");
             return $" · {(Running?"运行":"暂停")} · Auto：{(Auto?"开":"关")} · 待播{pending.Length}项"+
                 (_phase.Length>0?$" · {_phase}":"")+"\n"+
                 (active is null?"当前：等待请求":$"当前目标：{Item(active)}")+
@@ -61,7 +64,7 @@ internal static class NativeSeek
     internal static void Clear()
     {
         Enabled=false;_generation++;Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;
-        _choiceReady=false;_choiceMoving=false;_retiring=false;_restoring=false;_stopping=false;_completed=0;Host=0;_seek=null;_phase="";
+        _choiceReady=false;_choiceMoving=false;_retiring=false;_restoring=false;_stopping=false;_completed=0;Host=0;_seek=null;_phase="";_choiceOwner=0;
     }
     internal static void Control(string command)
     {
@@ -70,15 +73,17 @@ internal static class NativeSeek
         else if(command is "step" or "fine"&&CanStep){added=_requests.Add(command=="fine"?ForwardKind.Fine:ForwardKind.Whole);accepted=added is not null;}
         else if(command=="toggle"&&!_stopping&&!_restoring&&_seek is null){_requests.ToggleRunning();accepted=true;}
         else if(command=="auto"&&!_stopping&&!_restoring&&_seek is null){_requests.ToggleAuto();accepted=true;}
-        else if(command=="back"&&CanBack){RequestSeek(InFlight?Host-1:_completed-1);accepted=true;}
+        else if(command=="back"&&CanBack){RequestSeek(InFlight?Host-1:_completed-1,preserveIntent:false);accepted=true;}
         Runtime.Log("operation-control",new{Command=command,Accepted=accepted,Host,Completed=_completed,Running,Auto,
             Added=added,Active=_requests.Active,Pending=_requests.Pending,Phase=_phase});
     }
-    internal static void RequestSeek(int host)
+    internal static void RequestSeek(int host,bool preserveIntent=true)
     {
         Codec.Require(Enabled&&!_restoring&&!_stopping&&Points.ContainsKey(host),"operation-seek-only-complete-indexed-boundaries");
-        _requests.Seek(_completed);_seek=host;
-        Runtime.Log("operation-seek-request",new{From=_completed,Target=host,ChoicesAddressable=false,Running,Auto});
+        var priorIntent=_seek?.Intent??_requests.Intent;
+        var intent=preserveIntent?priorIntent:new PlaybackIntent(false,priorIntent.Auto);
+        _requests.Seek(_completed);_seek=new(host,intent,Back:!preserveIntent);
+        Runtime.Log("operation-seek-request",new{From=_completed,Target=host,ChoicesAddressable=false,IntendedRunning=intent.Running,IntendedAuto=intent.Auto,Back=!preserveIntent});
     }
     internal static async Task Run()
     {
@@ -96,7 +101,7 @@ internal static class NativeSeek
                     if(HasView)await AdvanceChoice();
                     else if(!InFlight&&ActionMonitor.Submitted(_completed) is null&&LiveState.Playable)Submit(_completed+1,false);
                 }
-                FillAhead();WakeExecutor();await Runtime.NextFrame();
+                FillNativeQueue();WakeExecutor();await Runtime.NextFrame();
             }
         }
         finally
@@ -145,29 +150,36 @@ internal static class NativeSeek
         if(host>SliceHosts||_stopping||_restoring||_retiring)return false;
         var op=_clip.Operations[host-1];
         if(ahead&&(op.Kind!=OperationKind.Card||!LiveState.InputPhase||ChoiceTape.Waiting))return false;
+        Creature? target;
+        try{target=LiveState.Resolve(op.Target);}catch(InvalidDataException) when(ahead){return false;}
         var card=op.Kind==OperationKind.Card?LiveState.Player.PlayerCombatState!.Hand.Cards.FirstOrDefault(c=>LiveState.CardIdentity(c).CombatIndex==op.CardState!.CombatIndex):null;
-        if(op.Kind==OperationKind.Card&&(card is null||card.Id.ToString()!=op.Card||LiveState.CardIdentity(card)!=op.CardState||!card.CanPlayTargeting(LiveState.Resolve(op.Target))))
+        // Ahead acceptance uses the current instance and native legality. Earlier cards may
+        // legitimately change its cost/upgrades; the full recorded key is checked at START.
+        if(op.Kind==OperationKind.Card&&(card is null||card.Id.ToString()!=op.Card||(!ahead&&LiveState.CardIdentity(card)!=op.CardState)||!card.CanPlayTargeting(target)))
         {if(ahead)return false;throw new InvalidDataException("operation-requested-card-not-ready");}
         Attempts[host]=Attempts.GetValueOrDefault(host)+1;
         PlayerLoop.SubmitOperation(op,host-1,card);
         var pending=ActionMonitor.Submitted(host-1)??throw new InvalidDataException("operation-native-acceptance-missing");
         Runtime.Log("operation-native-enqueued",new{Host=host,NativeActionId=pending.Action.Id,Ahead=ahead,Attempt=Attempts[host],
-            EarlierOriginalTaskIncomplete=ActionMonitor.Pending?.ActionTask is {IsCompleted:false},RequestConsumedAgain=false});
+            EarlierOriginalTaskIncomplete=ActionMonitor.Pending?.ActionTask is {IsCompleted:false},RequestConsumedAgain=false,
+            AcceptedWhilePaused=!Running,BusinessStarted=pending.Executing});
         return true;
     }
-    private static void FillAhead()
+    private static void FillNativeQueue()
     {
-        if(!Running||_restoring||_retiring||_stopping||ChoiceTape.Waiting||_requests.Active is not {Kind:ForwardKind.Whole} active||
-            ActionMonitor.Pending is not {Executing:true,Card:not null} current||current.PlaybackIndex+1!=active.Target.Host)return;
-        var expected=active.Target.Host+1;var filled=0;
-        foreach(var request in _requests.Pending)
+        if(_restoring||_retiring||_stopping||_seek is not null||ChoiceTape.Waiting||InFlight&&_choiceOwner==Host)return;
+        var active=_requests.Active;
+        var candidates=active is null?_requests.Pending:new[]{active}.Concat(_requests.Pending).ToArray();
+        var expected=_completed+1;var filled=0;int? turn=null;
+        foreach(var request in candidates)
         {
-            if(request.Kind!=ForwardKind.Whole||request.Target.Host!=expected||filled++>=2)break;
+            if(request.Kind!=ForwardKind.Whole||request.Target.Host!=expected||filled++>=3)break;
             var next=_clip.Operations[expected-1];
-            if(next.Kind!=OperationKind.Card||next.Turn!=_clip.Operations[active.Target.Host-1].Turn)break;
+            turn??=next.Turn;
+            if(next.Kind!=OperationKind.Card||next.Turn!=turn||next.Turn!=LiveState.Turn)break;
             // A choice-cancelled reservation must wait for the WHOLE owner operation,
             // including Burst's later choices, rather than reentering between choices.
-            if(CancelledAhead.Contains(expected))break;
+            if(CancelledAhead.Contains(expected)&&InFlight)break;
             if(ActionMonitor.Submitted(expected-1) is null&&!Submit(expected,true))break;
             expected++;
         }
@@ -209,6 +221,7 @@ internal static class NativeSeek
     {
         Codec.Require(_choice is null||_choice.Closed,"operation-overlapping-choice-ui");
         scope.Ui=ui;scope.PlaybackEvents=ChoiceTrace.ResultDemo(scope.Expected!);scope.EventPosition=1;
+        _choiceOwner=scope.Frame.Boundary;
         ChoiceTape.Display=$"原生选择{scope.Frame.Sequence} · 录像决策只读 · 可浏览；Back撤回整项";
         _choice=scope;_choiceReady=false;scope.Driver=PrepareChoice(scope);
     }
@@ -266,17 +279,19 @@ internal static class NativeSeek
         }
         finally{_retiring=false;_phase="";Ui.Refresh();}
     }
-    private static async Task Restore(int target)
+    private static async Task Restore(Navigation navigation)
     {
+        var target=navigation.Host;
         var at=Stopwatch.GetTimestamp();var point=Points[target];_restoring=true;
         try
         {
             await Drain();var drained=Stopwatch.GetTimestamp();_generation++;
             _phase="正在恢复操作边界";Ui.Refresh();await point.Restore();ActionMonitor.RebaseNativeSeek();
-            _completed=target;Host=target;_requests.Seek(target);Attempts.Clear();CancelledAhead.Clear();_choice=null;_choiceReady=false;
+            _completed=target;Host=target;_requests.Restore(target,navigation.Intent);Attempts.Clear();CancelledAhead.Clear();_choice=null;_choiceReady=false;_choiceOwner=0;
             HandPresentation.FinishHighlights(NPlayerHand.Instance!);Status();
             Codec.Require(LiveState.ChoiceProjection()==point.Projection,"operation-seek-result-or-rng-mismatch");
             Runtime.Log("operation-seek-arrived",new{Target=target,StateAndRngMatched=true,Running,Auto,Pending=_requests.Pending.Length,
+                IntendedRunning=navigation.Intent.Running,IntendedAuto=navigation.Intent.Auto,Back=navigation.Back,
                 ChoiceSnapshotRestored=false,RebuiltNativeHosts=0,RetirementMilliseconds=Stopwatch.GetElapsedTime(at,drained).TotalMilliseconds,
                 TotalMilliseconds=Stopwatch.GetElapsedTime(at).TotalMilliseconds});
         }
