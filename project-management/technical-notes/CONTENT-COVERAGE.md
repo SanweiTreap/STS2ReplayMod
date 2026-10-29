@@ -1,60 +1,98 @@
-# 战斗内容覆盖缺口与合并建议
+# 战斗内容覆盖：材料、机制缺口与取样计划
 
-更新：2026-10-28。代码盘点基线为CONTENT-003/build-004、固定v0.111.0反编译缓存及已有阶段验收。用户已按D-116批准A组与操作时间数据，执行见[CONTENT-004](../handoffs/CONTENT-004.md)；启动不代表新增能力通过。以下其余分组仍为建议，不是同时派发全部。
+更新：2026-10-29，D-128，PM静态盘点。游戏固定v0.111.0-41cef1ea；代码基线为891e5ff（PLAYBACK-002/build-003），避免与正在并行改动的PLAYBACK-003源码混读。新包完成后只复核变化项，不重复整次调查。本页替代2026-10-28盘点作为当前参考，历史结果仍在各CONTENT/STATE报告与Git版本中。
 
-## 当前底座与结论口径
+同日D-129扩展：完整材料/契约与候选批次见[BATTLE-COVERAGE-PLAN](BATTLE-COVERAGE-PLAN.md)，静态索引脚本见[Build-CombatCoverageIndex](../tools/Build-CombatCoverageIndex.ps1)。已生成本地15类/1539文件及池/命令/遭遇引用索引；注册表确认5个常规角色，内容可达性还受池、解锁和单/多人过滤。PLAYBACK-003已产出001候选但运行Pending，不把下列静态基线自动当作新候选验收。
 
-普通卡牌沿原生TryManualPlay、药水沿原生EnqueueManualUse执行，统一记录输入、实例和选择；格式4还能跟踪自动出牌的派生Task。观看期IdentityMemento按数据对象/字段保存并恢复，而非为每张牌重写效果。铁甲/猎人已有固定组合实测，含多种选择、生成/变化/消耗、遗物触发和中途敌人死亡。
+## 结论与使用方式
 
-因此“尚未验收所有内容”不等于“剩余每张牌都没有实现”。以下分为：**代码确认的限制/缺口**、**已有骨架但需适配或验证**、**目前只缺对应实测**。后一类不能直接宣称通过，也不必默认重写。
+已有原生CardModel/PotionModel/Hook与统一CardSelect通路，覆盖不是为每张牌重写效果。现在需要补输入种类、专属状态/目标、对象生命周期、选择所处阶段及可恢复上下文，并用少量能暴露差异的真实组合检查。全部原版卡牌/遗物/药水和战斗内容仍是目标。
 
-## 确认的主要缺口
+区分三类：**静态确认缺口**（代码明确拒绝/未表达）、**已有通路未证**（可能复用但缺少验证）、**旧路线已测/新路线待接**。普通前进、录制结果、内存Back/再执行、文件恢复/纠偏分别标记，不能一个“支持”勾掉所有层次。静态检查没有产生新的运行PASS。
 
-| 类别 | 当前证据 | 需要补什么 |
+## 已有与需要整理的材料
+
+| 材料 | 目前可用 | 如何使用/还缺什么 |
 | --- | --- | --- |
-| 正常游玩准入/连续战斗 | 角色仅铁甲/猎人，单人A0/首幕首排；Recorder依赖fresh且一次attempt，Continue不录 | 按战斗反复开始/封存、后续楼层checkpoint、Continue重进、片段索引；取消测试资格与重建/元数据同步处理 |
-| 储君资源/动态卡牌 | Stars、CurrentStarCost、X费和DynamicVars已采，NStarCounter有稳定点刷新 | 先开放角色；验证星星获取/支付、原生HUD时序、锻造生成及反复修改同一张剑/多副本/不同牌堆的恢复，不能说从零做星星系统 |
-| 充能球 | 原生PlayerCombatState有OrbQueue，当前通用数据遍历可能覆盖部分字段；LiveState没有专门球队列/容量/球状态投影 | 补明确的比较/恢复与原生槽位显示，验证充能/激发、被动/主动、容量与顺序/可变数值；不能仅删故障机器人角色限制 |
-| 战斗成员增减 | CombatRoster在nextCreatureId变化、新成员或宠物处拒绝Back；DirectCheckpoint也要求Pets.Count==0；TargetRole仅敌人/玩家 | 统一单位身份/成员/目标关系、订阅与场景重绑，覆盖Osty等宠物和怪物生成/分裂/增援；死亡原敌人恢复成功不代表新增单位恢复 |
-| 选择与预览 | 手牌/牌堆/小候选/Bundle已有通路；原生牌库专用预览有显式unsupported分支；重叠scope显式拒绝 | 补实际调用的升级/附魔/变形预览；二候选/Bundle与不同窗口Stop按来源顺带验证。并发/嵌套是否原版可达尚未核实，不先建设任意并发框架 |
-| 终局与非战斗 | 当前BattleEnd/Operation明确表达胜利；默认统一路线允许胜利Back，旧稳定点路径仍禁；仅收Card/EndTurn/Potion输入 | 失败局/玩家死亡的封存和退出、一般终局恢复；胜利节点HUD当前专项复测。奖励/事件/商店/地图另有生命周期，不能把多战斗文件叫整局 |
-| 文件权威状态 | STATE-001仍仅铁甲首张未升级Defend的固定文件点，新增对象类型还有窄白名单 | 把更多机制/跨回合状态真正落盘，在新进程多点恢复和纠偏；观看内存Back不替代此项 |
-| 原始节奏/产品交互 | 选择有Began/Duration/局部事件时间，Operation没有操作接受时刻；动画时钟是观看时的展示机制 | 尽早持久化统一时间基准下的输入时刻；之后做原始/分类配置节奏、变速、时间轴/路线、录像库/导入分享 |
+| 固定游戏C# | 本地反编译缓存；游戏DLL身份见CURRENT_STATUS | 查共用入口、模型私有状态、RNG与生命周期；不为每个方法补IL，歧义时再查 |
+| 内容模型与池 | Cards 596、Relics 300、Potions 65、Powers 268、Monsters 121、Encounters 91个C#文件 | 这是目录模型文件数，含派生/废弃/非正常获取内容，不是可收集数量或已支持数量。按CardPools/RelicPools/PotionPools、注册与可达性再映射 |
+| 角色/资源模型 | Characters目录8个文件，包含RandomCharacter/DeprecatedCharacter等；PlayerCombatState有Stars、OrbQueue、Pets | 不能按文件数宣称有8个可玩角色；为实际可玩角色列专属资源/单位/目标 |
+| UI与本地化 | 原生窗口类、资源路径、模型ID可从源码追踪 | 中文名与模型ID按实际来源对应；特殊窗口/宠物/球的节点按需定位，不先全量重做UI |
+| 真实录像与报告 | 猎人1d5346b085b04635ab3e00b43fe9190c、储君cd3baa3b1be7466f9cb94d385c3db420等已有样本 | 复用真实样本，记录版本/实际动作/预期结果；不改片段顺序假造覆盖，旧路线通过不直接算新路线通过 |
+| 用户经验 | 已有随机数/选择/动画经验，本轮询问额外主动操作及易准备的新单位样本 | 经验用于发现遗漏和选样；发生频率/根因/支持结论仍以固定源码或运行验证区分 |
 
-明确的容量限制：每片最多256操作，4MiB；单场原片已为MiB级。后续延长录制时要结合真实增长/开销调整，不把单纯调大上限当作长局已支持。当前文件还绑定精确构建/已知前驱和profile scope，不是面向玩家的通用分享格式。性能仍沿新增真实路径测，不重建通用测试平台。
+源码根为`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`。模型文件数由各`MegaCrit.Sts2.Core.Models.*`目录的`rg --files -g '*.cs'`计数，未启动游戏或加载程序集来枚举内容。
 
-## 很适合合并的实施组
+## 当前覆盖与机制缺口
 
-以下是建议分组，不等于每组都要求一次塞完所有组合；每组用一两份有代表性的真实录像，普通bug原包修。
+| 机制 | 基线确认/已有证据 | 需要补的材料或验证 |
+| --- | --- | --- |
+| 普通出牌、用药、结束回合 | OperationKind三类，原生TryManualPlay/EnqueueManualUse/EndPlayerTurnAction；已有多种真实样本 | 对照正常可达主动操作查漏，区分输入接受/执行/取消；不是逐卡手写效果 |
+| 丢弃药水 | **静态确认缺口**：原生NPotionPopup会提交DiscardPotionGameAction；当前枚举/Queue白名单不接受 | 补独立丢弃语义、槽位/实例、退出与恢复，不与喝药合并；一瓶药水丢弃并Back即可暴露差异 |
+| 选择窗口与所处阶段 | 通用叶入口覆盖手牌、战斗牌堆、小候选、牌组及Bundle；旧CONTENT含初始/药水/回合选择，新路线固定猎人手牌选择已证 | 新普通入口接回初始选择；按实际调用核对升级/附魔/变形预览、跳过/有序多选/连续选择、敌方强制选择。不要先造任意并发框架 |
+| 生成/复制/变化/自动打出 | 格式4+有生成/变化、自动派生Task和实例跟踪；格式5有DupeOf/锻造字段；旧样本已测部分 | 将实例/牌区/临时费用/附魔/叠加次数及新旧模型关系接回新路线，验证派生效果不再重放为手动输入 |
+| 遗物与能力触发 | 原生Hook执行；旧样本有开心小花、金纸、工具箱、必备工具/暴政/熵等 | 回合开始/回合内/回合结束都需覆盖；私有计数/冷却/延迟回调与订阅恢复不可只看闪光或Power.Amount |
+| 遗物成员增减 | **静态确认缺口**：AddRelicInternal/RemoveRelicInternal在观察期间主动拒绝 | 先找本版本正常战斗中真实可达来源；可达后再补成员/订阅/状态，不为假设场景先建扩展框架 |
+| 储君星星/锻造/动态费用 | 字段与CONTENT-004固定13项已有旧路线证据，新路线未以该片验收 | 优先迁回已有样本，检查反复修改剑/副本/跨牌堆/跨回合；不是重新做星星系统 |
+| 充能球 | **明确比较缺口**：LiveState无OrbQueue容量/顺序/球状态专门投影；故障机器人资格未开放 | 原生OrbQueue已有容量/顺序/触发，通用内存遍历可能覆盖部分数据，不能断言从零。仍需明确核对/重绑球HUD、充能/激发/被动/集中/扩缩容、可变球状态与RNG |
+| 宠物、新怪生成/分裂/增援 | **静态确认缺口**：CreateCreature观察期拒绝；CombatRoster拒新成员/nextCreatureId变化，DirectCheckpoint拒Pets，目标仅Enemy/Player | 单位稳定ID、目标/所有者关系、AI/RNG、场景与订阅重建；死亡原怪恢复不代表新单位恢复。Osty等先找最小样本 |
+| 换形/多阶段Boss | CombatRoster检查原Visuals/Body引用；逻辑模型与行为私有状态不能只看血量/意图 | 区分换外观、换模型、换单位；补阶段/计数/招式机和节点绑定。不能把所有外观变化一概当新生成单位 |
+| 回合与自动连锁 | EndTurn及GenericHook/ReadyToBeginEnemyTurn等自动动作已有窄路径；新路线允许当前宿主选择续接 | 额外/跳过回合、持续触发和敌方选择按实际因果链归属；选择不总属于玩家出牌。暂停不整体锁死当前宿主 |
+| 战斗结束 | BattleEnd/Operation明确表达Victory；旧路线有完整胜利，新路线固定前22，PLAYBACK-003正接完整单场 | 失败/玩家死亡/复活与特殊结束需独立结果语义；玩家死/宠物边界当前拒绝。不要把一份未标完整的片段当完整失败录像 |
+| 录制准入/后续战斗 | **明确范围限制**：fresh、单attempt、row1、A0、首幕普通战斗，仅铁甲/猎人/储君，Continue不录 | 多次战斗开始/封存、精英/Boss/后续Act/难度与Continue恢复；这是场景生命周期，不是补几张牌即可解决 |
+| 文件强记录与纠偏 | STATE-001仅铁甲首张未升级Defend固定文件点；内存Back更广但不是文件能力 | 更多真实录制关键点、类型/逻辑身份、对象重建及新进程恢复/偏差纠正；不要以重演缓存代替原局权威事实 |
+| 规模与节奏 | 格式5/6已落盘输入接受/完成时间；原始节奏播放器未实现。当前256操作/4MiB容量 | 长战斗和多房间要检查容量/采集开销；时间包含加载/暂停等，不能直接当已完成的有效原始节奏 |
 
-**A — 额外资源与可变卡牌（已按D-116启动CONTENT-004）。** 储君星星获取/消耗、锻造首次生成与累计修改、复制/同名实例的状态、费用变化/X费，同组处理付款、卡牌动态数据、显示与Back。必要选择预览随真实样本补，不把所有非战斗牌库UI变为前置；遗物/药水作为同类来源取样。具体范围、时间数据与验证以工作包为准，不因已有字段就称全适配。
+## 知识恶魔：用户提供的代表例
 
-**B — 充能球容器。** 故障机器人的球顺序/类型/自身数值、容量增减、自动挤出激发、回合被动与主动触发放在同一组。复用球的统一模型/槽位生命周期，不为每种球开包。与星星同属资源，但并非同一套简单整数状态，建议作为独立增量。
+用户回忆：二层Boss知识恶魔周期性要求玩家选择负面效果，约“每三回合”。本轮已定位固定源码`KnowledgeDemon.ChooseCurse`：候选通过CombatState.CreateCard生成，实际调用`CardSelectCmd.FromChooseACardScreen(new BlockingPlayerChoiceContext(), cards, target.Player)`；结果经`IChoosable.OnChosen()`执行。
 
-**C — 新增/移除战斗单位。** 宠物/Osty与怪物分裂/召唤共用身份、成员图、目标与显示重绑，适合同一总包的两个切片；不承诺所有怪物阶段/形态。球不是Creature roster，不能因为“都新增东西”就和本组混作一个恢复方案。
+**Confirmed（静态）**：这走已知小候选选牌叶入口，不是新的按钮输入种类。源码在两次Curse之间安排Slap、KnowledgeOverwhelming、Ponder三个其他行动，并按Curse计数小于3分支。特殊性在敌方行动/Blocking上下文、效果候选和Boss跨周期状态，不能只支持玩家手动牌内的选择。现有Recorder.ChoiceBoundary在有Pending时可关联当前操作，EndTurn可能是归属入口，仍需以后真实Boss路径验证。
 
-**D — 选择窗口补齐。** 战斗中的升级/变形/附魔选择以及二候选、Bundle、跳过/取消和窗口Stop按实际通用控件合并；已有手牌/牌堆无需重做。可由A/B/C需要的真实来源带动适配，剩余统一窗口再集中处理。真正并发只在找到原版可达来源后解决。
+**待验证**：敌方阶段的录制/重放/暂停/恢复，以及Boss计数/外观状态是否完整保存。用户“每三回合”的经验与源码中间三个其他行动分开描述，不冒充已经进行动态周期测试。本轮不要求用户重新测试Boss，也不将其塞进PLAYBACK-003首战范围。
 
-**E — 从首战到连续战斗。** 解除首排/一次attempt、支持Continue、连续两场普通战斗各自checkpoint/封存/索引，作为同一录制生命周期增量；再扩难度/精英Boss入口。特殊Boss换形/新增单位仍依赖C。随后奖励、商店、事件与地图才能组成整局，不将所有这些场景一次捆入“两场战斗”目标。
+## 单位生命周期：用户提供的四个代表样本
 
-**F — 多点权威文件恢复/纠偏。** 利用已覆盖机制扩展真正的磁盘状态点、跨回合冷恢复与偏差纠正。A/B/C同时登记新增必要状态，不把文件需求拖到发布前；但不要求每个内容包先完成通用快照平台。
+2026-10-29用户凭经验补充，下表地点/直观回合描述按用户观察记录；模型与方法已对照固定v0.111.0源码，未运行游戏。四例足够安排第一批有区分度的生命周期验证，不要求用户现在再测试或继续找更多样本。
 
-**G — 观看与文件产品化。** 原始/配置节奏、时间轴/路线、录像列表和同环境导入，围绕已有可用录制范围分段完成，不与每项内容适配强行捆绑。多人、跨版本、可游玩分支和其他gameplay mod兼容仍是MVP后的大型方向。
+| 用户描述 | 已定位原生模型 | 静态确认的路径 | 未来取样应检查什么 |
+| --- | --- | --- | --- |
+| 一层暗港三只老鼠，有召唤意图 | TwoTailedRatsNormal / TwoTailedRat | 初始三只；CallForBackup经CreatureCmd.Add<TwoTailedRat>加入新单位。CanSummon还检查冷却、计数、空槽及队友意图 | 新CombatId/对象、槽位/目标顺序、召援计数与AI/RNG；Back到召唤前再做，不残留旧单位/订阅 |
+| 二层直飞产卵虫，首回合召三个卵、下一回合孵化 | OvicopterNormal / Ovicopter / ToughEgg | LayEggsMove最多在空槽创建三个ToughEgg并加Minion；HatchMove设IsHatched、移除相关Power，Hatch在同一Creature上重设最大/当前HP并播放孵化，不在该方法新建怪 | 分开验证“产卵生成”与“原卵孵化”；保留单位身份，恢复Hatch/内部标记、状态与动画，检查RunRng.Niche抽取孵化HP。具体动态孵化时点未测 |
+| 二层精英残杀千足虫，未全杀则倒下个体两回合后复活 | DecimillipedeElite / DecimillipedeSegment / ReattachPower | ReattachPower阻止死后移出战斗，记录私有isReviving、禁用交互；DeadState后接Reattach，其他节未全死时治疗原Creature；全部倒下才触发共同退场 | “已死但仍在队列/战斗”的成员，不能按HP0立即删掉；恢复复活等待/交互性、招式和其他节关系；最后全灭与部分倒地两类终局区别。两回合为用户经验，未做运行计时 |
+| 三层Boss实验体有三阶段，转阶段以复活表现 | TestSubjectBoss / TestSubject / AdaptablePower | Adaptable阻止死后移出战斗并触发倒地；RespawnMove递增Respawns，分别按第二/第三形态HP治疗同一Creature，增减Power并改变动画/大小 | 两次阶段转换、原身份/Respawns/私有isReviving、最大HP/Power/招式与显示同步；不能把第一次HP0算作胜利，也不能用新造同名怪替代原实例 |
 
-原始操作时间是应尽早补的数据：建议随下一批涉及录制的修改保存，不等待完整节奏UI。当前ActionMonitor虽有Started，但仅用于运行等待；不能把外置诊断日志的时间当成录像文件已保存原始节奏。暂停/加载/选择的时间含义需记录清楚，具体数据契约由实现时确定。
+这些例子把两个原本容易混淆的维度分开：**新实例加入**与**原实例改状态/形态**；**死亡移除**与**倒地留场等待复活**。现有CombatRoster/DirectCheckpoint拒新成员、宠物或非存活成员的限制仍是明确缺口，不能只删除检查就宣称支持。通用化应继续以原生战斗结束事件为终局依据，不改用“敌人血量归零”推断。
 
-## 同类效果如何取样
+后续建议先三鼠验证纯新增，再以产卵/孵化验证新增叠加原实例变化，继而千足虫验证倒地留场/延迟恢复，最后用实验体验证多阶段终局。此为素材与未来取样顺序，不新签工作包，不将二层/精英/Boss加入正在执行的PLAYBACK-003首战范围。
 
-升级、临时费用/动态数值、复制/自动打出、Power持续/回合触发、遗物计数/获得失去和药水联动，不逐卡逐遗物重写；检查真实共用入口与数据所有权，每类选能暴露差异的组合。比如同名不同实例、生成后再变值、离手后继续锻造、跨回合触发，比重复打普通攻击更有价值。
+## 比较与恢复需要单独确认的状态
 
-遗物/药水已有原生执行和部分恢复证据，但战斗中获得/失去、特殊随机来源和跨房间继承仍无一般保证。模型名相同或正常前进成功，不能证明私有字段、订阅、RNG和UI恢复都对。无准备自然样本可随E正常多战录制取，不给每个角色额外排一套旧矩阵。
+- 已有投影：run/player/敌人RNG、牌实例/升级/费用/动态值、牌区顺序、资源、药水槽和遗物序列等；原生各类RNG不能被简化为一个全局计数。
+- 潜在盲区：Power投影主要是ID/Amount，遗物是Saved/Vars等；模型私有字段和触发订阅并非都可由这些投影证明正确。通用内存memento可遍历许多可变字段，但明确排除Task/Delegate/Godot节点，文件新对象又有类型/绑定约束。这里是验证风险，不是已确认某张牌有bug。
+- 用户关于“洗牌主要取决于弃牌堆集合”“不同适应打击实例可能不同”等经验/推测用于取样：保留实例与有序牌堆、检查对应RNG前后值；尚未通过受控试验证明只由集合决定。
 
-## 主要代码依据
+扩展源码确认：洗牌经StableShuffle先排序再使用独立Shuffle流，随后仍可被重排Hook改变；AdaptiveStrike生成克隆/设本战费用0，没有直接RNG调用，但整条Hook链是否耗RNG不能由此排除。详见完整计划的RNG节，不能继续把“集合决定”无条件当成事实或直接否定玩家经验。
 
-- [录制资格/投影](../../src/ReplayMod/LiveState.cs)：Supported、CardDetails、Mechanics、Capture。Stars/X费已有字段，充能球尚无明确投影。
-- [录制生命周期](../../src/ReplayMod/Recorder.cs)、[格式/容量](../../src/ReplayMod/Clip.cs)：fresh、attempt、row1、输入种类、4MiB/256与无操作时间字段。
-- [输入/派生任务](../../src/ReplayMod/ActionMonitor.cs)、[hook范围](../../src/ReplayMod/Patches.cs)：原生三类输入及自动出牌，不是逐牌手写。
-- [内存恢复](../../src/ReplayMod/DirectCheckpoint.cs)、[成员限制](../../src/ReplayMod/CombatRoster.cs)：Data/Field、NStarCounter及Pets/newCreatureId边界；通用遍历可能已有部分新模型数据，不能静态断言完整。
-- [选择入口](../../src/ReplayMod/ChoicePatches.cs)、[原生窗口](../../src/ReplayMod/NativeChoice.cs)、[scope与时间](../../src/ReplayMod/ChoiceTape.cs)：已接入与明确拒绝的区别。
-- [终局](../../src/ReplayMod/BattleEnd.cs)、[文件权威点](../../src/ReplayMod/RecordedState.cs)、[展示时钟](../../src/ReplayMod/PresentationTiming.cs)、[HUD采集](../../src/ReplayMod/CombatHudTrace.cs)。
-- 固定本地反编译：MegaCrit.Sts2.Core.Commands/ForgeCmd.cs（首次生成SovereignBlade、累计修改与专属VFX）、Models.Cards/SovereignBlade.cs、Entities.Players/PlayerCombatState.cs（Stars/OrbQueue/Pets）、Entities.Orbs/OrbQueue.cs（顺序/容量/触发）。这是固定DLL还原，不是官方源码或新增动态证明。
+## 建议的后续批次（未同时派发）
+
+1. **正在做：PLAYBACK-003完整单场。** 正常入口、新文件、真实胜利/Back/Stop；覆盖材料不阻塞它，关联普通问题可就近修。
+2. **已有共用内容迁回。** 用铁甲/猎人/储君已有样本检查初始/回合/药水选择、遗物计数、生成/复制/变化/费用。并列登记丢弃药水这种明确输入漏项，按最小真实例补上。
+3. **专属资源与单位生命周期。** 球类状态/HUD为一组；宠物/生成怪/复活/换形按共同单位身份与场景机制组织。每组取能区分数据与显示的样本，顺带补所需权威状态，不逐牌建立工作包。
+4. **完整战斗场景。** 失败与玩家死亡、精英/Boss及后续房间/难度/Continue；知识恶魔用作敌方强制选择代表。地图/奖励/商店整局与楼层导航按实际生命周期接入。
+
+所有批次仍以实际功能闭环验收：录下操作/选择→原生前进→关键点Back后再执行→必要文件恢复→正常退出。按本批改动取必要项，不能把每行都变成每张牌的强制完整矩阵。
+
+## 用户经验与可追加材料
+
+- 已收到额外主动操作问题的知识恶魔例子；静态确认它仍属统一选牌，但拓宽了来源阶段。丢弃药水已由源码另行查出。
+- 新单位/形态问题已收到三鼠、直飞产卵虫、残杀千足虫、实验体四例并完成上述静态定位；暂不需要更多材料或开游戏确认。具体动态时点、录播/Back结果仍待对应功能迭代验证。
+- 如还有卡牌/用药/结束回合/选牌以外的真实战斗操作，可随时追加。中文名、发生条件及可见操作足够，模型映射由PM查源码，不要求用户报类名。
+- 撤销结束回合已收到用户答复“多人有，单人没有”。源码类型/按钮分支保留为材料，当前不列单人MVP必需输入，留多人阶段；经验判断不冒充穷尽时序运行证明，无需现在额外测试。
+
+## 依据与本轮边界
+
+- 代码基线891e5ff：`LiveState`（Supported/Mechanics/Capture/Target）、`Clip`（OperationKind/TargetRole/256与4MiB）、`Recorder`（fresh/Checkpoint/ChoiceBoundary/Seal）、`Patches.Queue/Spawn/RelicMembership`。
+- `ChoicePatches`/`ChoiceTape`/`NativeChoice`：已挂叶入口、重叠scope拒绝、候选/来源/自动选择与窗口；`CombatRoster`/`DirectCheckpoint`/`StateGraph`：成员/宠物/节点身份和数据/执行上下文边界；`BattleEnd`：当前Victory生命周期。
+- 固定原生源码：`DiscardPotionGameAction`与`NPotionPopup`、`PlayerCombatState`/`Entities.Orbs.OrbQueue`、`KnowledgeDemon`/`KnowledgeDemonBoss`，以及`TwoTailedRat.CallForBackup/CanSummon`、`Ovicopter.LayEggsMove`、`ToughEgg.HatchMove/Hatch`、`ReattachPower`/`DecimillipedeSegment`、`TestSubject.RespawnMove/Revive`/`AdaptablePower`；模型/遭遇/池文件可按需查询。
+- 本轮仅源码/既有报告复核、模型文件计数和文档更新；无游戏/程序集运行、无新probe、无源码/安装/存档修改。PLAYBACK-003正在由Implementation独立实现，以上静态基线不反写其未来成果。
