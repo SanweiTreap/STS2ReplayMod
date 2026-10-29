@@ -1,10 +1,10 @@
 # 当前项目状态
 
-更新：2026-10-29。D-119确认基本导航体验，当前SEEK-001验证可续播状态恢复与统一原生前进；讨论HOLD对新包结束。旧PLAYBACK-001停放，003结果未反馈仍Unknown；CONTENT-004/003/002保持收束。开始工作先读本页，详细历史按需查报告。
+更新：2026-10-29。SEEK-001/002 r1原生续播固定片段已有证据、视觉/交互未整包验收。D-120先修显示/控制、短等待暂接受；D-121已定运行门/连续模式/有限余量独立，Step只排队、暂停时按Play后运行。当前仅收束规格，不换版/新测试；旧PLAYBACK停放、003Unknown。
 
 ## 玩家现在能用到什么
 
-已有能实际体验的单场战斗回放原型，还不能自动记录、观看整局正常游戏。CONTENT-004按储君资源/可变卡牌/时间固定组合收束，见[验收](../evidence/content-004/project-lead-review-2026-10-28.md)；全内容/发布性能未完成。旧PLAYBACK-001有真实排队录制证据、002观看失败、003未反馈结果。当前SEEK-001先验证恢复后原生续播，不把新产品规格当新能力已实现；旧可用版保留。
+已有单场战斗回放原型，还不能录制/观看整局。CONTENT-004等固定组合按原范围收束，全内容/发布性能未完成。新SEEK-001/002在猎人前4宿主中取得跨回合/选牌恢复后原生续播数据证据；用户称基本符合预期，另报告弃牌Seek手牌/耗时与有限队列继续问题，不能据此认视觉/交互全部通过。
 
 在已经支持并实测的战斗范围内，可以：
 
@@ -44,9 +44,13 @@ CONTENT-002已收束：默认展示最终确认的选择，原始41事件保留�
 
 ## 当前决定与下一步
 
-用户已认可D-119基本体验：Step正常展示到下一操作/选择停点、点击累计；Back直达上一节点暂停；Seek直接呈现目标、默认暂停。D-118保持A当前效果/自动连锁收尾、B仅排队则不开始，背景idle/浏览可用；敌方每敌人或整轮暂停由实现便利选择。优先参考原生多人共用队列/动画，减少自建模拟；见[体验基线](technical-notes/PLAYBACK-EXPERIENCE.md)。
+用户已认可导航体验：D-121修订Step为只加入下一操作/选择节点请求、点击累计，暂停时按Play后才执行；运行门/连续开关/余量独立。Back直达上一节点暂停，Seek到达默认暂停。D-118保持A当前效果/自动连锁收尾、B仅排队不开始，背景idle/浏览可用；敌方每敌人或整轮停交实现便利选择。优先原生共用队列/动画，见[体验基线](technical-notes/PLAYBACK-EXPERIENCE.md)。
 
 现启动[SEEK-001](handoffs/SEEK-001.md)：少量可恢复索引、跨回合/选牌相关状态的跳转与原生续播，Step/Back/Seek共用新路线。可用新入口/策略先验证，不先删除旧实现、整局预计算或建设无头平台。新路径允许恢复后正常重执行业务/RNG，核对各次结果与原记录一致，不沿用旧历史显示RngUnchanged要求；旧Task不能复活、进度隔离与只读保留。任意未访问位置/精确帧、通用文件恢复和缓存策略仍未证明，见[架构评估](technical-notes/SEEK-FIRST-ARCHITECTURE.md)。普通bug/重构/备份安装/人工测试沿D-092同包自行推进，无新阶段审批。
+
+SEEK-001/002 r1两Runtime/1070事件、3次打开；Implementation摘要记41原生宿主结果-RNG核对、38新选择上下文/提交、22次到达匹配，3次退出无PendingHost且原manager/所比较Continue进度恢复，见[r1摘要](../evidence/seek-001/runtime-verification-r1.json)。仅猎人片前4宿主/9节点、同战斗与已建索引，无旧trace.Play；不是全场/通用Seek或多牌排队通过。PM读取摘要/报告及关键源码，未重计全部原事件；001未运行、003未反馈结论保持。
+
+隐藏NRun影响布局，是手牌问题高可信解释，修复未实测；稳定Seek约9–83ms、选择重建约1.86–2.40秒，选择源点离开还可能退役旧宿主1.79秒、应用约25ms。D-120先修显示/控制、短等待暂接受，不改快速上下文/精细Seek。D-121 Step只排队，暂停时等Play；Pause保留模式/余量，Play不变无限；连续关且量尽时等新请求，运行门不暗改。规格已明确，本轮不发代码/测试。见[体验](technical-notes/PLAYBACK-EXPERIENCE.md)、[评估](technical-notes/SEEK-FIRST-ARCHITECTURE.md)、[报告](investigation-reports/SEEK-001-report.md)；三击选择不是多牌入队。
 
 ## 旧路线已获得的执行进展（供新包参考，不续跑清单）
 
@@ -71,11 +75,11 @@ MVP目标仍为自动录制、尽可能覆盖单人场景、独立Replay入口�
 ## 当前工程与恢复点
 
 - 可演进工程：[src/ReplayMod](../src/ReplayMod/README.md)。已有本地反编译C#缓存，日常定位/hook源码优先，IL仅用于歧义，不逐方法复证。
-- Git：私有仓库[SanweiTreap/STS2ReplayMod](https://github.com/SanweiTreap/STS2ReplayMod)，main已首次推送；源码/文档入库，原始证据/存档/构建与第三方快照留本地，见[协作规则](REPOSITORY.md)。开发快照不是实测发布。
-- 当前安装PLAYBACK-001/build-003，SHA-256 `AB1186D0E4D5C9A1D0499FA28807C317FC304527CD12C010E13658F583ADAE4A`，[收据](../evidence/playback-001/preparation/build-003-5a07c62b.json)记pair匹配及安装时game0；用户测试已结束但结果暂未反馈，不认PASS/FAIL。002失败pair/config、461事件/片/Godot及003源码检查保留；001真实录制与008旧结论各自保持，不混用各版证据。
+- Git：私有仓库[SanweiTreap/STS2ReplayMod](https://github.com/SanweiTreap/STS2ReplayMod)，源码候选2e57ad7已推送，本轮仅诊断报告/README再提交3959124并推送；PM管理页工作区修改未混入该提交。原始证据/存档/构建/第三方快照留本地，见[协作规则](REPOSITORY.md)。开发快照不是发布。
+- 当前保持SEEK-001/build-002，SHA-256 `E2295412EDE81B4A1BDFABE25BE02CE448B39EE92743124176AEB5D7FD893AB2`，[收据](../evidence/seek-001/preparation/build-002-6be9a30e.json)；r1已实测但视觉/交互未通过整体验收，诊断时game0、无新代码/DLL/人工要求。SEEK/001未运行，旧PLAYBACK/003未反馈仍Unknown，证据分别保持。
 - 最新完整恢复点按收据为`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，1280文件、132063795 bytes，来源/副本读回且来源稳定。Implementation按真实清单复核r4的54个saves内容保持；旧r2汇总53是沿旧点硬编码，原比较循环覆盖新清单54项，已加注更正，原日志不改。内容相同不证明无同值写入；更早progress备份差异/前后副本与全部重要原片/事件保留，PM不重复整账号审计。
 - 部分快照：同恢复点下CONTENT004-current-saves-20261028-150051为41文件/4471059 bytes；PLAYBACK001的203942快照49文件/4348913 bytes、最新20261028-223031快照51文件/4439940 bytes，Implementation记录已知save/config/native replay父目录来源稳定及逐hash读回。它们不替代旧完整恢复点、不表示重审历史run；未执行恢复/扫描另一账号。
-- 当前Implementation对话：`01a17814-d254-7df0-8c01-affe43d0e04c`，沿SEEK-001/D-119恢复工作，保留003与旧可用版；可自主相关改动/构建/必要备份安装和请求人工实测，不补跑003或先等批准。PM维护管理文档及验收。
+- 当前Implementation对话：`01a17814-d254-7df0-8c01-affe43d0e04c`，已交回r1诊断；按用户最新要求先作产品/策略复核，当前不继续换版/新增测试。保留002和旧003未反馈资料，不补跑旧包；讨论明确下一迭代后仍沿D-092自主普通修复，不新增常规审批。
 - 实验文件格式有精确身份/已知前驱build限制，不代表一般跨版本播放。
 
 ## 有效开发授权与工作方式
