@@ -1,12 +1,26 @@
 # ReplayMod 0.1.0 · 原生单场回放
 
-## 当前：PLAYBACK-003 / build-003，已预约Fine/Whole共用预入队窗口待短测
+## 当前安装：PLAYBACK-003 / build-005，D-131两模式待短测
+
+原生播放器移除Play/Pause，默认Auto关、手动等待。`>`仅在手动等待时推进一个细阶段，到点再等；选择页即使宿主Task未结束也能继续细进。执行中/Auto开时禁用Fine，UI与处理入口一致。`>>`立即请求当前整项（选择中补完剩余宿主），可连续点击累计FIFO，不需要Play，也不会自动补WholeContinuation。
+
+Auto开连续，关Auto只停止自动追加，当前Whole（含选择）和显式队列自然收尾后等；不再提供执行中暂停并保留整队的独立入口。Back清计划并转手动/Auto关；Seek清计划、按请求时Auto继续/等待；Stop/片尾正常结束。STATE独立旧工具不要求改为此模型。
+
+build-005 DLL `FE7B24A0D58CDBD9B40756F041A6997B5D4C4E44EA1CA09DFE108351CC7BA084` 已安装，收据`evidence/playback-003/preparation/build-005-d3a79956.json`；旧003 pair/配置与原始证据保留，004为未安装D-130草稿。构建0警告0错误、14组两模式请求合同、4组完整路线和新片生产读回兼容检查通过，原生相关短测Pending。沿用新片验证手动细进/选择整项收尾、累计整项、Auto切换、Back/Seek及Stop，不重录/重跑主闭环。详见[PLAYBACK-003报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
+
+## PLAYBACK-003 / build-003及未交付D-130草稿历史
+
+r5真实245事件已证明三小刀Fine/Whole/Fine在暂停时全部原生接受、Play后依次执行、最后Fine暂停且Auto保留。14次结果/RNG、3次Back及Stop11隔离通过；同轮记录隐秘匕首Partial Fine直到Play才提交的旧行为，原始日志已封存，见[报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
+
+用户随后接受D-131两模式，暂停Partial Fine路线停止扩展。先前D-130入口/保持Running/不补Whole草稿虽已离线通过，DLL A8FE…0FAE未安装；`checks/build-004`不是已发候选。草稿已另存，当前005实现已确认模型，既有新录主链及各轮结果保持。
+
+## PLAYBACK-003 / build-003 混排修复与所测基线
 
 build-002/r4的471事件已证明：暂停Fine小刀11/12原生接受时不执行业务，Play后到点暂停、Auto保留；37原生结果/RNG及Stop21/16隔离通过。用户又发现Fine后已有Whole仍不预入队，原因是候选前缀无条件在Fine截断，而运行FIFO在有明确后继时继续。
 
 与PM澄清后，build-003让已预约Complete Fine/Whole连续合法卡共用原三项窗口，不拉入未预约或新Auto目标；仅最后Fine无后续显式请求才暂停并保留Auto。内部选择阶段/同宿主多个阶段、原生合法性与只接受不执行业务规则保持。修复没有牌名特例。
 
-已安装build-003 DLL `87F3039C1CB1E6308A2B46C3C19C1D34B693A35B546DCA19CF299E15E622D8F6`，收据`evidence/playback-003/preparation/build-003-c3ecc630.json`。构建0警告0错误，12组请求、4组完整路线及新片生产兼容读取合同通过，原生混排短测Pending。用同新片完成1刀刃之舞、暂停/开Auto，预约`>`/`>>`/`>`三张小刀应全部预入队；Play后完成4并暂停、Auto保留，然后Stop/正常退出即可，无需重录或再跑主闭环。详见[PLAYBACK-003报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
+已安装build-003 DLL `87F3039C1CB1E6308A2B46C3C19C1D34B693A35B546DCA19CF299E15E622D8F6`，收据`evidence/playback-003/preparation/build-003-c3ecc630.json`。构建0警告0错误，12组请求、4组完整路线及新片生产兼容读取合同通过；原生混排短测已由r5通过，旧步骤保留在报告历史，不要求重复。详见[PLAYBACK-003报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
 
 ## PLAYBACK-003 / build-002 单独Fine入队修复与所测结果
 

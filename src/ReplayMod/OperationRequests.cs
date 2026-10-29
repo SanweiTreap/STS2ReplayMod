@@ -1,7 +1,10 @@
 namespace ReplayMod;
 
 internal enum ForwardKind { Fine, Whole }
-internal readonly record struct PlaybackIntent(bool Running,bool Auto);
+internal readonly record struct PlaybackIntent(bool Running,bool Auto)
+{
+    internal static PlaybackIntent ForNavigation(bool auto,bool back)=>new(true,!back&&auto);
+}
 internal sealed record ForwardPoint(int Stage,int Host,int Choice,int Prefix,bool Complete,string Label);
 internal sealed record ForwardRequest(long Id,ForwardKind Kind,ForwardPoint Target,bool Automatic=false,bool Continuation=false);
 
@@ -11,8 +14,11 @@ internal sealed class OperationRequests
     internal readonly ForwardPoint[] Route;
     private readonly Queue<ForwardRequest> _pending=[];
     private long _nextId;
-    internal bool Running {get;private set;}
+    // Running is an internal lifecycle gate, not a public playback mode.
+    internal bool Running {get;private set;}=true;
     internal bool Auto {get;private set;}
+    internal bool ManualWaiting=>Running&&!Auto&&Active is null&&_pending.Count==0;
+    internal bool CanRequestFine=>ManualWaiting&&Stage<Route[^1].Stage;
     internal PlaybackIntent Intent=>new(Running,Auto);
     internal ForwardRequest? Active {get;private set;}
     internal ForwardRequest[] Pending=>_pending.ToArray();
@@ -31,6 +37,7 @@ internal sealed class OperationRequests
     }
     internal ForwardRequest? Add(ForwardKind kind)
     {
+        if(kind==ForwardKind.Fine&&!CanRequestFine)return null;
         var from=_pending.LastOrDefault()?.Target.Stage??Active?.Target.Stage??Stage;
         var target=kind==ForwardKind.Fine?Route.FirstOrDefault(p=>p.Stage>from):Route.FirstOrDefault(p=>p.Stage>from&&p.Complete);
         if(target is null)return null;
@@ -42,24 +49,15 @@ internal sealed class OperationRequests
         var selected=new List<ForwardRequest>();var expected=completed+1;
         foreach(var request in candidates)
         {
-            // A fine request with no internal choice targets the same whole card boundary.
-            // Reserve that card while paused too, without granting its business execution.
+            // Candidate calculation considers existing requests only, without changing
+            // the explicit navigation FIFO or adding automatic targets.
             if(request.Target.Host!=expected||request.Kind==ForwardKind.Fine&&!request.Target.Complete)break;
             selected.Add(request);expected++;
             // Explicit complete-card targets share one FIFO window, regardless of kind.
-            // No Auto target is invented here: a final Fine has no following candidate,
-            // and Arrive still closes the running gate at that final observation stop.
+            // No Auto target is invented here; it only considers already accepted requests.
             if(selected.Count==3)break;
         }
         return selected.ToArray();
-    }
-    internal void ToggleRunning()
-    {
-        Running=!Running;
-        // Play from a fine stop continues only its already-started native host. A queued
-        // explicit target takes precedence. No new operation is invented at a boundary.
-        if(Running&&Active is null&&_pending.Count==0&&!Route[Stage].Complete)
-            Active=new(++_nextId,ForwardKind.Whole,Route.First(p=>p.Complete&&p.Stage>Stage),Continuation:true);
     }
     internal void ToggleAuto()=>Auto=!Auto;
     internal bool Acquire()
@@ -76,9 +74,8 @@ internal sealed class OperationRequests
         Stage=point.Stage;
         if(Active is not {} request||point.Stage<request.Target.Stage)return null;
         Active=null;
-        // A final explicit fine target is an observation stop, even with Auto enabled.
-        // Following explicit requests retain FIFO order; Auto never swallows this final stop.
-        if(request.Kind==ForwardKind.Fine&&_pending.Count==0)Running=false;
+        // Manual fine arrival keeps the lifecycle gate open. With Auto off, Acquire
+        // waits for another explicit target and never invents a Whole continuation.
         if(point.Stage==Route[^1].Stage){Running=false;_pending.Clear();}
         return request;
     }
