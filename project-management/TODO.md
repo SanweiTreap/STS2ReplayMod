@@ -1,6 +1,6 @@
 # 当前任务与后续方向
 
-更新：2026-10-30，D-131两模式已实现并安装PLAYBACK-003/build-005/源码294d533，离线14政策/4路线及原片读取通过，相关原生短测Pending。PM已读交付与关键源码，新录主闭环/旧证据保留；不继续扩暂停Partial Fine。旧PLAYBACK-001/003仍Unknown，权限沿D-092。
+更新：2026-10-30，D-131/build-005的r6首次完整播放通过，恢复后隐秘匕首选择收尾失败，根因未知；已装006仅补完整异常栈，原包继续诊断/修复。新录主链/旧证据保留，不扩Partial暂停Host；旧PLAYBACK-001/003仍Unknown，权限沿D-092。
 
 ## DONE_WITH_LIMITATIONS — PLAYBACK-002 完整操作、精细前进与原生退队重排
 
@@ -16,7 +16,7 @@
 
 当前D-131已授权：无Play/Pause，默认Auto关等待；>仅手动等待可用（含选择页），到点再等；>>立即整项/累计FIFO，选择页补完宿主。开Auto连续，关Auto让已开始Whole与显式队列收尾。Back清计划并转手动/Auto关，Seek清计划并按Auto意图继续/等待；不留隐藏toggle或自动WholeContinuation。原包实现/相关检查/安装及同片短测，无需新任务/审批，不重录或再测整场。
 
-build-005已安装，原生两模式仍Pending；004是未安装草稿。接下来沿同片前10项短测手动细进/整项累计、选择细进与>>收尾、Auto切换、Back/Seek及Stop；不再完整胜利或重跑旧矩阵。PM已读14政策/4路线/原片兼容结果与源码，不重跑离线检查。
+build-005/r6有331事件，首次1..21/胜利及Back20、Seek4/9匹配，恢复后操作10选牌收尾抛observer InvalidOperationException。driver Outstanding=true且有Error，原manager/所比较Continue进度恢复，不能称干净Stop；Auto切换0，D-131未整体验收。006只补ex.ToString取栈，不改模型/调度；同片恢复链定位后原包修复/必要短测，不重录或新开INV。简化复现不出错不代表修复，可继续同包调整；已有主链不重跑，剩余Auto及失败退役边界随实际修复核对。
 
 build-001已接普通最近入口并去掉固定原片/22项限制。r1参考猎人完整27项/三次胜利Back/重开通过；r2普通recent入口真实打开另一旧铁甲格式6片13项，完整胜利→显式Seek5→续播再胜利→Stop通过，PM核244原事件支持。已证明不同ID/长度，未证明本轮新录与该片重开，本包继续。游玩后最新当前51文件已补存，沿同一DLL只完成新录→recent→完整/Back/Stop短重开，不重测旧片矩阵。STATE旧工具仍独立，不静默fallback冒充新核心。
 
