@@ -1,6 +1,14 @@
 # ReplayMod 0.1.0 · 原生单场回放
 
-## 当前安装：PLAYBACK-003 / build-006，仅补异常诊断
+## 当前安装：PLAYBACK-003 / build-007，胜利后卡牌登记订阅修复待测
+
+006/r7复现取得完整栈：新生成小刀不在NetCombatCardDb中。胜利时原生会退订牌堆登记事件，原恢复只还原ID表/计数器，漏了监听，已有牌可用而新生牌缺ID。308原事件/栈已私有封存，根因对应固定原生源码，产品交互模型不改。
+
+007在恢复数据后仅补当前牌堆缺失的原生登记监听及原生结束清理，保留已有ID/计数器、不重复挂载、不重启战斗或改录像；Stop场景清理也显式退订。DLL `1625D7D5EB0E372B30C9E95B2A1CF723F82FAC55714B628643AA312627F5FD79` 已安装，收据`evidence/playback-003/preparation/build-007-0f76229a.json`，旧pair/原始日志保持。
+
+构建0警告0错误；4组缺监听/恢复/生成/幂等纯模型合同、14组D-131请求、4组完整路线及新片生产兼容读取通过，原生修复验证Pending。仍用同片恢复链验证生成/使用新小刀及Stop/短重开，无需重录或旧矩阵。详见[报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
+
+## PLAYBACK-003 / build-006诊断历史
 
 005/r6真实331事件先完成1..21胜利/21结果-RNG匹配，随后胜利Back20→Seek4→Seek9，重播隐秘匕首时`>`开选牌、`>`选一张、`>>`收尾发生InvalidOperationException，观察器未保留栈，根因尚未确立。失败后已回菜单并正常退出，原manager/所比较Continue进度恢复核对通过；D-131整体未通过，旧成功结果保留。
 
