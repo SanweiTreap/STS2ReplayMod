@@ -2,6 +2,9 @@ using System.Diagnostics;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Creatures;
+using MegaCrit.Sts2.Core.Entities.Multiplayer;
+using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Combat;
@@ -14,8 +17,6 @@ namespace ReplayMod;
 internal static class NativeSeek
 {
     private sealed record Navigation(int Host,PlaybackIntent Intent,bool Back);
-    internal const string HunterClip="1d5346b085b04635ab3e00b43fe9190c";
-    internal const int SliceHosts=22;
     private static readonly SortedDictionary<int,DirectCheckpoint> Points=[];
     private static readonly Dictionary<int,int> Attempts=[];
     private static readonly HashSet<int> CancelledAhead=[];
@@ -32,8 +33,11 @@ internal static class NativeSeek
     internal static bool HasView=>_choice is {Closed:false,Cancelled:false}&&_choiceReady&&!_choiceMoving;
     internal static bool Ready=>Enabled&&!_stopping&&!_restoring&&(!InFlight||HasView);
     internal static bool InFlight=>Host>_completed;
-    internal static bool CanRestore=>Enabled&&_restoring&&!ActionMonitor.Outstanding&&LiveState.Playable;
-    internal static bool CanStep=>Enabled&&!_stopping&&!_restoring&&_seek is null&&_requests.Stage<_requests.Route[^1].Stage;
+    private static bool Quiescent=>!ActionMonitor.Outstanding&&(LiveState.Playable||PlayerLoop.VictoryReached&&BattleEnd.Ready);
+    internal static bool CanRestore=>Enabled&&_restoring&&Quiescent;
+    internal static bool Finished=>Enabled&&_completed==_clip.Operations.Length;
+    internal static bool AllMatched=>Finished;
+    internal static bool CanStep=>Enabled&&!PlayerLoop.Loading&&!_stopping&&!_restoring&&_seek is null&&!Finished&&_requests.Stage<_requests.Route[^1].Stage;
     internal static bool CanBack=>Enabled&&!_stopping&&!_restoring&&_seek is null&&(InFlight||_completed>0);
     internal static bool Stopping=>_stopping;
     internal static bool Restoring=>_restoring;
@@ -58,8 +62,8 @@ internal static class NativeSeek
     internal static KeyValuePair<int,string>[] Index=>Points.Select(p=>new KeyValuePair<int,string>(p.Key,$"操作{p.Key}后 · {_requests.Route.Single(n=>n.Complete&&n.Host==p.Key).Label}")).ToArray();
     internal static void Start(Clip clip)
     {
-        Clear();Codec.Require(clip.Id==HunterClip&&clip.Format>=4&&!(clip.Choices??[]).Any(c=>c.Boundary==0),"playback002-known-hunter-required");
-        _clip=clip;_requests=new(clip,SliceHosts);Enabled=true;
+        Clear();Codec.Require(NativePlaybackSupport.Reason(clip) is null,NativePlaybackSupport.Reason(clip)??"native-playback-unsupported");
+        _clip=clip;_requests=new(clip,clip.Operations.Length);Enabled=true;
     }
     internal static void Clear()
     {
@@ -71,7 +75,7 @@ internal static class NativeSeek
         var accepted=false;ForwardRequest? added=null;
         if(command=="stop"&&!_stopping){_stopping=true;_requests.Stop();_seek=null;accepted=true;}
         else if(command is "step" or "fine"&&CanStep){added=_requests.Add(command=="fine"?ForwardKind.Fine:ForwardKind.Whole);accepted=added is not null;}
-        else if(command=="toggle"&&!_stopping&&!_restoring&&_seek is null){_requests.ToggleRunning();accepted=true;}
+        else if(command=="toggle"&&!PlayerLoop.Loading&&!Finished&&!_stopping&&!_restoring&&_seek is null){_requests.ToggleRunning();accepted=true;}
         else if(command=="auto"&&!_stopping&&!_restoring&&_seek is null){_requests.ToggleAuto();accepted=true;}
         else if(command=="back"&&CanBack){RequestSeek(InFlight?Host-1:_completed-1,preserveIntent:false);accepted=true;}
         Runtime.Log("operation-control",new{Command=command,Accepted=accepted,Host,Completed=_completed,Running,Auto,
@@ -87,7 +91,7 @@ internal static class NativeSeek
     }
     internal static async Task Run()
     {
-        Capture(0);PlayerLoop.Loading=false;Status();
+        Capture(0);PlayerLoop.Loading=false;_phase="";Status();
         try
         {
             while(!_stopping)
@@ -110,11 +114,12 @@ internal static class NativeSeek
             if(PlayerLoop.Error is null&&ActionMonitor.Error is null)await Drain();
             else if(_choice is {} choice)NativeChoice.Cancel(choice);
             Runtime.Log("operation-driver-closed",new{Completed=_completed,Host,Generation=_generation,Indexed=Points.Keys.ToArray(),
-                Outstanding=ActionMonitor.Outstanding,Running,Auto,Pending=_requests.Pending.Length,DisplayTracePlayed=false});
+                Outstanding=ActionMonitor.Outstanding,Running,Auto,Pending=_requests.Pending.Length,DisplayTracePlayed=false,
+                TotalOperations=_clip.Operations.Length,AllOperationsMatched=AllMatched,PlayerLoop.VictoryReached});
         }
     }
-    private static void Status()=>Runtime.Status=$"PLAYBACK-002 · 已完成 {_completed}/{SliceHosts} · "+
-        (InFlight?$"正在操作{Host}":_completed==SliceHosts?"切片结束":"完整操作边界");
+    private static void Status()=>Runtime.Status=$"原生回放 · 已完成 {_completed}/{_clip.Operations.Length} · "+
+        (PlayerLoop.VictoryReached?"战斗胜利；可Back再播或Stop":InFlight?$"正在操作{Host}":Finished?"片段结束":"完整操作边界");
     private static void Capture(int host)
     {
         Points[host]=new(host,PlayerLoop.EnsureRoster(),route:true,extraRoots:[LiveState.Run.CurrentRoom!]);
@@ -130,8 +135,14 @@ internal static class NativeSeek
     {
         var host=pending.PlaybackIndex+1;var expected=_clip.Operations[host-1];
         Codec.Require(host==_completed+1&&actual.After==expected.After&&actual.Victory==expected.Victory,"operation-result-or-rng-mismatch");
-        _completed=host;Host=host;
-        if(!_retiring&&!_restoring){Capture(host);Arrive(_requests.Route.Single(p=>p.Complete&&p.Host==host));}
+        Codec.Require(!actual.Victory||host==_clip.Operations.Length,"victory-before-recording-end");
+        _completed=host;Host=host;PlayerLoop.VictoryReached=actual.Victory;
+        // The terminal result is the frozen native pre-reward victory projection. Restore
+        // targets remain playable boundaries; the win is reached again through native business.
+        if(!_retiring&&!_restoring){if(!actual.Victory)Capture(host);Arrive(_requests.Route.Single(p=>p.Complete&&p.Host==host));}
+        if(actual.Victory)Runtime.Log("native-battle-victory-verified",new{_clip.Id,Host,TotalOperations=_clip.Operations.Length,
+            AllOperationsMatched=AllMatched,PlayerLoop.VictoryReached,OriginalVictoryProjectionMatched=true,
+            NativeVictoryTaskSucceeded=BattleEnd.VictoryTask?.IsCompletedSuccessfully==true,BackTarget=host-1,RewardsAllowed=false});
         Runtime.Log("operation-native-verified",new{Host=host,NativeActionId=pending.Action.Id,Generation=_generation,
             ResultAndRngMatched=true,Retiring=_retiring,NativeAttempts=Attempts.GetValueOrDefault(host),NormalNativeBusiness=true});
     }
@@ -147,7 +158,7 @@ internal static class NativeSeek
     }
     private static bool Submit(int host,bool ahead)
     {
-        if(host>SliceHosts||_stopping||_restoring||_retiring)return false;
+        if(host>_clip.Operations.Length||PlayerLoop.VictoryReached||_stopping||_restoring||_retiring)return false;
         var op=_clip.Operations[host-1];
         if(ahead&&(op.Kind!=OperationKind.Card||!LiveState.InputPhase||ChoiceTape.Waiting))return false;
         Creature? target;
@@ -227,11 +238,28 @@ internal static class NativeSeek
     }
     private static async Task PrepareChoice(ChoiceScope scope)
     {
+        try{await PrepareChoiceCore(scope);}
+        catch(Exception ex)
+        {
+            PlayerLoop.Error="native-choice-prepare-"+ex.GetBaseException().Message;
+            Runtime.Log("native-choice-prepare-failed",new{Reason=PlayerLoop.Error});
+            NativeChoice.Cancel(scope);
+        }
+    }
+    private static async Task PrepareChoiceCore(ChoiceScope scope)
+    {
         await NativeChoice.WaitReady(scope);Codec.Require(ReferenceEquals(_choice,scope),"operation-choice-generation-changed");
         _choiceReady=true;
-        if(!_retiring&&!_restoring)Arrive(_requests.Route.Single(p=>p.Choice==scope.Frame.Sequence&&p.Prefix==0));
+        if(scope.Frame.Boundary>0&&!_retiring&&!_restoring)Arrive(_requests.Route.Single(p=>p.Choice==scope.Frame.Sequence&&p.Prefix==0));
         Runtime.Log("operation-native-choice-opened",new{scope.Frame.Sequence,scope.Frame.Boundary,NativeId=scope.Id,NativeUi=scope.Ui!.GetType().Name,
             IndependentSeekPoint=false,ProxyUi=false});
+        if(scope.Frame.Boundary==0)
+        {
+            // Initial choices precede the recorded playable initial state. Complete these
+            // native setup decisions before boundary0; they are not manual operation requests.
+            _phase="正在还原原生开场选择";
+            while(ReferenceEquals(_choice,scope)&&!scope.Closed)await AdvanceChoice();
+        }
     }
     internal static void Closed(object ui,bool settled=false)
     {
@@ -255,7 +283,7 @@ internal static class NativeSeek
                 while(scope.Ui is NPlayerHand hand&&AccessTools.Field(typeof(NPlayerHand),"_selectedCardScaleTween").GetValue(hand) is Tween tween&&GodotObject.IsInstanceValid(tween)&&tween.IsRunning())
                 {Codec.Require(Stopwatch.GetElapsedTime(at).TotalSeconds<3,"operation-selection-motion-timeout");await Runtime.NextFrame();}
                 NativeChoice.AssertPrefix(scope,scope.EventPosition);
-                if(!_retiring&&!_restoring)Arrive(_requests.Route.Single(p=>p.Choice==scope.Frame.Sequence&&p.Prefix==scope.EventPosition-1));
+                if(scope.Frame.Boundary>0&&!_retiring&&!_restoring)Arrive(_requests.Route.Single(p=>p.Choice==scope.Frame.Sequence&&p.Prefix==scope.EventPosition-1));
             }
             else
             {
@@ -271,7 +299,7 @@ internal static class NativeSeek
         try
         {
             RunManager.Instance.ActionQueueSet.CancelNonExecutingActionsForPlayer(LiveState.Player.NetId);
-            while(ActionMonitor.Outstanding||!LiveState.Playable)
+            while(!Quiescent)
             {
                 PlayerLoop.RequireHealthy();Codec.Require(Stopwatch.GetElapsedTime(at).TotalSeconds<60,"operation-retirement-timeout");
                 if(HasView)await AdvanceChoice();ActionMonitor.Tick();await Runtime.NextFrame();
@@ -282,19 +310,38 @@ internal static class NativeSeek
     private static async Task Restore(Navigation navigation)
     {
         var target=navigation.Host;
-        var at=Stopwatch.GetTimestamp();var point=Points[target];_restoring=true;
+        var at=Stopwatch.GetTimestamp();var point=Points[target];_restoring=true;var fromVictory=PlayerLoop.VictoryReached;
         try
         {
             await Drain();var drained=Stopwatch.GetTimestamp();_generation++;
-            _phase="正在恢复操作边界";Ui.Refresh();await point.Restore();ActionMonitor.RebaseNativeSeek();
+            _phase="正在恢复操作边界";Ui.Refresh();
+            if(fromVictory){await BattleEnd.WaitForUiCleanup();RequireVictoryTurnWaiters();}
+            await point.Restore();
+            if(fromVictory)
+            {
+                RunManager.Instance.ActionQueueSynchronizer.SetCombatState(ActionSynchronizerCombatState.PlayPhase);
+                RunManager.Instance.ActionExecutor.Unpause();
+            }
+            PlayerLoop.VictoryReached=false;ActionMonitor.RebaseNativeSeek();
             _completed=target;Host=target;_requests.Restore(target,navigation.Intent);Attempts.Clear();CancelledAhead.Clear();_choice=null;_choiceReady=false;_choiceOwner=0;
             HandPresentation.FinishHighlights(NPlayerHand.Instance!);Status();
             Codec.Require(LiveState.ChoiceProjection()==point.Projection,"operation-seek-result-or-rng-mismatch");
             Runtime.Log("operation-seek-arrived",new{Target=target,StateAndRngMatched=true,Running,Auto,Pending=_requests.Pending.Length,
                 IntendedRunning=navigation.Intent.Running,IntendedAuto=navigation.Intent.Auto,Back=navigation.Back,
+                FromVictory=fromVictory,NativeCombatReactivated=fromVictory,
                 ChoiceSnapshotRestored=false,RebuiltNativeHosts=0,RetirementMilliseconds=Stopwatch.GetElapsedTime(at,drained).TotalMilliseconds,
                 TotalMilliseconds=Stopwatch.GetElapsedTime(at).TotalMilliseconds});
         }
         finally{_restoring=false;_phase="";Ui.Refresh();}
+    }
+    private static void RequireVictoryTurnWaiters()
+    {
+        var manager=CombatManager.Instance;var state=AccessTools.Field(typeof(CombatManager),"_turnState").GetValue(manager)!;
+        var loop=AccessTools.Field(typeof(CombatManager),"_turnLoopTask").GetValue(manager) as Task;
+        Task? Signal(string name)=>AccessTools.Property(state.GetType(),name).GetValue(state) is {} source?
+            AccessTools.Property(source.GetType(),"Task").GetValue(source) as Task:null;
+        Codec.Require(loop is {IsCompleted:false}&&Signal("EndTurnSignalSource") is {IsCompleted:false}&&
+            Signal("BeginEnemyTurnSignalSource") is {IsCompleted:false},"victory-turn-waiters-not-resumable");
+        Runtime.Log("native-victory-turn-waiters-preserved",new{OldTasksRestored=false,CurrentWaitingLoopRetained=true});
     }
 }

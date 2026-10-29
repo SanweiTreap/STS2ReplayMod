@@ -22,7 +22,10 @@ internal static class BattleEnd
     internal static void Reset(){Room=null;_enemies=[];VictoryTask=null;_deathTasks=[];Ending=false;WonEvent=false;Projection=null;_wonAt=0;_readyLogged=false;}
     internal static void Begin()
     {
-        Reset();Room=(CombatRoom)LiveState.Run.CurrentRoom!;_enemies=Room.CombatState.Enemies.ToArray();
+        Reset();Room=(CombatRoom)LiveState.Run.CurrentRoom!;
+        // A native replay can restore a point after an earlier kill. The victory projection
+        // still describes every original enemy, including those already dead at that point.
+        _enemies=NativeSeek.Enabled?PlayerLoop.EnsureRoster().Initial.Where(c=>!c.IsPlayer).ToArray():Room.CombatState.Enemies.ToArray();
     }
     internal static void EndStarted()
     {
@@ -61,5 +64,12 @@ internal static class BattleEnd
             }
             return ready;
         }
+    }
+    internal static async Task WaitForUiCleanup()
+    {
+        // NCombatUi.PostCombatCleanUp starts an unowned .25s PlayContainer fade after
+        // CombatWon. Let that short native tail finish before restoring its appearance.
+        // Hand/energy exit tweens are separately retired by the HUD restoration.
+        while(WonEvent&&Stopwatch.GetElapsedTime(_wonAt).TotalSeconds<.3)await Runtime.NextFrame();
     }
 }

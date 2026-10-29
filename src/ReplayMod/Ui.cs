@@ -38,9 +38,11 @@ internal static class Ui
         }
         catch(Exception ex){info="片段暂不可打开："+(ex is InvalidDataException?ex.Message:ex.GetType().Name);}
         box.AddChild(Label(info));
-        var seekOpen=Button(box,"PLAYBACK-002 · 分层前进／退队重排",()=>TaskHelper.RunSafely(PlayerLoop.Open(NativeSeek.HunterClip,nativeSeek:true)));
-        try{Runtime.ReadClip(NativeSeek.HunterClip);}catch{seekOpen.Disabled=true;seekOpen.Text="PLAYBACK-002 · 固定猎人片不可用";}
-        var open=Button(box,"打开最近片段",()=>{if(id is not null)TaskHelper.RunSafely(PlayerLoop.Open(id));});open.Disabled=clip is null;
+        var open=Button(box,"打开最近片段 · 原生播放器",()=>{if(id is not null)TaskHelper.RunSafely(PlayerLoop.Open(id));});
+        var unavailable=clip is null?null:NativePlaybackSupport.Reason(clip);open.Disabled=clip is null||unavailable is not null;
+        if(unavailable is not null)box.AddChild(Label(unavailable));
+        const string hunterReference="1d5346b085b04635ab3e00b43fe9190c";
+        try{_ =Runtime.ReadClip(hunterReference);Button(box,"打开已有猎人样本 · 完整27项",()=>TaskHelper.RunSafely(PlayerLoop.Open(hunterReference,entry:"hunter-reference")));}catch{/* Optional reference, not the production input. */}
         const string continuousSample="fc6432b4c0af41d69defda73f1770824";
         if(File.Exists(Path.Combine(Runtime.Root,"clips",continuousSample+".json")))
         {
@@ -134,8 +136,8 @@ internal static class Ui
             {
                 _inputBlock.MouseFilter=NativeSeek.Ready?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
                 _step!.Disabled=!NativeSeek.CanStep;_step.Text=">> 完整操作";_fine!.Disabled=!NativeSeek.CanStep;
-                _play!.Disabled=NativeSeek.Stopping||NativeSeek.Restoring;_play.Text=NativeSeek.Running?"暂停":"播放";
-                _auto!.Disabled=NativeSeek.Stopping||NativeSeek.Restoring;_auto.Text=NativeSeek.Auto?"Auto：开启":"Auto：关闭";
+                _play!.Disabled=PlayerLoop.Loading||NativeSeek.Finished||NativeSeek.Stopping||NativeSeek.Restoring;_play.Text=NativeSeek.Running?"暂停":"播放";
+                _auto!.Disabled=PlayerLoop.Loading||NativeSeek.Stopping||NativeSeek.Restoring;_auto.Text=NativeSeek.Auto?"Auto：开启":"Auto：关闭";
                 _seekCover!.Visible=NativeSeek.Covered;
                 _back!.Disabled=!NativeSeek.CanBack;_back.Text="Back · 撤回整项";
                 _stop!.Disabled=NativeSeek.Stopping||PlayerLoop.TearingDown;
