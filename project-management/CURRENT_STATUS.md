@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-29。PLAYBACK-002/003按D-127阶段验收（固定猎人前22及所测控制/队列链），保留当前版本，无新代码/测试要求。暂停真实入队、选择退队后同请求自动重排并单次结算、Seek保持状态和选择页直接Play已有实测。完整单场/通用内容仍未完成，旧PLAYBACK001/003仍Unknown。
+更新：2026-10-29。用户授权两线并行：Implementation开始PLAYBACK-003（新原生播放器接正常入口/完整单场），PM更新战斗内容覆盖盘点并收集用户经验。PLAYBACK-002/003按D-127验收作为起点保留；新包未有运行结论，旧PLAYBACK001/003仍Unknown。
 
 ## 玩家现在能用到什么
 
@@ -48,7 +48,7 @@ CONTENT-002已收束：默认展示最终确认的选择，原始41事件保留�
 
 ## 当前决定与下一步
 
-[PLAYBACK-002](handoffs/PLAYBACK-002.md)按D-127阶段收束，用户确认总体符合预期。PM读003/r2关键摘要、报告、真实用户消息并核对原生动画源码，不重复构建/806原事件重计/追加测试；保留003，无下一任务派发。下一建议把统一原生路线从固定前22推广至完整单场，补胜利收尾/整项Back/Stop，再接回既有内容覆盖；不先扩楼层或做通用动画平台。
+[PLAYBACK-002](handoffs/PLAYBACK-002.md)按D-127阶段收束并保留003。用户现已授权Implementation实施[PLAYBACK-003](handoffs/PLAYBACK-003.md)：去掉固定原片/22项限制、正常入口用新核心、完整至胜利/Back/Stop及新录文件重开；普通修复/相关重构沿D-092。PM同时只读盘点战斗内容覆盖，参考现有CONTENT-COVERAGE而非从零重复调查，可向用户问代表机制/样本。覆盖研究不是实现前置，不扩本轮至整局/全内容。
 
 PLAYBACK-002/build-002已实际测试：r1摘要867事件/2 opens，48次原生结果/RNG、10选择、20匹配恢复、8次普通提前接受；两Stop在4/22无Error/Outstanding，原manager及所比较Continue进度恢复，用户总体认可。选择取消/归手/重入队均0，20/21/22只是Auto串行；精细仅无选择操作4，不能认选择精细/直接Play/混排真人通过。见[更正后摘要](../evidence/playback-002/runtime-verification-r1.json)，PM读摘要与真实用户消息，未重计867原事件；最初消息ahead误报0已更正为8。
 
@@ -98,7 +98,7 @@ MVP目标仍为自动录制、尽可能覆盖单人场景、独立Replay入口�
 - 上一已验SEEK-001/build-003（SHA `1D2A4848166951E9623015DEBE37744E9424F3CF37CCE33BB0BFB99F867AB919`）pair/源码/原片/旧失败保持；D-122所测验收不变，[旧收据](../evidence/seek-001/preparation/build-003-9705e1cb.json)。新旧结果分开，不补判SEEK/001或旧PLAYBACK-001/003。
 - 最新完整恢复点按收据为`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，1280文件、132063795 bytes，来源/副本读回且来源稳定。Implementation按真实清单复核r4的54个saves内容保持；旧r2汇总53是沿旧点硬编码，原比较循环覆盖新清单54项，已加注更正，原日志不改。内容相同不证明无同值写入；更早progress备份差异/前后副本与全部重要原片/事件保留，PM不重复整账号审计。
 - 部分快照：同恢复点下CONTENT004-current-saves-20261028-150051为41文件/4471059 bytes；PLAYBACK001的203942快照49文件/4348913 bytes、最新20261028-223031快照51文件/4439940 bytes，Implementation记录已知save/config/native replay父目录来源稳定及逐hash读回。它们不替代旧完整恢复点、不表示重审历史run；未执行恢复/扫描另一账号。
-- 当前Implementation对话：`01a17814-d254-7df0-8c01-affe43d0e04c`，PLAYBACK-002已交回r2并阶段验收，当前保留003，无追加代码/人工要求；下一目标尚未签发。PM维护状态/决策，不补旧PLAYBACK-001/003结论。
+- 当前Implementation对话：`01a17814-d254-7df0-8c01-affe43d0e04c`，从已验PLAYBACK-002/003接PLAYBACK-003完整单场；PM并行维护覆盖笔记/状态，不碰源码或安装。旧PLAYBACK-001/003不补判。
 - 实验文件格式有精确身份/已知前驱build限制，不代表一般跨版本播放。
 
 ## 有效开发授权与工作方式
