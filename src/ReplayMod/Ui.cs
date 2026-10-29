@@ -15,6 +15,7 @@ internal static class Ui
     private static OptionButton? _seekPoints;
     private static Button? _seekGo;
     private static Button? _auto;
+    private static Button? _fine;
     private static bool Valid(GodotObject? node)=>node is not null&&GodotObject.IsInstanceValid(node);
     private static Label Label(string text)=>new(){Text=text,AutowrapMode=TextServer.AutowrapMode.WordSmart,CustomMinimumSize=new Vector2(350,0)};
     private static Button Button(BoxContainer box,string text,Action clicked)
@@ -37,8 +38,8 @@ internal static class Ui
         }
         catch(Exception ex){info="片段暂不可打开："+(ex is InvalidDataException?ex.Message:ex.GetType().Name);}
         box.AddChild(Label(info));
-        var seekOpen=Button(box,"SEEK-001 · 猎人选牌／跨回合",()=>TaskHelper.RunSafely(PlayerLoop.Open(NativeSeek.HunterClip,nativeSeek:true)));
-        try{Runtime.ReadClip(NativeSeek.HunterClip);}catch{seekOpen.Disabled=true;seekOpen.Text="SEEK-001 · 固定猎人片不可用";}
+        var seekOpen=Button(box,"PLAYBACK-002 · 分层前进／退队重排",()=>TaskHelper.RunSafely(PlayerLoop.Open(NativeSeek.HunterClip,nativeSeek:true)));
+        try{Runtime.ReadClip(NativeSeek.HunterClip);}catch{seekOpen.Disabled=true;seekOpen.Text="PLAYBACK-002 · 固定猎人片不可用";}
         var open=Button(box,"打开最近片段",()=>{if(id is not null)TaskHelper.RunSafely(PlayerLoop.Open(id));});open.Disabled=clip is null;
         const string continuousSample="fc6432b4c0af41d69defda73f1770824";
         if(File.Exists(Path.Combine(Runtime.Root,"clips",continuousSample+".json")))
@@ -105,6 +106,7 @@ internal static class Ui
         }
         _play=Button(controls,"播放 / 暂停",()=>PlayerLoop.Control("toggle"));
         if(NativeSeek.Enabled)_auto=Button(controls,"Auto：关闭",()=>PlayerLoop.Control("auto"));
+        if(NativeSeek.Enabled)_fine=Button(controls,"> 精细前进",()=>PlayerLoop.Control("fine"));
         _step=Button(controls,"Step · 下一操作",()=>PlayerLoop.Control("step"));
         _step.ButtonDown+=NativeDisplayTrace.MarkStepPointerDown;
         _back=Button(controls,"后退一步",()=>PlayerLoop.Control("back"));
@@ -115,7 +117,7 @@ internal static class Ui
         _play.Disabled=true;_step.Disabled=true;_back.Disabled=true;
         block.AddChild(panel);Runtime.Game.AddChild(_playLayer);
     }
-    internal static void ClosePlayback(){if(Valid(_playLayer))_playLayer!.QueueFree();_playLayer=null;_inputBlock=null;_playStatus=null;_choiceStatus=null;_play=null;_step=null;_back=null;_stop=null;_inject=null;_seekPoints=null;_seekGo=null;_seekCover=null;_auto=null;}
+    internal static void ClosePlayback(){if(Valid(_playLayer))_playLayer!.QueueFree();_playLayer=null;_inputBlock=null;_playStatus=null;_choiceStatus=null;_play=null;_step=null;_back=null;_stop=null;_inject=null;_seekPoints=null;_seekGo=null;_seekCover=null;_auto=null;_fine=null;}
     internal static void Refresh()
     {
         if(Valid(_menuStatus))_menuStatus!.Text=Runtime.Status;
@@ -131,11 +133,11 @@ internal static class Ui
             if(NativeSeek.Enabled)
             {
                 _inputBlock.MouseFilter=NativeSeek.Ready?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
-                _step!.Disabled=!NativeSeek.CanStep;_step.Text="Step · 加入一步";
+                _step!.Disabled=!NativeSeek.CanStep;_step.Text=">> 完整操作";_fine!.Disabled=!NativeSeek.CanStep;
                 _play!.Disabled=NativeSeek.Stopping||NativeSeek.Restoring;_play.Text=NativeSeek.Running?"暂停":"播放";
                 _auto!.Disabled=NativeSeek.Stopping||NativeSeek.Restoring;_auto.Text=NativeSeek.Auto?"Auto：开启":"Auto：关闭";
                 _seekCover!.Visible=NativeSeek.Covered;
-                _back!.Disabled=!NativeSeek.CanBack;_back.Text="Back · 直达上一节点";
+                _back!.Disabled=!NativeSeek.CanBack;_back.Text="Back · 撤回整项";
                 _stop!.Disabled=NativeSeek.Stopping||PlayerLoop.TearingDown;
                 _inject.Visible=false;
                 if(_seekPoints is not null)

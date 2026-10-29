@@ -62,7 +62,8 @@ internal static class Patches
         Patch(typeof(NCombatUi),"OnCombatWon",prefix:nameof(RewardUi),parameters:[typeof(MegaCrit.Sts2.Core.Rooms.CombatRoom)]);
         Patch(typeof(SaveManager),"UpdateProgressAfterCombatWon",prefix:nameof(ProgressOwner),postfix:nameof(ProgressWon));
         Patch(typeof(SaveManager),"SaveProgressFile",prefix:nameof(ProgressOwner),parameters:[]);
-        Patch(typeof(GameAction),"Cancel",prefix:nameof(Cancel),parameters:[]);
+        Patch(typeof(GameAction),"Cancel",prefix:nameof(Cancel),postfix:nameof(CancelSettled),parameters:[]);
+        Patch(typeof(ActionQueueSet),"GetReadyAction",postfix:nameof(ReadyAction));
         Patch(typeof(GameAction),"Execute",prefix:nameof(ActionStarted),parameters:[]);
         Patch(typeof(RunManager),"CleanUp",prefix:nameof(Cleanup));
         Patch(typeof(NGame),"ReturnToMainMenu",prefix:nameof(Return),parameters:[]);
@@ -183,7 +184,17 @@ internal static class Patches
     {
         if(PlayerLoop.Active&&BattleEnd.Ending)Runtime.Log("playback-victory-progress",new{IsolatedManager=ReferenceEquals(__instance,PlayerLoop.IsolatedManager),NativeVictoryUpdateExecuted=true});
     }
-    private static void Cancel(GameAction __instance){if(!PlayerLoop.ChoiceAbort&&ReferenceEquals(__instance,ActionMonitor.Pending?.Action))Runtime.Guard(()=>throw new InvalidDataException("normal-operation-cancelled"));}
+    private static void Cancel(GameAction __instance)
+    {
+        if(NativeSeek.Enabled){Runtime.Guard(()=>ActionMonitor.Cancelled(__instance));return;}
+        if(!PlayerLoop.ChoiceAbort&&ReferenceEquals(__instance,ActionMonitor.Pending?.Action))Runtime.Guard(()=>throw new InvalidDataException("normal-operation-cancelled"));
+    }
+    private static void CancelSettled(GameAction __instance){if(NativeSeek.Enabled)Runtime.Guard(()=>NativeSeek.CancelSettled(__instance));}
+    private static void ReadyAction(ref GameAction? __result)
+    {
+        if(!NativeSeek.Enabled)return;
+        var candidate=__result;GameAction? filtered=null;Runtime.Guard(()=>filtered=NativeSeek.FilterReady(candidate));__result=filtered;
+    }
     private static bool Cleanup()
     {
         if(PlayerLoop.Active&&!PlayerLoop.TearingDown&&!PlayerLoop.CleaningRoom){PlayerLoop.Control("stop");return false;}
