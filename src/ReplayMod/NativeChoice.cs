@@ -171,6 +171,35 @@ internal static class NativeChoice
         Codec.Require(actual is null?expected.Length==0:actual.SequenceEqual(expected),"route-native-selected-prefix-mismatch");
         Runtime.Log("route-ui-prefix-verified",new{Choice=view.Frame.Sequence,Stage=stage,Count=expected.Length,OriginalInstances=true});
     }
+    internal static void SettleSeekHand(ChoiceScope view)
+    {
+        if(view.Ui is not NPlayerHand hand)return;
+        Codec.Require(hand.IsVisibleInTree()&&hand.CurrentMode==NPlayerHand.Mode.SimpleSelect,"seek-hand-layout-context");
+        Call(hand,"UpdateSelectModeCardVisibility"); // Native filter, layout targets and focus neighbours.
+        var active=hand.ActiveHolders.ToArray();
+        foreach(var holder in active)
+        {
+            // Direct Seek presents the native selection layout at its endpoint. Do not reset the
+            // whole hand to Play mode or move selected cards back out of their native container.
+            Call(holder,"StopAnimations");holder.Position=holder.TargetPosition;
+            holder.SetAngleInstantly(holder.TargetAngle);holder.SetScaleInstantly((Vector2)Field(holder,"_targetScale")!);
+            if(holder.CardNode is {} card)HandPresentation.FinishHighlight(card);
+        }
+        if(Field(hand,"_selectedCardScaleTween") is Tween tween&&GodotObject.IsInstanceValid(tween)&&tween.IsRunning())tween.CustomStep(1);
+        var selected=((IEnumerable<CardModel>)Field(hand,"_selectedCards")!).ToArray();
+        var container=(NSelectedHandCardContainer)Field(hand,"_selectedHandCardContainer")!;
+        var expectedHand=LiveState.Player.PlayerCombatState!.Hand.Cards.Where(c=>!selected.Contains(c)).ToArray();
+        var holders=hand.CardHolderContainer.GetChildren().OfType<NHandCardHolder>().ToArray();
+        var expectedVisible=expectedHand.Where(c=>view.Options.Any(o=>o.Contains(c))).ToArray();
+        Codec.Require(holders.Select(h=>h.CardModel).SequenceEqual(expectedHand)&&
+            active.Select(h=>h.CardModel).SequenceEqual(expectedVisible)&&
+            container.Holders.Select(h=>h.CardNode?.Model).SequenceEqual(selected),"seek-choice-hand-layout-membership");
+        Codec.Require(active.All(h=>h.Position.IsEqualApprox(h.TargetPosition)&&Mathf.IsEqualApprox(h.RotationDegrees,h.TargetAngle)&&
+            h.Scale.IsEqualApprox((Vector2)Field(h,"_targetScale")!)),"seek-choice-hand-layout-targets");
+        Runtime.Log("native-seek-choice-layout-verified",new{Choice=view.Frame.Sequence,Stage=view.EventPosition,
+            HandCards=expectedHand.Length,VisibleHolders=active.Length,SelectedHolders=selected.Length,NativeMode=hand.CurrentMode.ToString(),
+            SceneVisible=hand.IsVisibleInTree(),NativeSelectionLayout=true,SelectedContainerPreserved=true});
+    }
     internal static ChoiceEvent[] ResultDemo(ChoiceFrame f,object ui)
     {
         return ChoiceTrace.ResultDemo(f);

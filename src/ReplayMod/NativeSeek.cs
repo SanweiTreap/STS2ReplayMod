@@ -4,7 +4,6 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -17,13 +16,14 @@ internal static class NativeSeek
     internal const string HunterClip="1d5346b085b04635ab3e00b43fe9190c";
     private sealed record Point(SeekNode Node,DirectCheckpoint? Data,string Projection,int ChoicePosition);
     private static readonly SortedDictionary<int,Point> Points=[];
-    private static readonly AdvanceRequests Requests=new();
+    private static readonly SeekPlayback Playback=new();
     private static SeekNode[] _plan=[];
     private static Clip _clip=null!;
     private static Task<bool>? _hostTask;
     private static ChoiceScope? _gate,_view;
     private static Task<CardModel[]>? _viewResult;
-    private static bool _moving,_restoring,_draining,_stopping,_playing,_viewReady;
+    private static bool _moving,_restoring,_draining,_stopping,_viewReady;
+    private static string _restorePhase="";
     private static int _position,_completedHost,_generation;
     private static int? _seek;
     internal static bool Enabled {get;private set;}
@@ -33,12 +33,16 @@ internal static class NativeSeek
     internal static bool Ready=>Enabled&&!_moving&&!_restoring&&!_stopping&&(_hostTask is null||HasView);
     internal static bool HasView=>_view is {Closed:false,Cancelled:false}&&_viewReady;
     internal static bool CanRestore=>Enabled&&_restoring&&_hostTask is null&&!ActionMonitor.Outstanding&&LiveState.Playable;
-    internal static bool CanStep=>Enabled&&Points.Count>0&&!_stopping&&!_restoring&&(_position<_plan.Length-1||_moving);
-    internal static bool CanBack=>Enabled&&!_stopping&&!_restoring&&(_position>0||_moving);
+    internal static bool CanStep=>Enabled&&Points.Count>0&&!_stopping&&!_restoring&&_seek is null&&(_position<_plan.Length-1||_moving);
+    internal static bool CanBack=>Enabled&&!_stopping&&!_restoring&&_seek is null&&(_position>0||_moving);
     internal static bool Stopping=>_stopping;
     internal static bool Restoring=>_restoring;
+    internal static bool Running=>Playback.Running;
+    internal static bool Auto=>Playback.Auto;
+    internal static bool Covered=>Enabled&&(_restoring||_draining);
     internal static int Position=>_position;
-    internal static string Pending=>_restoring?" · 正在恢复":_moving?" · 当前效果收尾中":Requests.Count>0?$" · 待前进{Requests.Count}步":"";
+    internal static string Pending=>$" · 运行门：{(Running?"运行":"暂停")} · Auto：{(Auto?"开":"关")} · 待执行 {Playback.Pending} 步"+
+        (_restoring?$" · {_restorePhase}":_draining?" · 正在结束当前牌效":_moving?" · 当前效果收尾中":Running&&!Playback.WantsAdvance?" · 等待请求":"");
     internal static KeyValuePair<int,string>[] Index=>Points.Select(p=>new KeyValuePair<int,string>(p.Key,p.Value.Node.Label)).ToArray();
     internal static void Start(Clip clip)
     {
@@ -47,25 +51,27 @@ internal static class NativeSeek
     }
     internal static void Clear()
     {
-        Enabled=false;_generation++;Points.Clear();Requests.Clear();_plan=[];_hostTask=null;_gate=null;_view=null;_viewResult=null;
-        _moving=false;_restoring=false;_draining=false;_stopping=false;_playing=false;_viewReady=false;_position=0;_completedHost=0;Host=0;_seek=null;
+        Enabled=false;_generation++;Points.Clear();Playback.Stop();_plan=[];_hostTask=null;_gate=null;_view=null;_viewResult=null;
+        _moving=false;_restoring=false;_draining=false;_stopping=false;_viewReady=false;_position=0;_completedHost=0;Host=0;_seek=null;_restorePhase="";
     }
     internal static void Control(string command)
     {
         var accepted=false;
-        if(command=="stop"&&!_stopping){_stopping=true;_playing=false;Requests.Clear();_seek=null;accepted=true;}
-        else if(command=="step"&&CanStep){_playing=false;Requests.Add();accepted=true;}
-        else if(command=="toggle"&&!_stopping&&!_restoring)
-        {var pause=_playing||Requests.Count>0||_moving;_playing=!pause;if(pause)Requests.Clear();accepted=true;}
+        if(command=="stop"&&!_stopping){_stopping=true;Playback.Stop();_seek=null;accepted=true;}
+        else if(command=="step"&&CanStep){Playback.Step();accepted=true;}
+        else if(command=="toggle"&&!_stopping&&!_restoring&&_seek is null)
+        {Playback.ToggleRunning();accepted=true;}
+        else if(command=="auto"&&!_stopping&&!_restoring&&_seek is null)
+        {Playback.ToggleAuto();accepted=true;}
         else if(command=="back"&&CanBack)
         {RequestSeek(_moving?_position:Math.Max(0,_position-1));accepted=true;}
-        Runtime.Log("native-seek-control",new{Command=command,Accepted=accepted,Node=_position,Host,QueuedSteps=Requests.Count,_playing,_moving,_restoring});
+        Runtime.Log("native-seek-control",new{Command=command,Accepted=accepted,Node=_position,Host,QueuedSteps=Playback.Pending,Running,Auto,_moving,_restoring});
     }
     internal static void RequestSeek(int index)
     {
-        Codec.Require(Enabled&&!_stopping&&Points.ContainsKey(index),"seek-target-not-indexed");
-        Requests.Clear();_playing=false;_seek=index;
-        Runtime.Log("native-seek-request",new{From=_position,Target=index,DefaultPaused=true});
+        Codec.Require(Enabled&&!_stopping&&!_restoring&&Points.ContainsKey(index),"seek-target-not-indexed");
+        Playback.Seek();_seek=index;
+        Runtime.Log("native-seek-request",new{From=_position,Target=index,DefaultPaused=true,QueuedSteps=Playback.Pending,Running,Auto});
     }
     internal static async Task Run()
     {
@@ -77,12 +83,13 @@ internal static class NativeSeek
                 PlayerLoop.RequireHealthy();
                 if(_seek is {} target){_seek=null;await Restore(target);continue;}
                 if(_hostTask is {IsCompleted:true})await FinishHost();
-                if(!_moving&&!_restoring&&(_playing||Requests.Count>0))
+                if(!_moving&&!_restoring&&Playback.WantsAdvance)
                 {
-                    if(_position==_plan.Length-1){_playing=false;Requests.Clear();Runtime.Status="原生 Seek · 节点8/8 · 切片已结束并暂停，可Seek或Stop";}
+                    if(_position==_plan.Length-1){Playback.End();Runtime.Status="原生 Seek · 节点8/8 · 切片已结束并暂停，可Seek或Stop";}
                     else
                     {
-                        if(!_playing)Requests.Take();_moving=true;
+                        var pending=Playback.Pending;Codec.Require(Playback.Take(),"seek-advance-without-permission");_moving=true;
+                        Runtime.Log("native-seek-advance",new{From=_position,Running,Auto,PendingBefore=pending,PendingAfter=Playback.Pending,FiniteConsumed=pending>0});
                         if(HasView)await AdvanceChoice();
                         else if(_hostTask is null)StartHost(_completedHost+1);
                     }
@@ -92,9 +99,9 @@ internal static class NativeSeek
         }
         finally
         {
-            _playing=false;Requests.Clear();
+            Playback.Stop();
             try{if(PlayerLoop.Error is null&&ActionMonitor.Error is null)await Drain();else CancelGate();}
-            finally{Runtime.Log("native-seek-closed",new{Node=_position,Host,Generation=_generation,Indexed=Points.Count,PendingHost=_hostTask is not null,DisplayTracePlayed=false});}
+            finally{Runtime.Log("native-seek-closed",new{Node=_position,Host,Generation=_generation,Indexed=Points.Count,PendingHost=_hostTask is not null,DisplayTracePlayed=false,Running,Auto,QueuedSteps=Playback.Pending});}
         }
     }
     private static void StartHost(int host)
@@ -120,10 +127,10 @@ internal static class NativeSeek
         if(Points.TryGetValue(node.Index,out var prior))Codec.Require(prior.Projection==projection&&prior.ChoicePosition==ChoiceTape.Position,"seek-reexecution-node-or-rng-differs");
         DirectCheckpoint? data=node.Stable&&capture?new(node.Host,PlayerLoop.EnsureRoster(),route:true,extraRoots:[LiveState.Run.CurrentRoom!]):null;
         Points[node.Index]=new(node,data??prior?.Data,projection,ChoiceTape.Position);_position=node.Index;_moving=false;
-        Runtime.Status=$"原生 Seek · 节点 {node.Index}/8 · {node.Label} · "+(_playing?"播放":"暂停");
+        Runtime.Status=$"原生 Seek · 节点 {node.Index}/8 · {node.Label}";
         ChoiceTape.Display=node.Stable?"":$"原生选择{node.Choice} · 已选{node.Stage} · 决策只读，可浏览";
         Runtime.Log("native-seek-node",new{Node=node.Index,node.Host,node.Choice,node.Stage,node.Anchor,Generation=_generation,
-            StateProjection=projection,ChoicePosition=ChoiceTape.Position,DataSnapshot=data is not null,NativeContinuation=true});
+            StateProjection=projection,ChoicePosition=ChoiceTape.Position,DataSnapshot=data is not null,NativeContinuation=true,Running,Auto,QueuedSteps=Playback.Pending});
     }
     internal static async Task<PlayerChoiceResult> OpenChoice(ChoiceScope source,Player player,uint id)
     {
@@ -180,7 +187,7 @@ internal static class NativeSeek
     }
     private static async Task Drain()
     {
-        _draining=true;var at=Stopwatch.GetTimestamp();var hidden=NRun.Instance;var visible=hidden?.Visible??false;if(hidden is not null)hidden.Visible=false;
+        _draining=true;Ui.Refresh();var at=Stopwatch.GetTimestamp();
         try
         {
             while(_hostTask is not null)
@@ -191,24 +198,26 @@ internal static class NativeSeek
             }
             Codec.Require(!ActionMonitor.Outstanding&&LiveState.Playable,"seek-old-generation-not-quiescent");
         }
-        finally{_draining=false;if(hidden is not null&&GodotObject.IsInstanceValid(hidden))hidden.Visible=visible;}
+        finally{_draining=false;Ui.Refresh();}
     }
     private static async Task Restore(int target)
     {
-        var at=Stopwatch.GetTimestamp();var point=Points[target];_restoring=true;Requests.Clear();_playing=false;
+        var at=Stopwatch.GetTimestamp();var point=Points[target];_restoring=true;Playback.Seek();
         var retiredHosts=_hostTask is null?0:1;
-        var run=NRun.Instance!;var visible=run.Visible;run.Visible=false;
         try
         {
+            RestorePhase("正在结束当前牌效",target);
             await Drain();var drainedAt=Stopwatch.GetTimestamp();_generation++;
             var anchor=point.Node.Stable?point:Points[point.Node.Anchor];
             Codec.Require(anchor.Data is not null,"seek-stable-anchor-not-built");
+            RestorePhase("正在恢复目标数据",target);
             await anchor.Data!.Restore();ActionMonitor.RebaseNativeSeek();_completedHost=anchor.Node.Host;Host=_completedHost;_position=anchor.Node.Index;
             HandPresentation.FinishHighlights(NPlayerHand.Instance!);
             var appliedAt=Stopwatch.GetTimestamp();
             var nativeHosts=0;
             if(!point.Node.Stable)
             {
+                RestorePhase("正在重建目标选择",target);
                 StartHost(point.Node.Host);nativeHosts=1;
                 while(true)
                 {
@@ -222,7 +231,7 @@ internal static class NativeSeek
                         else
                         {
                             while(_view!.EventPosition<point.Node.Stage)await AdvanceChoice();
-                            NativeChoice.AssertPrefix(_view,point.Node.Stage);break;
+                            NativeChoice.AssertPrefix(_view,point.Node.Stage);NativeChoice.SettleSeekHand(_view);break;
                         }
                     }
                     if(_hostTask!.IsCompleted)throw new InvalidDataException("seek-host-finished-before-target-choice");
@@ -230,16 +239,21 @@ internal static class NativeSeek
                 }
             }
             Codec.Require(LiveState.ChoiceProjection()==point.Projection&&ChoiceTape.Position==point.ChoicePosition,"seek-arrival-state-or-rng-differs");
-            _position=target;_moving=false;Runtime.Status=$"原生 Seek · 节点 {target}/8 · 已恢复并暂停";
+            _position=target;_moving=false;Runtime.Status=$"原生 Seek · 节点 {target}/8 · 已恢复";
             ChoiceTape.Display=point.Node.Stable?"":$"原生选择{point.Node.Choice} · 已选{point.Node.Stage} · 已重新建立等待";
             Runtime.Log("native-seek-arrived",new{Target=target,Anchor=anchor.Node.Index,Generation=_generation,LocalNativeHosts=nativeHosts,
                 FromBattlePrefixOperations=0,StateAndRngMatched=true,FreshChoiceContext=!point.Node.Stable,DefaultPaused=true,
-                OldNativeHostDrainedBeforeDataApply=true,OldTasksRestored=false,DisplayTracePlayed=false,Milliseconds=Stopwatch.GetElapsedTime(at).TotalMilliseconds});
+                OldNativeHostDrainedBeforeDataApply=true,OldTasksRestored=false,DisplayTracePlayed=false,Running,Auto,QueuedSteps=Playback.Pending,
+                SceneKeptVisible=true,Milliseconds=Stopwatch.GetElapsedTime(at).TotalMilliseconds});
             Runtime.Log("native-seek-arrival-timing",new{Target=target,RetiredNativeHosts=retiredHosts,RebuiltNativeHosts=nativeHosts,
                 DrainMilliseconds=Stopwatch.GetElapsedTime(at,drainedAt).TotalMilliseconds,ApplyMilliseconds=Stopwatch.GetElapsedTime(drainedAt,appliedAt).TotalMilliseconds,
                 LocalRebuildMilliseconds=Stopwatch.GetElapsedTime(appliedAt).TotalMilliseconds,FromBattlePrefixOperations=0});
         }
-        finally{_restoring=false;if(GodotObject.IsInstanceValid(run))run.Visible=visible;}
+        finally{_restoring=false;_restorePhase="";Ui.Refresh();}
+    }
+    private static void RestorePhase(string phase,int target)
+    {
+        _restorePhase=phase;Ui.Refresh();Runtime.Log("native-seek-restore-phase",new{Target=target,Phase=phase,SceneKeptVisible=true});
     }
     private static void CancelGate()
     {
