@@ -34,12 +34,13 @@ public static class Runtime
     internal const string CompatibleSilentAcceptedBuild="0DE1D7829E62775DC68227623544598720E4A890E8B67F324E83600B966634C5";
     internal const string CompatibleRegentRecordingBuild="EBB189A1D9982A631E7810313224B729B6F5BC1AD860F0BF637D2ECF392C5A88";
     internal const string CompatibleQueuedRecordingBuild="6A4B1730418177CEC01CCDAE0A4D5FDE72541D34DEBD3BC2A83ED521F654EC10";
+    internal const string CompatibleFullPlaybackRecordingBuild="378309A7604BDC0CFE462BA18164F0CE7528F4CA1ACEF35304AE5B53B8E3CA7F";
     internal static string GameHash="",ModHash="",Root="",Status="ReplayMod initializing";
     internal static ClipStore Store=null!;
     internal static NGame Game=>NGame.Instance??throw new InvalidDataException("game-owner-missing");
     internal static string[] Mods=>ModManager.GetLoadedMods().Select(m=>(m.manifest?.id??"")+":"+(m.manifest?.version??"")).Order(StringComparer.Ordinal).ToArray();
     internal static string Scope=>Codec.Hash(Encoding.UTF8.GetBytes("ReplayMod:"+UserDataPathProvider.GetProfileScopedBasePath(SaveManager.Instance.CurrentProfileId)));
-    internal static Clip ReadClip(string id)=>Store.Read(id,GameHash,ModHash,Scope,CompatibleRecordingBuild,CompatibleDirectBuild,CompatibleVictoryBuild,CompatibleVictoryFixBuild,CompatiblePresentationBuild,CompatibleRosterBuild,CompatibleContentBuild,CompatibleContentFixBuild,CompatibleStateRecordingBuild,CompatibleStateAcceptedBuild,CompatibleChoiceRecordingBuild,CompatibleChoiceTitleBuild,CompatibleChoiceProcessRecordingBuild,CompatibleChoiceProcessAcceptedBuild,CompatibleChoiceFinalBuild,CompatibleSilentRecordingBuild,CompatibleSilentAcceptedBuild,CompatibleRegentRecordingBuild,CompatibleQueuedRecordingBuild);
+    internal static Clip ReadClip(string id)=>Store.Read(id,GameHash,ModHash,Scope,CompatibleRecordingBuild,CompatibleDirectBuild,CompatibleVictoryBuild,CompatibleVictoryFixBuild,CompatiblePresentationBuild,CompatibleRosterBuild,CompatibleContentBuild,CompatibleContentFixBuild,CompatibleStateRecordingBuild,CompatibleStateAcceptedBuild,CompatibleChoiceRecordingBuild,CompatibleChoiceTitleBuild,CompatibleChoiceProcessRecordingBuild,CompatibleChoiceProcessAcceptedBuild,CompatibleChoiceFinalBuild,CompatibleSilentRecordingBuild,CompatibleSilentAcceptedBuild,CompatibleRegentRecordingBuild,CompatibleQueuedRecordingBuild,CompatibleFullPlaybackRecordingBuild);
     private static bool _attached;
     private static int _logSequence;
     private static OrderedFileLog? _log;

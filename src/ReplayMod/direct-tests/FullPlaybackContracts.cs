@@ -3,6 +3,22 @@ using ReplayMod;
 
 internal static class FullPlaybackContracts
 {
+    internal static void VerifyRecording(string output,string path,string recordingMod)
+    {
+        var bytes=File.ReadAllBytes(path);var clip=JsonSerializer.Deserialize<ClipEnvelope>(bytes,Codec.Json)!.Data;
+        Codec.Require(clip.ModHash==recordingMod&&clip.Format==6&&clip.Operations[^1].Victory,"new-native-recording-metadata");
+        var read=new ClipStore(Path.GetDirectoryName(Path.GetFullPath(path))!).Read(clip.Id,
+            "0861BFA1DF347538D932F22D580E75420F08082792EB914E53B4882764ACDBE9","next-playback-build",clip.Scope,recordingMod);
+        Codec.Require(Codec.Bytes(read).SequenceEqual(Codec.Bytes(clip))&&NativePlaybackSupport.Reason(read) is null,"new-native-recording-production-readback");
+        var plan=new OperationRequests(read,read.Operations.Length);
+        Codec.Require(plan.Route[^1].Complete&&plan.Route[^1].Host==read.Operations.Length,"new-recording-route-incomplete");
+        Codec.Require(File.ReadAllBytes(path).SequenceEqual(bytes),"new-native-recording-mutated");
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
+        File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_ACTUAL_RECORDING_PRODUCTION_READ_AND_COMPATIBILITY_ONLY",read.Id,read.Format,
+            read.CreatedUtc,read.ModHash,OriginalSHA256=Codec.Hash(bytes),Operations=read.Operations.Length,Choices=read.Choices!.Length,
+            FinalVictory=read.Operations[^1].Victory,ExactPayloadMatched=true,OriginalUnchanged=true,NativeRuntimeNotExecutedByThisCheck=true}));
+        Console.WriteLine("PASS_NEW_RECORDING_PRODUCTION_READ_NOT_NATIVE_RUNTIME");
+    }
     internal static void Run(string output,string original)
     {
         var bytes=File.ReadAllBytes(original);var clip=JsonSerializer.Deserialize<ClipEnvelope>(bytes,Codec.Json)!.Data;

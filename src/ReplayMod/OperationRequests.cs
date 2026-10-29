@@ -36,6 +36,22 @@ internal sealed class OperationRequests
         if(target is null)return null;
         var request=new ForwardRequest(++_nextId,kind,target);_pending.Enqueue(request);return request;
     }
+    internal ForwardRequest[] NativeQueueCandidates(int completed)
+    {
+        var candidates=Active is null?Pending:new[]{Active}.Concat(Pending);
+        var selected=new List<ForwardRequest>();var expected=completed+1;
+        foreach(var request in candidates)
+        {
+            // A fine request with no internal choice targets the same whole card boundary.
+            // Reserve that card while paused too, without granting its business execution.
+            if(request.Target.Host!=expected||request.Kind==ForwardKind.Fine&&!request.Target.Complete)break;
+            selected.Add(request);expected++;
+            // Do not pre-submit beyond a fine observation stop. Choice phases keep their
+            // existing continuation path; actual card/turn/target legality is checked later.
+            if(request.Kind==ForwardKind.Fine||selected.Count==3)break;
+        }
+        return selected.ToArray();
+    }
     internal void ToggleRunning()
     {
         Running=!Running;

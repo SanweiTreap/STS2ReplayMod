@@ -88,6 +88,27 @@ internal static class OperationContracts
             var reservations=p.Pending;for(var i=0;i<4;i++)Need(!p.Acquire()&&p.Pending.SequenceEqual(reservations)&&p.Active is null,"native-acceptance-opened-business-gate");
             p.ToggleRunning();Need(p.Acquire()&&p.Active==reservations[0]&&p.Pending.Length==2,"play-consumed-reservation-more-than-once");
         });
+        Test("paused-fine-no-choice-card-is-a-native-queue-candidate-without-starting-or-losing-its-stop",()=>
+        {
+            var p=new OperationRequests(clip,22);p.Seek(4);p.ToggleAuto();var fine=p.Add(ForwardKind.Fine)!;
+            Need(fine.Target is {Host:5,Complete:true,Label:"CARD.SHIV"},"sample-fine-not-no-choice-shiv");
+            for(var i=0;i<3;i++)Need(p.NativeQueueCandidates(4).SequenceEqual(new[]{fine})&&!p.Acquire()&&
+                p.Pending.Single()==fine&&p.Stage==End(p,4).Stage,"fine-not-reserved-or-reservation-started-business");
+            p.ToggleRunning();Need(p.Acquire()&&p.Active==fine,"fine-native-candidate-lost-fifo-grant");
+            p.Arrive(fine.Target);Need(!p.Running&&p.Auto&&p.Active is null&&p.Pending.Length==0&&!p.Acquire(),"fine-card-lost-observation-stop");
+            var next=p.Add(ForwardKind.Fine)!;Need(p.NativeQueueCandidates(5).Single()==next&&next.Target.Host==6,"next-paused-fine-card-lost");
+        });
+        Test("native-candidate-prefix-keeps-three-whole-window-and-stops-at-fine-or-internal-choice",()=>
+        {
+            var p=new OperationRequests(clip,22);p.Seek(3);for(var i=0;i<4;i++)p.Add(ForwardKind.Whole);
+            Need(p.NativeQueueCandidates(3).Select(r=>r.Target.Host).SequenceEqual(new[]{4,5,6})&&p.Pending.Length==4,"whole-window-changed");
+            p.Seek(3);var whole=p.Add(ForwardKind.Whole)!;var fine=p.Add(ForwardKind.Fine)!;p.Add(ForwardKind.Whole);
+            Need(p.NativeQueueCandidates(3).SequenceEqual(new[]{whole,fine})&&p.Pending.Length==3,"fine-preaccepted-following-host");
+            p.ToggleRunning();Need(p.Acquire(),"mixed-prefix-active-setup");
+            Need(p.NativeQueueCandidates(3).SequenceEqual(new[]{whole,fine}),"active-request-lost-from-native-prefix");
+            p.Seek(1);var choice=p.Add(ForwardKind.Fine)!;p.Add(ForwardKind.Whole);
+            Need(!choice.Target.Complete&&p.NativeQueueCandidates(1).Length==0&&p.Pending.Length==2,"internal-choice-fine-incorrectly-treated-as-complete-card");
+        });
         Test("original-recording-contains-burst-survivor-strike-in-same-turn",()=>
         {
             var ops=clip.Operations[19..22];Need(ops.Select(o=>o.Card).SequenceEqual(new[]{"CARD.BURST","CARD.SURVIVOR","CARD.STRIKE_SILENT"})&&ops.All(o=>o.Turn==5),"sample-sequence-invented");
