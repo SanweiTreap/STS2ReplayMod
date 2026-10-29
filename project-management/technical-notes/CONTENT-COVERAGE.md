@@ -83,6 +83,12 @@
 
 所有批次仍以实际功能闭环验收：录下操作/选择→原生前进→关键点Back后再执行→必要文件恢复→正常退出。按本批改动取必要项，不能把每行都变成每张牌的强制完整矩阵。
 
+## 后续运行发现：胜利后卡牌登记监听恢复（2026-10-30）
+
+PLAYBACK-003/006的r7共308事件，PM已读取封存首个observer-error完整栈，新CARD.SHIV在NetCombatCardDb.GetCardId中无ID，经CardStateEntry/Mechanics/Capture与ActionMonitor.Complete/FilterReady失败。固定源码确认OnCombatEnded解绑各牌堆ContentsChanged并清_subscriptions，而DirectCheckpoint恢复ID双向表/_nextId、排除Delegate/_subscriptions，原先只重挂StateTracker。数据身份恢复与新卡自动登记监听是两项义务，前者恢复不保证后者存在。
+
+修复build-007/bdb3000已安装：按当前pile引用补缺失监听，复用原生OnPileContentsChanged及CombatEnded/退出纯退订，保持原ID/计数，避免StartCombat重编号或恢复旧Delegate。4组实际AttachMissing/IdentityMemento纯模型合同通过，重复恢复幂等、未来新卡登记与退出解绑仍待同片原生验证，不能称修复已通过。此例作为内容恢复契约的实际缺口保留，不扩大为当前所有事件订阅审计或单牌补丁列表。
+
 ## 用户经验与可追加材料
 
 - 已收到额外主动操作问题的知识恶魔例子；静态确认它仍属统一选牌，但拓宽了来源阶段。丢弃药水已由源码另行查出。
