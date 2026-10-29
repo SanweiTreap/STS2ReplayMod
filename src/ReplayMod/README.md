@@ -8,7 +8,9 @@
 
 build-001 DLL `378309A7604BDC0CFE462BA18164F0CE7528F4CA1ACEF35304AE5B53B8E3CA7F`，源码e13d1f4，构建及4组完整路线／9组请求合同通过；已安装，收据`evidence/playback-003/preparation/build-001-f7f907e1.json`。r1真实420事件／两次参考入口：首次完整1..27，三次胜利Back26再胜利，合计31原生结果/RNG匹配、4次真实胜利、4选择；Stop在27/1，原manager和所比较Continue/进度恢复，用户确认通过。原片不变，原始日志已封存；Godot启动/退出诊断保留，不称引擎无警告。
 
-仍缺本轮新录不同ID从普通入口的完整闭环，不能将上述参考入口当recent通过。当前不换DLL，不打断用户正常游玩；待其正常退出后先保留最新进度，再用同一版本验证新录／整项Back／胜利／Stop重开。51个已知当前存档／配置的测试前补充备份及旧pair／完整恢复点保持，新游玩进度不能由旧备份替代。新单位、宠物、失败局、一般终局／文件恢复、全内容和性能未承诺。详见[PLAYBACK-003报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
+r2另有244事件，普通`recent`入口打开旧铁甲格式6片3eb6…10a5/13项，首次1..13、胜利显式Seek5后6..13再胜利，21次原生结果/RNG、两次真实胜利、Stop隔离均通过。它是10月28日旧文件，只打开一次；证明普通入口接通和不固定ID/长度，仍不代替本轮新录及该片短重开。
+
+10月30日读取时game0，已将用户正常游玩后的51个当前文件/3,941,279 bytes逐hash补存，收据`evidence/playback-003/post-gameplay-current-files.json`；旧pair及完整恢复点保持，没有恢复档或改配置。当前不换DLL，用同一版本补新录／整项Back／胜利／Stop重开。新单位、宠物、失败局、一般终局／文件恢复、全内容和性能未承诺。详见[PLAYBACK-003报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
 
 ## 历史：PLAYBACK-002 / build-003，所测暂停入队／选择退队重排闭环通过
 
