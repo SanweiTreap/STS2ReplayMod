@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-29。用户已要求实施，签发PLAYBACK-002：当前战斗的完整操作/精细前进、整项Back和原生退队重排。新交互尚未验证，SEEK-001/003按旧范围验收保留。D-121独立控制、D-124/D-125选择非直接Seek目标保持，旧PLAYBACK003仍Unknown。
+更新：2026-10-29。PLAYBACK-002/build-002已安装待首次人工短测，源码f066bd8已推送。精细页直接Play续当前缺口已修复；7组离线请求规划通过，真实退队重排/单次结算仍Unknown。旧SEEK-001/003验收保留，选择非直接Seek目标保持，旧PLAYBACK001/003仍Unknown。
 
 ## 玩家现在能用到什么
 
@@ -46,6 +46,8 @@ CONTENT-002已收束：默认展示最终确认的选择，原始41事件保留�
 
 当前实施任务[PLAYBACK-002](handoffs/PLAYBACK-002.md)，现有Implementation继续：先在当前战斗完成`>`精细阶段、`>>`完整操作、整项Back及真实原生取消/退回/自动重入队闭环。旧讨论HOLD解除，普通修复/相关重构/备份安装/人工短测沿D-092自主推进。回合/楼层按钮是最终方向，本轮不扩整局；精细与完整请求调度需清楚呈现，不暗改运行/Auto。现有新路线只验4宿主，可为最短合适记录扩片段，必要时请求用户录短片。
 
+PLAYBACK-002/build-002已安装，扩原片至22；20爆发→21生存者双选择→22打击适合，无需重录。PM读关键调度/原生选择与取消源码，指出的精细页直接Play缺口已以仅续当前宿主的Continuation修复；检查产出7组通过且明确无原生运行。PM核对修复源码、判别合同、报告和已装DLL身份，未重复构建。最后精细目标无后继时明确Pause/保留Auto，普通完整量尽仍等待。下一步为[报告](investigation-reports/PLAYBACK-002-report.md)四项最短人工测试；原生接受/取消/归手/重排与一次结算不提前验收。
+
 D-123至D-125的已定规则见[体验规格](technical-notes/PLAYBACK-EXPERIENCE.md)：普通Step/Back以完整操作为单位，选择自动随录制回答；独立精细前进可停在选择阶段，但不提供选择页直接Seek或独立恢复点。Back回当前未完操作前/撤最近完成整项并暂停；Pause可浏览、Play续接未完流程。原生退队不丢请求、不漏播或重复扣步，结束后只补回已预约后继，暂停不偷执行。真实取消重排/原生多牌/精细调度仍待本包验证，不把规格当已完成。
 
 固定v0.111.0静态核对：等待选牌按玩家队列处理，队友类星体不必阻塞自己的早有准备；自己的早有准备进入手牌弃牌选择时，会取消本玩家尚未执行的排队出牌。因此录像待播请求与原生已接受动作需区分，三选一等保留各自原生策略。见[原生核对](technical-notes/PLAYBACK-EXPERIENCE.md)。本次静态结论不代替真实取消重排验证。
@@ -85,8 +87,9 @@ MVP目标仍为自动录制、尽可能覆盖单人场景、独立Replay入口�
 ## 当前工程与恢复点
 
 - 可演进工程：[src/ReplayMod](../src/ReplayMod/README.md)。已有本地反编译C#缓存，日常定位/hook源码优先，IL仅用于歧义，不逐方法复证。
-- Git：私有仓库[SanweiTreap/STS2ReplayMod](https://github.com/SanweiTreap/STS2ReplayMod)，规格/恢复指令57a455b、当前003源码/检查/报告1e54b9c均已推送。原始证据/存档/构建/第三方快照留本地，见[协作规则](REPOSITORY.md)。开发快照不是发布。
-- 保留安装SEEK-001/build-003，SHA-256 `1D2A4848166951E9623015DEBE37744E9424F3CF37CCE33BB0BFB99F867AB919`，[收据](../evidence/seek-001/preparation/build-003-9705e1cb.json)；r2所测范围按D-122验收，收尾game0，无后续换版/测试。002 pair/settings/selector及003源码/原片/失败保留；SEEK/001未运行，旧PLAYBACK/003仍Unknown，证据分开。
+- Git：私有仓库[SanweiTreap/STS2ReplayMod](https://github.com/SanweiTreap/STS2ReplayMod)，本轮规格5a060ed、PLAYBACK-002源码/检查/报告f066bd8已推送。原始证据/存档/构建/第三方快照留本地，见[协作规则](REPOSITORY.md)。开发快照不是发布。
+- 当前安装PLAYBACK-002/build-002，SHA-256 `74C88E494AD7D511169945CEC3A972ACC2C81D79F9010455FD836BA1E83E2E0F`，[收据](../evidence/playback-002/preparation/build-002-54cb0738.json)。PM读回DLL匹配；首次原生实测待进行。001为未交用户运行的准备中间版，不记真人PASS/FAIL。
+- 上一已验SEEK-001/build-003（SHA `1D2A4848166951E9623015DEBE37744E9424F3CF37CCE33BB0BFB99F867AB919`）pair/源码/原片/旧失败保持；D-122所测验收不变，[旧收据](../evidence/seek-001/preparation/build-003-9705e1cb.json)。新旧结果分开，不补判SEEK/001或旧PLAYBACK-001/003。
 - 最新完整恢复点按收据为`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，1280文件、132063795 bytes，来源/副本读回且来源稳定。Implementation按真实清单复核r4的54个saves内容保持；旧r2汇总53是沿旧点硬编码，原比较循环覆盖新清单54项，已加注更正，原日志不改。内容相同不证明无同值写入；更早progress备份差异/前后副本与全部重要原片/事件保留，PM不重复整账号审计。
 - 部分快照：同恢复点下CONTENT004-current-saves-20261028-150051为41文件/4471059 bytes；PLAYBACK001的203942快照49文件/4348913 bytes、最新20261028-223031快照51文件/4439940 bytes，Implementation记录已知save/config/native replay父目录来源稳定及逐hash读回。它们不替代旧完整恢复点、不表示重审历史run；未执行恢复/扫描另一账号。
 - 当前Implementation对话：`01a17814-d254-7df0-8c01-affe43d0e04c`，从003/r2已验收起点接PLAYBACK-002；本轮源码/相关报告由其推进，PM维护状态/决策。旧源码1e54b9c/结果文档e0f38fc保持历史，不补旧PLAYBACK/003结论。
