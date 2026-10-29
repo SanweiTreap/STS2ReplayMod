@@ -1,6 +1,6 @@
 # ReplayMod 0.1.0 · SEEK-001 可续播状态索引候选
 
-## 当前：SEEK-001 / build-003，选择布局与独立播放控制候选待测
+## 当前：SEEK-001 / build-003，所测布局与控制回归通过，交PM讨论
 
 新入口 `SEEK-001 · 猎人选牌／跨回合` 复用原27操作猎人片的前4操作，共9节点：Burst后、两次弃牌窗口／选中、生存者完成、EndTurn、BladeDance。只提供本次已建立点，Back与下拉非相邻Seek统一恢复，到达暂停；再次前进实际走原生GameAction／牌效／RNG并比原记录，不调用旧历史显示轨迹。
 
@@ -8,11 +8,11 @@
 
 控制遵循D-121：初始暂停／Auto关／余量0。Step只加一步；暂停中要按播放才执行。播放/暂停只控制运行门，Auto是独立开关；Pause保留余量与Auto，已开始效果自然收尾，不启动后继。Auto关时有限量尽只等待、门保持运行，新增Step可直接执行；Auto开时持续推进，每节点最多消费一个有限请求。Seek/Back清旧余量并暂停、Auto保留；Stop清会话状态。状态行显示三项和恢复阶段。
 
-003 DLL `1D2A4848166951E9623015DEBE37744E9424F3CF37CCE33BB0BFB99F867AB919`，收据`evidence/seek-001/preparation/build-003-9705e1cb.json`。Release/direct构建零警告错误，真实原片读取／9节点／选择投影与5组新控制合同通过，等待游戏实测。旧002/r1的41次原生核对／22次Seek及Stop隔离通过仍只属于002；旧PLAYBACK-001/003结果Unknown保持。选择重建约1–2秒暂接受，不承诺003性能已通过。
+003 DLL `1D2A4848166951E9623015DEBE37744E9424F3CF37CCE33BB0BFB99F867AB919`，收据`evidence/seek-001/preparation/build-003-9705e1cb.json`，源码`1e54b9c`。Release/direct构建及5组控制合同通过。r2真实626事件／两次打开中，16原生宿主结果/RNG、14次Seek到达、7次选择布局及20次导航计数核对通过；暂停三击、有限余量保留继续、运行中加量、Auto不解除暂停、选择Stop和短重开均有记录，用户确认符合预期。两次退出原manager及所比较Continue／进度恢复，game0、原片保持。旧002证据仍只属于002；旧PLAYBACK-001/003 Unknown保持。
 
-无需重录：暂停三击Step仍留0，播放准确到3，再Step直接到4；开Auto后暂停／继续到8；Seek1到达暂停，关Auto排5步、播放中暂停检查余量保留，再播放到6；Seek4两步到6、Back5一步到6检查选择布局；选择中Stop，短重开一步Stop并正常退出。**暂停状态的Step只排队，每组需按播放**。详细期望和节点见 [SEEK-001报告](../../project-management/investigation-reports/SEEK-001-report.md)。
+当前保留003，不换DLL或追加测试，用户与PM讨论整体实现逻辑。选择重建仍约1.8–2.4秒，离开选择还可能排空旧宿主，不能称发布性能／通用Seek／多牌原生排队通过。实际范围及原始步骤历史见 [SEEK-001报告](../../project-management/investigation-reports/SEEK-001-report.md)。
 
-003和旧可用版保留，003未反馈资料仅原样复制／哈希核对，仍Unknown；PLAYBACK-001停放，不继续下面旧短测清单。001是补Stop竞态前的未启动中间版，002才是本轮人工候选。Cloud沿本批off、game0，最新51个当前文件及源码／pair已备份；无存档恢复／其它账号扫描／自动游戏启动。
+旧PLAYBACK-001/003和旧可用版保留，其未反馈资料仅原样复制／哈希核对，仍Unknown，不继续旧短测清单。SEEK-001的001是未启动中间版，002/r1与003/r2分别保留实际结果。Cloud沿本批off，当前存档／源码／pair备份保持；本轮无存档恢复／其它账号扫描／自动游戏启动。
 
 ## PLAYBACK-001 / build-003（停放；测试结果未反馈）
 
