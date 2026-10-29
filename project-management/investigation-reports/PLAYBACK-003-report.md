@@ -1,6 +1,18 @@
 # PLAYBACK-003：普通入口与完整单场原生播放
 
-更新2026-10-30。D-131两模式已由用户接受并授权继续，实现后已安装build-005，待相关原生短测。build-001新录主链、build-002单Fine和build-003混排的实际证据保留；r5的Partial Fine旧行为留作历史，不再扩暂停Host映射框架。004仅为未交付D-130草稿，未安装；旧PLAYBACK-001/003仍Unknown，包继续而非整体关闭。
+更新2026-10-30。D-131/build-005已实际完成首轮1..21胜利，但恢复后隐秘匕首的Fine→Whole收尾发生观察器异常，完整D-131未通过。已安装仅补完整异常信息的build-006，等待同片一次针对性重现取得调用栈；尚未确立根因或声称修复。既有新录主链、r1–r5结论和004未安装草稿保留，旧PLAYBACK-001/003仍Unknown。
+
+## build-005 / r6异常与build-006诊断
+
+用户报告“崩溃”。runtime `f76c1ed657b84b75b3ef33d791c340fe`共331事件：默认手动、合法Fine/整项累计及选择收尾实际先完成1..21、全部21组结果/RNG与真实胜利匹配；8次Fine接受。随后Back20、手动Seek4、Seek9均匹配。重播10隐秘匕首时，Fine请求25打开选择、Fine26选中第一张，Whole27收尾到选中第二张/确认，牌效生成日志后发生`observer-error: InvalidOperationException`，未交付第二次10的结果。
+
+原日志只存异常类型，未保留消息和调用栈，不能凭异常名断言LINQ/队列/恢复等具体根因。回放退出到主菜单，driver关闭时Outstanding=true，playback-closed在9且Error明确，原manager及所比较Continue/进度恢复核对为true；此后Godot有正常Quit记录，读取时game0。0次Auto切换，不据本轮宣称Auto切换矩阵或整包已通过。
+
+331原事件和对应Godot日志已在既有恢复点`runtime/playback-003-r6-20261030/`逐hash读回保留，摘要`evidence/playback-003/runtime-verification-r6.json`；新片hash仍33C47126…99B5F。异常及Outstanding不隐藏，不以初次完整胜利抹去恢复后的失败。
+
+build-006仅在Runtime.Guard的observer-error与PlayerLoop的playback-failed中记录`ex.ToString()`，包含原始消息/内层异常/调用栈，留在私有运行日志；调度、UI、选择、RNG及恢复代码未改，不是推测性修复。Release构建0警告0错误，未因纯错误日志变更重复旧合同矩阵。DLL `63639812D8C7EEC4C9C43840E024907BD3462D6C174593D2A88EB357B3A08C77`已安装，收据`evidence/playback-003/preparation/build-006-b38dd4b2.json`，game0/原账号/固定原生DLL/pair核对，仅ReplayMod/modded1，本批Cloud原确认保持。旧005 pair/配置在既有恢复点`preparations/build-006-b38dd4b2/`，未启动游戏或恢复档。
+
+请求最短针对性重现：同一最近新片开Auto到胜利以建立本次边界；Back20，再Seek4、Seek9；Auto关，`>`打开隐秘匕首、`>`选一张、`>>`收尾。发生异常或未复现都正常退出后反馈，不重录/重跑控制矩阵。此路径用于取得原始栈，不称006已修复或要求用户重复验证整个D-131。
 
 ## build-005：D-131手动/Auto两模式候选
 

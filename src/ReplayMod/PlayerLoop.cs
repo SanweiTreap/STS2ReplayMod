@@ -124,7 +124,7 @@ internal static class PlayerLoop
         catch(Exception ex)
         {
             Error=ex is InvalidDataException?ex.Message:ex.GetType().Name;Runtime.Status="回放失败："+Error;
-            Runtime.Log("playback-failed",new{Reason=Error,Checks=checks});
+            Runtime.Log("playback-failed",new{Reason=Error,Checks=checks,Exception=ex.ToString()});
         }
         finally
         {

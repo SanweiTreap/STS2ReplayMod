@@ -71,7 +71,7 @@ public static class Runtime
         {
             var reason=ex is InvalidDataException?ex.Message:ex.GetType().Name;
             if(PlayerLoop.Active){ActionMonitor.Error??=reason;PlayerLoop.Error??=reason;}else Recorder.Fail(reason);
-            Status="ReplayMod: "+reason;Log("observer-error",new{Reason=reason});
+            Status="ReplayMod: "+reason;Log("observer-error",new{Reason=reason,Exception=ex.ToString()});
         }
     }
     internal static void Menu(NMainMenu menu)=>Guard(()=>

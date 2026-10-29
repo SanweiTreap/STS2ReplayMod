@@ -1,6 +1,12 @@
 # ReplayMod 0.1.0 · 原生单场回放
 
-## 当前安装：PLAYBACK-003 / build-005，D-131两模式待短测
+## 当前安装：PLAYBACK-003 / build-006，仅补异常诊断
+
+005/r6真实331事件先完成1..21胜利/21结果-RNG匹配，随后胜利Back20→Seek4→Seek9，重播隐秘匕首时`>`开选牌、`>`选一张、`>>`收尾发生InvalidOperationException，观察器未保留栈，根因尚未确立。失败后已回菜单并正常退出，原manager/所比较Continue进度恢复核对通过；D-131整体未通过，旧成功结果保留。
+
+006只补observer-error/playback-failed的完整异常信息，不改播放逻辑、不声称修复。已安装DLL `63639812D8C7EEC4C9C43840E024907BD3462D6C174593D2A88EB357B3A08C77`，收据`evidence/playback-003/preparation/build-006-b38dd4b2.json`，构建0警告0错误，005 pair/配置和331原事件已保存；等待同片一次恢复链重现取调用栈，无需重录/旧矩阵。详见[报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
+
+## PLAYBACK-003 / build-005 D-131两模式实现与检查
 
 原生播放器移除Play/Pause，默认Auto关、手动等待。`>`仅在手动等待时推进一个细阶段，到点再等；选择页即使宿主Task未结束也能继续细进。执行中/Auto开时禁用Fine，UI与处理入口一致。`>>`立即请求当前整项（选择中补完剩余宿主），可连续点击累计FIFO，不需要Play，也不会自动补WholeContinuation。
 
