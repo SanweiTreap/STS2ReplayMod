@@ -1,6 +1,14 @@
 # ReplayMod 0.1.0 · 原生单场回放
 
-## 当前：PLAYBACK-003 / build-002，暂停Fine完整卡边界入队修复待短测
+## 当前：PLAYBACK-003 / build-003，已预约Fine/Whole共用预入队窗口待短测
+
+build-002/r4的471事件已证明：暂停Fine小刀11/12原生接受时不执行业务，Play后到点暂停、Auto保留；37原生结果/RNG及Stop21/16隔离通过。用户又发现Fine后已有Whole仍不预入队，原因是候选前缀无条件在Fine截断，而运行FIFO在有明确后继时继续。
+
+与PM澄清后，build-003让已预约Complete Fine/Whole连续合法卡共用原三项窗口，不拉入未预约或新Auto目标；仅最后Fine无后续显式请求才暂停并保留Auto。内部选择阶段/同宿主多个阶段、原生合法性与只接受不执行业务规则保持。修复没有牌名特例。
+
+已安装build-003 DLL `87F3039C1CB1E6308A2B46C3C19C1D34B693A35B546DCA19CF299E15E622D8F6`，收据`evidence/playback-003/preparation/build-003-c3ecc630.json`。构建0警告0错误，12组请求、4组完整路线及新片生产兼容读取合同通过，原生混排短测Pending。用同新片完成1刀刃之舞、暂停/开Auto，预约`>`/`>>`/`>`三张小刀应全部预入队；Play后完成4并暂停、Auto保留，然后Stop/正常退出即可，无需重录或再跑主闭环。详见[PLAYBACK-003报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
+
+## PLAYBACK-003 / build-002 单独Fine入队修复与所测结果
 
 build-001的r3已真实录成新猎人格式6录像e4b7368b…e2c4/21项/4选择，两次普通recent入口完成44次原生结果/RNG核对、三次真实胜利、胜利Back20再胜利及重开后Back0再完整播放。两个Stop均在21，原manager/所比较Continue进度恢复；不称短Stop1。700事件及原片已hash封存，摘要`evidence/playback-003/runtime-verification-r3.json`。新录主链已通过，用户总体认可。
 
