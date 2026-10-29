@@ -4,7 +4,7 @@
 
 目前处于开发原型阶段，固定目标为 **STS2 public-beta v0.111.0**。已有单场战斗的真实录制、独立回放、选择界面和观看会话内的直接后退；铁甲、猎人、储君的部分机制组合已有实测。尚未完成整局录制、全内容覆盖、一般文件状态恢复或发布性能保证。
 
-**SEEK-001固定猎人切片阶段已验收**，保留build-003：所测跨回合/选牌恢复后原生续播、选择布局与独立控制通过。当前讨论整体架构，尚未启动下一目标；不是完整战斗、任意位置或通用文件Seek完成。分支为开发快照，最新事实与限制见[项目状态](project-management/CURRENT_STATUS.md)和[SEEK-001范围](project-management/handoffs/SEEK-001.md)。
+**PLAYBACK-003/build-001已通过参考猎人完整27项原生播放、胜利后退再播放及退出重开短测**。普通最近入口已接入同一核心，新录文件从该入口完整播放仍待验证；任务继续，不代表全内容、任意位置或通用文件Seek完成。仓库为开发快照，最新事实与限制见[项目状态](project-management/CURRENT_STATUS.md)和[PLAYBACK-003范围](project-management/handoffs/PLAYBACK-003.md)。
 
 ## 目录
 
