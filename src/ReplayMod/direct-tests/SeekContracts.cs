@@ -22,14 +22,11 @@ internal static class SeekContracts
         var hand=clip.Choices![0];Need(SeekPlan.Events(hand).Select(e=>e.Kind).SequenceEqual(new[]{"Select","Confirm"}),"native-hand-confirm-node");
         var autoSubmit=hand with{Kind="FromChooseACardScreen",Manual=true};
         Need(SeekPlan.Events(autoSubmit).Select(e=>e.Kind).SequenceEqual(new[]{"Select"}),"invented-confirm-after-native-autosubmit");
-        var requests=new AdvanceRequests();for(var i=0;i<3;i++)requests.Add();
-        var position=0;while(requests.Take())position++;Need(position==3,"seek-three-clicks-three-visible-nodes");
-        foreach(var command in new[]{"Pause","Back","Seek","Stop"})
-        {requests.Add();requests.Add();requests.Clear();Need(!requests.Take(),"seek-stale-next-host-after-"+command);}
+        var playback=SeekPlaybackContracts.Run();
         Need(File.ReadAllBytes(original).SequenceEqual(before),"seek-original-file-mutated");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
         File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_SEEK_INDEX_NATIVE_CHOICE_PROJECTION_AND_ORIGINAL_READ_CONTRACTS",clip.Id,
-            OriginalSHA256=Codec.Hash(before),SliceHosts=4,Nodes=nodes,BoundedChoiceRebuildHosts=1,
+            OriginalSHA256=Codec.Hash(before),SliceHosts=4,Nodes=nodes,BoundedChoiceRebuildHosts=1,PlaybackControlContracts=playback,
             NativeTasksExecuted=false,NativeContinuationAndRngEqualityStillPending=true,Old003TestResult="UnknownNotRead"}));
         Console.WriteLine("PASS_SEEK_INDEX_AND_ORIGINAL_FILE_CONTRACTS_NOT_NATIVE_EXECUTION");
     }
