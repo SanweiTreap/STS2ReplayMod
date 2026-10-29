@@ -179,12 +179,10 @@ internal static class NativeSeek
     private static void FillNativeQueue()
     {
         if(_restoring||_retiring||_stopping||_seek is not null||ChoiceTape.Waiting||InFlight&&_choiceOwner==Host)return;
-        var active=_requests.Active;
-        var candidates=active is null?_requests.Pending:new[]{active}.Concat(_requests.Pending).ToArray();
-        var expected=_completed+1;var filled=0;int? turn=null;
-        foreach(var request in candidates)
+        int? turn=null;
+        foreach(var request in _requests.NativeQueueCandidates(_completed))
         {
-            if(request.Kind!=ForwardKind.Whole||request.Target.Host!=expected||filled++>=3)break;
+            var expected=request.Target.Host;
             var next=_clip.Operations[expected-1];
             turn??=next.Turn;
             if(next.Kind!=OperationKind.Card||next.Turn!=turn||next.Turn!=LiveState.Turn)break;
@@ -192,7 +190,6 @@ internal static class NativeSeek
             // including Burst's later choices, rather than reentering between choices.
             if(CancelledAhead.Contains(expected)&&InFlight)break;
             if(ActionMonitor.Submitted(expected-1) is null&&!Submit(expected,true))break;
-            expected++;
         }
     }
     // Leave the executor free to resume the CURRENT action after a choice. Globally

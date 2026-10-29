@@ -1,6 +1,14 @@
-# ReplayMod 0.1.0 · SEEK-001 可续播状态索引候选
+# ReplayMod 0.1.0 · 原生单场回放
 
-## 当前：PLAYBACK-003 / build-001，普通入口与完整单场候选
+## 当前：PLAYBACK-003 / build-002，暂停Fine完整卡边界入队修复待短测
+
+build-001的r3已真实录成新猎人格式6录像e4b7368b…e2c4/21项/4选择，两次普通recent入口完成44次原生结果/RNG核对、三次真实胜利、胜利Back20再胜利及重开后Back0再完整播放。两个Stop均在21，原manager/所比较Continue进度恢复；不称短Stop1。700事件及原片已hash封存，摘要`evidence/playback-003/runtime-verification-r3.json`。新录主链已通过，用户总体认可。
+
+同轮发现暂停点`>`的小刀未预入队：旧代码只预提交Whole，Fine直到Play才提交。build-002按请求的Complete目标允许无内部选择的合法卡也暂停原生入队，无牌名特例；不执行牌效/消费导航，Play后仍在Fine目标暂停且Auto保留，Fine后不扩大ahead窗口，内部选择/EndTurn/药水等保护保持。显式兼容build-001新录文件，无需改片或重录。
+
+已安装build-002 DLL `1F9020D8CBF76329975BAF473F16AA44B83EFF302BD27243E8B117B0E68017C0`，收据`evidence/playback-003/preparation/build-002-004fdfcc.json`，旧pair/settings/selector及700原事件保持。构建0警告0错误、11组请求/4组完整路线合同及新片生产读取兼容检查通过；原生修复短测仍Pending，不以build-001通过冒充新版已测。本轮只补暂停`>`入队→Play→Fine目标暂停及短重开，不重跑全场矩阵。详见[PLAYBACK-003报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
+
+## PLAYBACK-003 / build-001 已测基线与范围
 
 普通“打开最近片段 · 原生播放器”默认使用统一原生核心，按实际文件长度前进，不再限定旧猎人ID或前22项。格式4–6、铁甲／猎人／储君当前首战录制范围适用，未知格式／角色／人工选择类型明确说明，STATE冷恢复保留独立工具。支持入口不等于全卡牌／遗物／药水已验证。
 
