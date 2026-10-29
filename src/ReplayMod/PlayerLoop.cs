@@ -81,7 +81,8 @@ internal static class PlayerLoop
             {
                 Runtime.Log("native-playback-open",new{clip.Id,clip.Format,Entry=entry,Core="native-actions",Open=++_opens,
                     TotalOperations=clip.Operations.Length,ExpectedVictory=clip.Operations[^1].Victory,InitialMatched=true,
-                    InitialChoices=(clip.Choices??[]).Count(c=>c.Boundary==0),FixedClipIdRequired=false,DisplayTracePlayed=false});
+                    InitialChoices=(clip.Choices??[]).Count(c=>c.Boundary==0),FixedClipIdRequired=false,DisplayTracePlayed=false,
+                    ControlModel="D131-two-modes",PublicPlayPause=false});
                 await NativeSeek.Run();complete=NativeSeek.AllMatched;Cursor.Stop();checks.Add("native-complete-single-battle");return;
             }
             if(clip.Authority is not null)_fileBindings=RecordedState.Bind(_roster!);

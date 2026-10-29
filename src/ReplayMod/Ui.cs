@@ -104,11 +104,16 @@ internal static class Ui
             _seekCover.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);block.AddChild(_seekCover);
             var navigation=new HBoxContainer();box.AddChild(navigation);
             _seekPoints=new OptionButton{CustomMinimumSize=new Vector2(430,40)};navigation.AddChild(_seekPoints);
-            _seekGo=Button(navigation,"Seek · 保持播放状态",()=>Runtime.Guard(()=>NativeSeek.RequestSeek(_seekPoints.GetSelectedId())));
+            _seekGo=Button(navigation,"Seek · 保持Auto模式",()=>Runtime.Guard(()=>NativeSeek.RequestSeek(_seekPoints.GetSelectedId())));
         }
-        _play=Button(controls,"播放 / 暂停",()=>PlayerLoop.Control("toggle"));
+        if(!NativeSeek.Enabled)_play=Button(controls,"播放 / 暂停",()=>PlayerLoop.Control("toggle"));
         if(NativeSeek.Enabled)_auto=Button(controls,"Auto：关闭",()=>PlayerLoop.Control("auto"));
-        if(NativeSeek.Enabled)_fine=Button(controls,"> 精细前进",()=>PlayerLoop.Control("fine"));
+        if(NativeSeek.Enabled)
+        {
+            _fine=Button(controls,"> 精细前进",()=>PlayerLoop.Control("fine"));
+            _fine.Disabled=true;
+            _fine.TooltipText="Auto关闭且等待操作时，推进到下一细阶段；选择中可继续细进";
+        }
         _step=Button(controls,"Step · 下一操作",()=>PlayerLoop.Control("step"));
         _step.ButtonDown+=NativeDisplayTrace.MarkStepPointerDown;
         _back=Button(controls,"后退一步",()=>PlayerLoop.Control("back"));
@@ -116,7 +121,7 @@ internal static class Ui
         _back.ButtonUp+=()=>Runtime.Log("playback-button-press",new{Control="back",Phase="up",Enabled=!_back.Disabled});
         _inject=Button(controls,"STATE扰动：关闭",()=>{if(PlayerLoop.CanInject)PlayerLoop.InjectOnContinue=!PlayerLoop.InjectOnContinue;});
         _stop=Button(controls,"Stop · 返回主菜单",()=>PlayerLoop.Control("stop"));
-        _play.Disabled=true;_step.Disabled=true;_back.Disabled=true;
+        if(_play is not null)_play.Disabled=true;_step.Disabled=true;_back.Disabled=true;
         block.AddChild(panel);Runtime.Game.AddChild(_playLayer);
     }
     internal static void ClosePlayback(){if(Valid(_playLayer))_playLayer!.QueueFree();_playLayer=null;_inputBlock=null;_playStatus=null;_choiceStatus=null;_play=null;_step=null;_back=null;_stop=null;_inject=null;_seekPoints=null;_seekGo=null;_seekCover=null;_auto=null;_fine=null;}
@@ -135,9 +140,8 @@ internal static class Ui
             if(NativeSeek.Enabled)
             {
                 _inputBlock.MouseFilter=NativeSeek.Ready?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
-                _step!.Disabled=!NativeSeek.CanStep;_step.Text=">> 完整操作";_fine!.Disabled=!NativeSeek.CanStep;
-                _play!.Disabled=PlayerLoop.Loading||NativeSeek.Finished||NativeSeek.Stopping||NativeSeek.Restoring;_play.Text=NativeSeek.Running?"暂停":"播放";
-                _auto!.Disabled=PlayerLoop.Loading||NativeSeek.Stopping||NativeSeek.Restoring;_auto.Text=NativeSeek.Auto?"Auto：开启":"Auto：关闭";
+                _step!.Disabled=!NativeSeek.CanStep;_step.Text=">> 完整操作";_fine!.Disabled=!NativeSeek.CanFine;
+                _auto!.Disabled=PlayerLoop.Loading||NativeSeek.Finished||NativeSeek.Stopping||NativeSeek.Restoring;_auto.Text=NativeSeek.Auto?"Auto：开启":"Auto：关闭";
                 _seekCover!.Visible=NativeSeek.Covered;
                 _back!.Disabled=!NativeSeek.CanBack;_back.Text="Back · 撤回整项";
                 _stop!.Disabled=NativeSeek.Stopping||PlayerLoop.TearingDown;

@@ -1,6 +1,32 @@
 # PLAYBACK-003：普通入口与完整单场原生播放
 
-更新2026-10-30，D-128。build-001新录主链已通过，build-002单独暂停Fine入队/到点暂停已通过；混排另暴露Fine无条件截断预入队窗口，已与PM澄清并安装build-003，待该混排短测，包不整体关闭。上一包PLAYBACK-002/build-003按D-127固定前22项验收保留，旧PLAYBACK-001/003仍Unknown，不读取其结果补本包证据。
+更新2026-10-30。D-131两模式已由用户接受并授权继续，实现后已安装build-005，待相关原生短测。build-001新录主链、build-002单Fine和build-003混排的实际证据保留；r5的Partial Fine旧行为留作历史，不再扩暂停Host映射框架。004仅为未交付D-130草稿，未安装；旧PLAYBACK-001/003仍Unknown，包继续而非整体关闭。
+
+## build-005：D-131手动/Auto两模式候选
+
+按更新后的本包handoff和用户确认，公开原生播放器不再创建Play/Pause按钮，NativeSeek.Control也移除toggle处理，不能通过隐藏控制恢复暂停。默认内部生命周期门开放、Auto关、无目标时手动等待；不会自动提交第一项。内部Running只保留用于退役/恢复/Stop/片尾，独立STATE旧工具控件不改。
+
+`>`仅Auto关、没有Active/Pending请求且到达可用观察点时开放，点击即请求下一细阶段。UI、Control入口与请求模型均检查资格；当前已开始动作执行中不能追加Fine，`>>`仍可累计。原生选择页通过HasView/Ready识别等待，即使Host>completed且宿主Task未完成，也可再次细进；没有要求全体Tween静止或简单按!InFlight禁用。到点保留生命周期门、无Auto/无请求就等待，不产生WholeContinuation。选择中`>>`目标为所属操作的完整边界，自动按录像完成剩余选择和牌效，不另开一张牌。
+
+Auto开则沿完整项连续调度；关Auto只停止自动追加，已开始Whole（含选择）以及显式FIFO继续自然收尾，不增加中途取消/保留整队暂停的框架。模式切换不丢已有合法请求。Back清计划、恢复已访问完整边界后转手动/Auto关；Seek清计划并按请求时Auto继续/等待，导航恢复的内部门规范化为开放，避免片尾原Running=false变成无公开恢复入口的隐藏暂停。Stop/片尾正常关闭；原生取消、身份/结果/RNG核对和隔离逻辑保持。
+
+Release/DirectContracts均0警告0错误。`checks/build-005/operations.json`的14组生产请求政策检查通过：默认手动、Fine忙/Auto拒绝、未完选择宿主中的等待/细进、无隐式Whole、整项累计/FIFO、选择整项收尾、Auto切换保留当前/显式计划、Back手动、Seek意图及Stop。4组完整路线/原片读取和新片生产兼容读回也通过；均为离线检查，不宣称本候选已原生运行。
+
+已安装build-005 DLL `FE7B24A0D58CDBD9B40756F041A6997B5D4C4E44EA1CA09DFE108351CC7BA084`，收据`evidence/playback-003/preparation/build-005-d3a79956.json`。安装pair与封存一致，换包前后game0/原账号/固定原生DLL核对，仅ReplayMod/modded1、本批Cloud原确认仍适用；旧build-003 pair/settings/selector在既有恢复点`preparations/build-005-d3a79956/`。没有启动游戏、恢复存档或修改新片。D-130未安装草稿及其11文件/hash检查保存在`drafts/PLAYBACK003-D130-20261030-before-two-mode/`，不覆盖它来冒充本候选。
+
+待测同片最短相关路线：默认手动且无Play/Pause，`>`完成1刀刃之舞后等待，再累计8次`>>`到9等待；`>`进入10隐秘匕首选牌，稍候应不自动选择，`>`可再到选中阶段，`>>`完成剩余宿主到10等待。Auto关Seek4仍等待，开Auto后Seek4应自动继续；关Auto让当前Whole/显式计划收尾，Back后应Auto关并手动等待，最后Stop正常退出。无需重录、再次完整胜利或重跑旧矩阵；具体实际覆盖以日志为准。
+
+## r5结果与用户正在修订的交互模型
+
+build-003/runtime `5c46cac81355473386a96fe8e0d1c00f`共245事件，普通recent打开同一新片一次。暂停/Auto开启时操作2/3/4以Fine/Whole/Fine预约，分别原生ID1/2/3，在Play前均AcceptedWhilePaused=true、BusinessStarted=false；Play后按序各执行一次，4到达Running=false/Auto=true，之后直到用户再次Play才继续。三张小刀混排已实测通过，用户确认符合预期。
+
+本轮14次原生结果/RNG均匹配（首次1..10，后续Back后8..11），3次Back到9/8/7均匹配且暂停清量；3次原生选择。Stop在11，Error=null、Outstanding=false、请求/控制清空、原manager和所比较Continue/进度恢复。本轮没有完整胜利，不以旧主链替代本轮覆盖。原245事件及对应已退出进程Godot日志在既有恢复点`runtime/playback-003-r5-20261030/`逐hash封存，摘要`evidence/playback-003/runtime-verification-r5.json`。
+
+用户另报告隐秘匕首以`>`开始时未入队。日志中Fine请求16、Host10、Choice2/Prefix0/Complete=false在00:55:20.769520暂停预约，旧代码拒绝Partial Fine预提交，到Play后的00:55:31.239191才提交；后续原生选择/结果仍匹配。该缺口是把阶段目标的Complete当作宿主接受条件，不是某张牌的动画绑错。曾准备按宿主映射去重的草稿，但未构建/安装，收到用户新规则后已撤掉，不扩这条路线。
+
+随后用户先经PM明确D-130：Fine仅Running且Auto关闭可新预约，到点保持Running等待，Pause/Play不能凭空补Whole。相应入口/UI/Arrive/ToggleRunning草稿构建0警告0错误，13组请求政策、4组完整路线及新片生产兼容读取检查通过；草稿DLL `A8FEFD89199948D1940A769F016EF799F0F29AF2A0FDE79C90FC65E39C660FAE` **未安装、不是已发候选、没有原生运行结论**。检查暂在`evidence/playback-003/checks/build-004/`，不能据目录名宣称已安装004。
+
+用户又提出取消独立Pause、默认运行，以Auto开/关表达连续/手动的新方向。讨论期间遵PM要求没有安装旧D-130草稿。影响分析指出手动忙时Fine资格、关Auto的当前宿主收尾、旧Back隐藏暂停等关联点；此后用户接受D-131，现由上述005落实，旧草稿另存，不丢原证据或重录。
 
 ## build-003：已预约的Complete Fine/Whole统一预入队窗口
 
@@ -16,7 +42,7 @@ build-003 Release/DirectContracts均0警告0错误，12组请求合同、4组完
 
 runtime `c0f6c1ea817340bd9e7a7e0c8c67c34e`共471事件、两次recent打开同新片；37次原生结果/RNG全部匹配（1..21及1..16），6原生选择、一次真实胜利，两Stop在21/16，Error=null、Outstanding=false、控制/请求清空，原manager及所比较Continue/进度恢复。没有把第二次描述为短Stop1。用户确认单独Fine正常。
 
-具体证明：第一次打开，暂停/Auto开时Fine预约小刀11与12，分别原生ID15/16，在请求后即AcceptedWhilePaused=true、BusinessStarted=false；直到对应Play才开始，完成目标均Running=false/Auto=true，后续观察期间没有自动跨过。单独Fine入队/业务门/停点已实测通过，不因后续混排问题抹去。
+具体证明：第一次打开，暂停/Auto开时Fine预约小刀11与12，分别原生ID14/15，在请求后即AcceptedWhilePaused=true、BusinessStarted=false；直到对应Play才开始，完成目标均Running=false/Auto=true，后续观察期间没有自动跨过。单独Fine入队/业务门/停点已实测通过，不因后续混排问题抹去。
 
 第二次打开在完成13后，00:34:51.920299暂停预约Fine14（原生ID18入队），00:34:52.745381追加Whole15、00:34:57.145538追加Fine16，但后两项直到00:35:01 Play后才提交。执行到14时Running=true，继续15，再到最后Fine16才Running=false/Auto=true；这证实执行FIFO和预入队前缀规则不同，问题在候选过滤，不是导航丢失/重复牌效。另有Fine/Fine队列也受相同截断，统一按上述已预约前缀处理。
 

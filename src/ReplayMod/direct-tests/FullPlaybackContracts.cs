@@ -34,14 +34,14 @@ internal static class FullPlaybackContracts
             var p=new OperationRequests(clip,clip.Operations.Length);
             Need(clip.Operations.Length==27&&clip.Operations[^1].Victory&&NativePlaybackSupport.Reason(clip) is null,"original-not-supported-full-victory");
             Need(p.Route.Where(n=>n.Complete).Select(n=>n.Host).SequenceEqual(Enumerable.Range(0,28)),"old22-slice-survived");
-            p.ToggleAuto();p.ToggleRunning();
+            p.ToggleAuto();
             foreach(var op in clip.Operations)
             {
                 Need(p.Acquire()&&p.Active!.Target.Host==op.Sequence,"whole-route-skipped-host");
                 foreach(var phase in p.Route.Where(n=>n.Host==op.Sequence))p.Arrive(phase);
             }
             Need(!p.Running&&p.Pending.Length==0&&!p.Acquire()&&p.Auto,"terminal-not-paused-or-extra-operation-granted");
-            p.Seek(26);p.Add(ForwardKind.Whole);p.ToggleRunning();Need(p.Acquire()&&p.Active!.Target.Host==27,"victory-back-could-not-replay-last-operation");
+            p.Restore(26,new(true,false));p.Add(ForwardKind.Whole);Need(p.Acquire()&&p.Active!.Target.Host==27,"victory-back-could-not-replay-last-operation");
         });
         Test("planning-and-support-do-not-require-reference-id-or-27-operations",()=>
         {

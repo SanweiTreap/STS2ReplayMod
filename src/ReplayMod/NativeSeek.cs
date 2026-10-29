@@ -38,6 +38,7 @@ internal static class NativeSeek
     internal static bool Finished=>Enabled&&_completed==_clip.Operations.Length;
     internal static bool AllMatched=>Finished;
     internal static bool CanStep=>Enabled&&!PlayerLoop.Loading&&!_stopping&&!_restoring&&_seek is null&&!Finished&&_requests.Stage<_requests.Route[^1].Stage;
+    internal static bool CanFine=>CanStep&&Ready&&_requests.CanRequestFine;
     internal static bool CanBack=>Enabled&&!_stopping&&!_restoring&&_seek is null&&(InFlight||_completed>0);
     internal static bool Stopping=>_stopping;
     internal static bool Restoring=>_restoring;
@@ -53,7 +54,7 @@ internal static class NativeSeek
             var active=_requests.Active;var pending=_requests.Pending;
             string Item(ForwardRequest r)=>$"{(r.Kind==ForwardKind.Fine?">":">>")} {r.Target.Host} · {r.Target.Label}"+(r.Continuation?"（续当前）":"")+
                 (ActionMonitor.Submitted(r.Target.Host-1) is {} native?native.Executing?" [结算中]":" [已原生入队]":CancelledAhead.Contains(r.Target.Host)?" [退队待重排]":" [尚待提交]");
-            return $" · {(Running?"运行":"暂停")} · Auto：{(Auto?"开":"关")} · 待播{pending.Length}项"+
+            return $" · {(Auto?"自动连续":_requests.ManualWaiting?"手动等待":"手动执行")} · 待播{pending.Length}项"+
                 (_phase.Length>0?$" · {_phase}":"")+"\n"+
                 (active is null?"当前：等待请求":$"当前目标：{Item(active)}")+
                 (pending.Length==0?"":"\n待播："+string.Join(" → ",pending.Take(5).Select(Item))+(pending.Length>5?" …":""));
@@ -72,26 +73,28 @@ internal static class NativeSeek
     }
     internal static void Control(string command)
     {
-        var accepted=false;ForwardRequest? added=null;
+        var accepted=false;ForwardRequest? added=null;var fineEligibleBefore=CanFine;
         if(command=="stop"&&!_stopping){_stopping=true;_requests.Stop();_seek=null;accepted=true;}
-        else if(command is "step" or "fine"&&CanStep){added=_requests.Add(command=="fine"?ForwardKind.Fine:ForwardKind.Whole);accepted=added is not null;}
-        else if(command=="toggle"&&!PlayerLoop.Loading&&!Finished&&!_stopping&&!_restoring&&_seek is null){_requests.ToggleRunning();accepted=true;}
-        else if(command=="auto"&&!_stopping&&!_restoring&&_seek is null){_requests.ToggleAuto();accepted=true;}
+        else if(command=="step"&&CanStep||command=="fine"&&CanFine){added=_requests.Add(command=="fine"?ForwardKind.Fine:ForwardKind.Whole);accepted=added is not null;}
+        else if(command=="auto"&&!PlayerLoop.Loading&&!Finished&&!_stopping&&!_restoring&&_seek is null){_requests.ToggleAuto();accepted=true;}
         else if(command=="back"&&CanBack){RequestSeek(InFlight?Host-1:_completed-1,preserveIntent:false);accepted=true;}
         Runtime.Log("operation-control",new{Command=command,Accepted=accepted,Host,Completed=_completed,Running,Auto,
-            Added=added,Active=_requests.Active,Pending=_requests.Pending,Phase=_phase});
+            Added=added,Active=_requests.Active,Pending=_requests.Pending,Phase=_phase,FineEligibleBefore=fineEligibleBefore,
+            ManualRequestIdle=_requests.ManualWaiting,PublicPlayPause=false});
     }
     internal static void RequestSeek(int host,bool preserveIntent=true)
     {
         Codec.Require(Enabled&&!_restoring&&!_stopping&&Points.ContainsKey(host),"operation-seek-only-complete-indexed-boundaries");
         var priorIntent=_seek?.Intent??_requests.Intent;
-        var intent=preserveIntent?priorIntent:new PlaybackIntent(false,priorIntent.Auto);
+        var intent=PlaybackIntent.ForNavigation(priorIntent.Auto,back:!preserveIntent);
         _requests.Seek(_completed);_seek=new(host,intent,Back:!preserveIntent);
         Runtime.Log("operation-seek-request",new{From=_completed,Target=host,ChoicesAddressable=false,IntendedRunning=intent.Running,IntendedAuto=intent.Auto,Back=!preserveIntent});
     }
     internal static async Task Run()
     {
         Capture(0);PlayerLoop.Loading=false;_phase="";Status();
+        Runtime.Log("operation-driver-ready",new{ControlModel="D131-two-modes",DefaultManual=true,Running,Auto,
+            ManualRequestIdle=_requests.ManualWaiting,CanFine,InFlight,PublicPlayPause=false});
         try
         {
             while(!_stopping)
@@ -129,7 +132,8 @@ internal static class NativeSeek
     {
         var done=_requests.Arrive(point);_phase=point.Complete?"":point.Label;Status();
         Runtime.Log("operation-phase",new{point.Stage,point.Host,point.Choice,point.Prefix,point.Complete,
-            RequestFinished=done,Running,Auto,Pending=_requests.Pending,DirectSeekTarget=point.Complete});
+            RequestFinished=done,Running,Auto,Pending=_requests.Pending,DirectSeekTarget=point.Complete,
+            ManualRequestIdle=_requests.ManualWaiting,HostInFlight=InFlight});
     }
     internal static void Completed(PendingOperation pending,Operation actual)
     {
