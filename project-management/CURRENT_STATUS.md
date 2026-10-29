@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。PLAYBACK-003/build-001新录21项/两次recent/胜利Back与重开主闭环已验；暂停Fine普通牌未入队已窄修为build-002并安装，源码0363d35已推送，等待相关短测再收束本包。PM覆盖静态材料已交，仓库按D-129公开。旧PLAYBACK-002/003验收保留，旧PLAYBACK001/003仍Unknown。
+更新：2026-10-30。PLAYBACK-003/build-001新录21项/两次recent/胜利Back与重开主闭环已验；用户确认build-002单独暂停Fine入队正常，但Fine后显式Whole混排仍被截断，PM更正过严限制，原包继续修复，尚不收束。PM覆盖静态材料已交，仓库按D-129公开。旧PLAYBACK-002/003验收保留，旧PLAYBACK001/003仍Unknown。
 
 ## 玩家现在能用到什么
 
@@ -60,7 +60,9 @@ PLAYBACK-003/001首轮已验：PM读取报告/摘要及用户“这个好了，�
 
 新录r3主链已验：PM读用户反馈、报告/摘要，并从封存700事件重算两次recent/新ID21项、44次原生结果/RNG全匹配、3次真实胜利Task/奖励前投影、Back20与Back0匹配和两Stop21无Error/Outstanding、原manager/所比较Continue进度恢复。原片字节hash匹配，内部录制hash为build-001，21操作/4选择/21时间数据，自动Victory seal与生产ExactPayloadMatched事件对应同一新ID；不是改旧片元数据。第二次为先1→Back0→完整1..21，不改写成短Stop1，也无需为照抄草案重录。见[r3摘要](../evidence/playback-003/runtime-verification-r3.json)。
 
-剩余修复短测：用户暂停点精细“>”预约小刀无入队动画，build-001仅接受Whole造成；00:21:10预约至00:21:22 Play的约12秒是用户主动暂停，不称引擎卡顿。build-002按路线完整目标允许合法Fine普通牌原生入队，不跨暂停执行业务或跨Fine扩大ahead，到点仍暂停/保留Auto；11请求/4路线合同及新片兼容读取由Implementation通过，当前仅该反馈的原生短测Pending。源码0363d35、已装DLL1F9020D8…017C0。新增显式已知录制hash兼容以读取原片，仍保留格式/完整性/Scope检查，不重录或改原ModHash。原生短测后收束，不要求重跑整场矩阵。
+剩余修复：build-001因只接受Whole而漏掉暂停Fine普通牌入队，build-002已修，用户确认单独Fine小刀入队正常；原12秒间隔是用户主动暂停，不称引擎卡顿。新反馈为Fine后已有显式Whole请求未预入队，PM核NativeQueueCandidates在每个Fine无条件break，而Arrive仅最后Fine无后续显式请求才暂停，二者不一致。PM上一轮限制写得过严，现明确连续同回合合法的已预约请求可沿原三项窗口预入队，不新增Auto/未预约后继，内部选择/同宿主阶段仍阻断；Pause仍不执行业务。
+
+Implementation继续原包窄修与相关混排短测，保留新片/已有主闭环，不重录或重跑整场矩阵。build-002源码0363d35及11请求/4路线离线结果保留，不追认为混排修复PASS；当前安装身份沿报告。已知录制hash兼容保留格式/完整性/Scope检查，不修改原ModHash。用户本轮反馈的机器证据仍由Implementation封存。
 
 游玩后当前51文件补充备份已由Implementation完成并读回，是已知当前文件补充，不称新完整账号快照。初始选择/全部内容和其他胜利形态仍未证明，覆盖研究不扩本包。
 
