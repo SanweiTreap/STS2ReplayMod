@@ -34,7 +34,7 @@ CURRENT_STATUS保持简短现状，TODO只列当前和后续任务；详细历�
 
 ## 当前安排
 
-项目现已引入Git；远程、私有可见性及提交范围见[REPOSITORY](REPOSITORY.md)。在任务自然停点提交相关修改，同一时间只由一个对话stage/commit/push，避免index竞争；不reset/clean他人工作。原始证据/存档/恢复点仍在本地，Git不代替存档备份，不将开发快照称为已验证发布。
+项目现已引入Git；远程、当前公开范围及提交规则见[REPOSITORY](REPOSITORY.md)。在任务自然停点提交相关修改，同一时间只由一个对话stage/commit/push，避免index竞争；不reset/clean他人工作。原始证据/存档/恢复点仍在本地，Git不代替存档备份，不将开发快照称为已验证发布。
 
 PERF001三模式真实短pilot已验收关闭（D-093），不追加通用profiler、全量审计或更多离线计时。
 
