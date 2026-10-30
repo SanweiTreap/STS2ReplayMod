@@ -1,6 +1,6 @@
 # CONTENT-005：五角色基础战斗支持
 
-2026-10-30，D-132授权，同包按A/B/C分段。当前A段可测增量已安装，尚未取得本包实际运行结果；B/C段已在源码接入并构建/离线检查，未安装/实测，不称五角色运行完成。起点PLAYBACK-003/build-008及007/r8既有结论保持，不追认成本包验证。
+2026-10-30，D-132授权，同包按A/B/C分段。当前A段build-002的旧储君原生播放/胜利Back和新格式7录制已实际通过，新片回放/丢药Back尚待下一短测；B/C段已在源码接入并构建/离线检查，未安装/实测，不称五角色运行完成。起点PLAYBACK-003/build-008及007/r8既有结论保持，不追认成本包验证。
 
 ## A：共用输入与已有资源
 
@@ -30,7 +30,19 @@
 - build-001 DLL `597013052AD56A57DD267A9E9CEA5F008972661EE29FE01001D447F8A7BCA21F`，收据`evidence/content-005/preparation/build-001-7e252f7d.json`。交付前安装后静态复核发现丢药无effect task需要区别处理，未请求用户运行此版；pair保留，不追认运行结果。
 - 当前build-002 DLL `CEBCF009567E850B9C51974E66046413B80C21E0A97B6A460E3BEEF16FB07C2D`，收据`evidence/content-005/preparation/build-002-ccc8da9a.json`。补上述队列边界后构建通过并安装；前一pair及配置分别保存在恢复点的对应`preparations`中，原008也保留。
 
-## 当前人工短测
+## r1：旧储君原生播放与新片真实录制通过
+
+用户确认旧片播放/Back，新战斗开场选择/丢药/星星锻造正常，首战获胜自动保存并正常退出。实际运行build-002，session `bd16f67661a846c3aa38bfada0da518c`，278原事件，game0；模组observer/playback/recording/teardown失败事件为0。原事件、新片及对应Godot退出日志共280文件逐hash封存到原恢复点的`runtime/content-005-r1-*/`，私有manifest记录精确来源；摘要`evidence/content-005/runtime-verification-r1.json`。引擎启动/退出诊断和RID/资源泄漏仍保留，不称整个引擎日志无警告。
+
+旧储君`cd3baa3b1be7466f9cb94d385c3db420`通过`regent-reference`入口打开一次：完整1..13，随后两次胜利Back12→原生13再胜利，共15次原生结果/RNG匹配、3次真实胜利，2次Back状态/RNG/手动模式与清计划匹配。两次恢复各补5个牌堆监听，原ID/计数不变。Stop在13，Error null、Outstanding false、Running/Auto false、Pending0；原manager和所比较Continue/进度恢复，清理Remaining0。该片本轮是可选参考入口，不冒充新片的普通recent入口证明。
+
+新片`76f55fed77ab448b9ff318b9d50eff98`，格式7，11项/2选择，713,538 bytes，SHA256 `5EC1EFC07843E72360953E1C3B4C71BF1857F90A8B64AB1A16B9C4DE076FEA52`，记录build-002。真实胜利自动封存并生产精确读回，独立生产ClipStore兼容读取也通过，原文件未改。工具箱人工开场选择在Boundary0、Chosen1；双持Boundary5是单候选原生自动选择，不称人工双持窗口证明。
+
+首项明确为DiscardPotion、Slot2能量药水、无目标，接受/完成时间11,447.0618/11,449.7484ms。将初态的`Player.Potions[2]`和`Mechanics.Potions[2]`置空后，与操作1结果完整DeepEquals：除药水槽位外，能量、星星、牌堆、历史、RNG等记录状态均未改变，不是一次喝药。星星3→丢药后3→饮星星药6→支付后4；首次锻造王剑ID14/18伤害，双持生成不同ID15，启蒙把手中两剑费用改1；一剑入弃牌，跨回合两剑费用2；第9项锻造药同时把手牌/弃牌两实例改33伤害。第11项王剑正常胜利。记录中的长等待如实保留，未当成原始节奏播放功能。
+
+本轮没有打开新片，故新片的初始选择自动重现、原生丢药回放/Back/再丢弃、资源Back/Stop及短重开仍Pending。安装保持002，不混入未安装B/C代码。下一仅用这份新片普通recent入口完成这些有界检查，不重录或扩大旧角色矩阵。
+
+## 已发首轮人工步骤（历史）
 
 先复用旧储君样本在原生核心播完、胜利Back再前进及Stop，不重跑旧三角色矩阵。随后用户显式启用共用准备，新建储君A0，正常完成Toolbox初始选择，第一个操作丢弃第3槽能量药水，再按既有星星/陨落之星/精炼/双持/启蒙/王剑流程，跨回合锻造药水，首战正常获胜自动保存后退出。读取本轮新录与旧片播放日志后，安排新片普通入口丢药Back/再丢弃及有关资源Back、Stop/短重开。不要求反复roll或新增无关停顿。
 

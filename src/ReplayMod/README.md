@@ -1,10 +1,12 @@
 # ReplayMod 0.1.0 · 原生单场回放
 
-## 当前安装：CONTENT-005 / build-002，共用输入增量待实测
+## 当前安装：CONTENT-005 / build-002，新片回放短测待完成
 
 新增格式7的独立“丢弃药水”输入，保存槽位/实例指纹/时间，播放提交原生DiscardPotionGameAction；不使用喝药牌效。Back复用现有药水数据/药水栏恢复，执行开始核对药瓶及目标身份。D-131和片尾关闭Auto保持；旧格式1–6原片不改，Defect/Necrobinder仍待本包后续接入。
 
 主菜单默认关闭的“CONTENT-005 共用测试”仅用于下一次新储君A0：原资源组合加Toolbox初始选择和第3槽供丢弃的能量药水；所有准备在录制checkpoint前完成。另有可选旧储君13项原片入口。新增丢药格式/路线、旧储君生产读取与数据、既有D-131和完整路线合同离线通过，主工程0警告0错误；原生播放/Back/隔离尚待用户短测。
+
+002/r1已实际核对：278事件，旧储君参考入口完整13项及两次胜利Back12再做，15次原生结果/RNG、3真实胜利；Stop13无Error/Outstanding，原manager/所比较Continue进度恢复、监听清理0。新储君格式7片`76f55fed77ab448b9ff318b9d50eff98`真实录成11项/2选择并胜利自动封存/生产读回；首项丢弃Slot2能量药水，仅槽位改变，星星/锻造/复制/跨回合费用事实已核对。用户正常退出，原始证据封存；新片尚未回放，初始选择重现/丢药Back/资源恢复及短重开待测，安装不变。
 
 002 DLL `CEBCF009567E850B9C51974E66046413B80C21E0A97B6A460E3BEEF16FB07C2D`，安装收据`evidence/content-005/preparation/build-002-ccc8da9a.json`。001在交付前补队列边界后替换，未取运行结论；008及001 pair/配置保持，Cloud已确认关闭、无新进度、安装game0。详见[CONTENT-005报告](../../project-management/investigation-reports/CONTENT-005-report.md)。
 
