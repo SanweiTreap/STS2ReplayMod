@@ -44,7 +44,7 @@ r6/r7的恢复后选牌失败保留：PM已核完整异常栈及固定源码，�
 
 A的002/r1：PM核[报告](investigation-reports/CONTENT-005-report.md)与[运行摘要](../evidence/content-005/runtime-verification-r1.json)，未重复构建/重计278原事件。旧储君参考入口完整13项、两次胜利Back12再做，15结果/RNG、3胜利、2匹配恢复；Stop13无Error/Outstanding、原context恢复、监听Remaining0。新格式7片76f55fed77ab448b9ff318b9d50eff98录成11项/2选择并胜利封存/生产读回；首项Slot2丢药仅令两处药水槽位置空，工具箱初始选择及星星/王剑复制/跨牌堆锻造事实已有文件证据。r1未打开新片，后续r2补此闭环，不将旧参考入口冒充新recent证明。r1摘要/报告提交1b7b31b。
 
-A的r2已按所测范围验收：PM读真实用户“测试完毕，符合预期”、报告和[封存摘要](../evidence/content-005/runtime-verification-r2.json)，未重计276原事件。两次recent、16结果/RNG、4匹配Back（0/0/9/8）、1真实胜利，丢药与锻造恢复后原生再做通过；Stop11/1无Error/Outstanding、计划清空、原context恢复，牌堆监听0/5→0。两次开场原生选择自动完成后初态匹配。用户现明确第一回合横幅长且阻塞、工具箱应受>/>>控制；PM核到旧历史捕获等待仍拦新核心、初始选择自动发生在可控0之前。候选是展示尾不额外阻断、开场选择接细进/整段推进，详见[体验讨论稿](technical-notes/PLAYBACK-EXPERIENCE.md)；未定稿/派发，保持004新角色测试，不重判A失败。
+A的r2已按所测范围验收：PM读真实用户“测试完毕，符合预期”、报告和[封存摘要](../evidence/content-005/runtime-verification-r2.json)，未重计276原事件。两次recent、16结果/RNG、4匹配Back（0/0/9/8）、1真实胜利，丢药与锻造恢复后原生再做通过；Stop11/1无Error/Outstanding、计划清空、原context恢复，牌堆监听0/5→0。两次开场原生选择自动完成后初态匹配。用户明确横幅长且阻塞、工具箱应受>/>>控制，并要求把回退到开场一起考虑。PM核旧展示等待/当前0在开场后的代码，候选已修订为开场整体双向导航、选择页非独立Seek；Toolbox在第一回合抽牌前、ChoicesParadox在抽牌后，均在自由出牌前。恢复方案/延迟待验证，详见[体验讨论稿](technical-notes/PLAYBACK-EXPERIENCE.md)；未派发修改，004新角色测试继续。
 
 B/C首版源码B提交ccbbcde、C提交1235aaa，现随004发测（记录/准备3a7f711）。球身份/显示及Osty成员/主人/死亡重召/订阅、Doom致死后新循环续接已编译/离线检查；PM读报告与续接代码，原生反射、节点、订阅及致死Back仍未实测，权威冷文件恢复未实现。003曾安装但未发测，004仅调整准备动作提示以避免提前胜利漏掉球机制。新角色按既有授权分段测试，不追加A矩阵。
 
