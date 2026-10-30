@@ -56,6 +56,8 @@
 
 范围只限当前观看会话/当前旧代/旧room的Back或Seek退役，且只释放固定原生`CombatManager.StartTurn`直接调用`Cmd.CustomScaledWait(.5,.8)`的阶段计时（包含已等待和退役期间新到同一处的计时）；以实际async-state-machine/最近原生调用帧约束，不泛化所有Cmd.Wait、卡/Hook/VFX/Tween或业务Task，不改正常播放/录制/菜单、原游戏FastMode/TimeScale。已定位timer包装并不证明调用端并发顺序无影响；取消/fault、跨代与原生状态/RNG核对保持，假设由实际短测验证。
 
+r13修订范围：010的StartTurn计时释放有效但用户体感未达，允许同包继续已定位的共享pacing，不将单点试验变成永久约束。011仅把`NCreature.PerformIntent`、`MonsterModel.PerformMove`、`CreatureCmd.TriggerAnim`及`CreatureCmd.Damage`各自直接纯CustomScaledWait加入同owner/state/generation/最近native帧校验；Damage尾计时在完整HP/受伤/死亡Hook/Kill后，不跳这些业务，不改模型/AI/History，不按卡/怪逐项补，不泛化Hook/VFX/信号。`CardPileCmd.Add`约.54秒Tween仍负责AddFinished/AfterCardChangedPiles，保留，不强制完成Tween/TCS或绕回调。011已安装，实际caller绑定/效果/并发RNG待新原生短测，010效果不足/009可用证据保持。
+
 原生banner/audio是显示，不把声音结束当业务门槛。可按旧room/代退役已撤销阶段banner及对应临时音效，不StopAll；退役SilentRebuild与遮罩可拆，但不把快算敌回合当观众正常前进，也不靠提前撤罩冒充真正到达变快。允许必要短遮罩/明确忙提示，不另写动画。
 
 先相关异步合同/构建，再同片真正in-flight EndTurn Back/Seek短测：记录请求时在途与否、释放计时、退役/恢复/总耗时，保留原生结果/RNG/后续继续与Stop比较。稳定点不冒充提速样本；发现差异同包修/缩小范围，不放松断言、强取消业务或增加新审批。原生其他等待仍可保留，未实测不预认低延迟。
