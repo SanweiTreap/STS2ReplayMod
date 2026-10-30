@@ -60,6 +60,10 @@ internal static class Patches
         Patch(typeof(CardModel),"TryManualPlay",prefix:nameof(Manual));
         ChoicePatches.Install(h);
         Patch(typeof(CombatManager),"StartTurn",prefix:nameof(TurnBefore),postfix:nameof(TurnAfter));
+        Patch(typeof(CombatManager),"StartCombatInternal",prefix:nameof(OpeningStart));
+        Patch(typeof(NCombatStartBanner),"_Ready",postfix:nameof(BannerReady),parameters:[]);
+        Patch(typeof(NPlayerTurnBanner),"_Ready",postfix:nameof(BannerReady),parameters:[]);
+        Patch(typeof(NPlayerTurnBanner),"Create",prefix:nameof(TurnBanner),parameters:[typeof(int)]);
         var turnState=AccessTools.TypeByName("MegaCrit.Sts2.Core.Combat.CombatTurnState")??throw new MissingMemberException("CombatTurnState");
         Patch(typeof(CombatManager),"EndCombatInternal",prefix:nameof(EndBefore),postfix:nameof(EndTask),parameters:[turnState]);
         Patch(typeof(NCombatUi),"OnCombatWon",prefix:nameof(RewardUi),parameters:[typeof(MegaCrit.Sts2.Core.Rooms.CombatRoom)]);
@@ -176,6 +180,9 @@ internal static class Patches
             ReferenceEquals(state,CombatManager.Instance.DebugOnlyGetState())&&state.CurrentSide==CombatSide.Player;
     }
     private static void TurnAfter(bool __state,Task __result){if(__state){ActionMonitor.StartTurnTask=__result;ActionMonitor.Generation++;}}
+    private static bool OpeningStart(CombatManager __instance,object __0,ref Task __result)=>NativeOpening.Start(__instance,__0,ref __result);
+    private static void BannerReady(Godot.Control __instance)=>Runtime.Guard(()=>NativeOpening.BannerReady(__instance));
+    private static bool TurnBanner(int __0,ref NPlayerTurnBanner? __result)=>NativeOpening.TurnBanner(__0,ref __result);
     private static void EndBefore(){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(BattleEnd.EndStarted);}
     private static void EndTask(Task __result){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(()=>BattleEnd.Track(__result));}
     private static bool RewardUi()

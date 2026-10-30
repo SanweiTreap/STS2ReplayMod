@@ -56,6 +56,8 @@ internal static class Ui
         }
         const string regentReference="cd3baa3b1be7466f9cb94d385c3db420";
         try{_ =Runtime.ReadClip(regentReference);Button(box,"打开已有储君样本 · 星星／锻造",()=>TaskHelper.RunSafely(PlayerLoop.Open(regentReference,entry:"regent-reference")));}catch{/* Optional existing sample. */}
+        const string openingReference="76f55fed77ab448b9ff318b9d50eff98";
+        try{_=Runtime.ReadClip(openingReference);Button(box,"打开已有工具箱样本 · 开场控制",()=>TaskHelper.RunSafely(PlayerLoop.Open(openingReference,entry:"opening-reference")));}catch{/* Optional existing sample. */}
         var regent=Button(box,"CONTENT-005 共用测试：关闭",()=>{});
         void RegentText()=>regent.Text=TestEncounter.Armed==TestPreparation.SharedContent?"CONTENT-005 共用测试：已启用":"CONTENT-005 共用测试：关闭";
         regent.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.SharedContent?TestPreparation.None:TestPreparation.SharedContent;
@@ -119,7 +121,7 @@ internal static class Ui
             _seekCover.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);block.AddChild(_seekCover);
             var navigation=new HBoxContainer();box.AddChild(navigation);
             _seekPoints=new OptionButton{CustomMinimumSize=new Vector2(430,40)};navigation.AddChild(_seekPoints);
-            _seekGo=Button(navigation,"Seek · 保持Auto模式",()=>Runtime.Guard(()=>NativeSeek.RequestSeek(_seekPoints.GetSelectedId())));
+            _seekGo=Button(navigation,"Seek · 保持Auto模式",()=>Runtime.Guard(()=>NativeSeek.RequestSeek(_seekPoints.GetSelectedId()-1)));
         }
         if(!NativeSeek.Enabled)_play=Button(controls,"播放 / 暂停",()=>PlayerLoop.Control("toggle"));
         if(NativeSeek.Enabled)_auto=Button(controls,"Auto：关闭",()=>PlayerLoop.Control("auto"));
@@ -155,8 +157,8 @@ internal static class Ui
             if(NativeSeek.Enabled)
             {
                 _inputBlock.MouseFilter=NativeSeek.Ready?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
-                _step!.Disabled=!NativeSeek.CanStep;_step.Text=">> 完整操作";_fine!.Disabled=!NativeSeek.CanFine;
-                _auto!.Disabled=PlayerLoop.Loading||NativeSeek.Finished||NativeSeek.Stopping||NativeSeek.Restoring;_auto.Text=NativeSeek.Auto?"Auto：开启":"Auto：关闭";
+                _step!.Disabled=!NativeSeek.CanStep;_step.Text=NativeSeek.Opening?">> 完成开场":">> 完整操作";_fine!.Disabled=!NativeSeek.CanFine;
+                _auto!.Disabled=PlayerLoop.Loading&&!NativeSeek.Opening||NativeSeek.Finished||NativeSeek.Stopping||NativeSeek.Restoring;_auto.Text=NativeSeek.Auto?"Auto：开启":"Auto：关闭";
                 _seekCover!.Visible=NativeSeek.Covered;
                 _back!.Disabled=!NativeSeek.CanBack;_back.Text="Back · 撤回整项";
                 _stop!.Disabled=NativeSeek.Stopping||PlayerLoop.TearingDown;
@@ -167,8 +169,8 @@ internal static class Ui
                     if(points.Length!=_seekPoints.ItemCount)
                     {
                         var selected=_seekPoints.ItemCount>0?_seekPoints.GetSelectedId():0;_seekPoints.Clear();
-                        foreach(var point in points)_seekPoints.AddItem(point.Value,point.Key);
-                        var item=Array.FindIndex(points,p=>p.Key==selected);if(points.Length>0)_seekPoints.Select(Math.Max(0,item));
+                        foreach(var point in points)_seekPoints.AddItem(point.Value,point.Key+1);
+                        var item=Array.FindIndex(points,p=>p.Key+1==selected);if(points.Length>0)_seekPoints.Select(Math.Max(0,item));
                     }
                     _seekPoints.Disabled=NativeSeek.Restoring||NativeSeek.Stopping;
                     _seekGo!.Disabled=points.Length==0||NativeSeek.Restoring||NativeSeek.Stopping;

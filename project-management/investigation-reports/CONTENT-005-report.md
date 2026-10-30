@@ -86,7 +86,19 @@ Stop在9/1，均Error null、Outstanding false、Running/Auto false、Pending0�
 
 覆盖边界：用户反馈包含满槽激发Back/重做正常；原日志里第3项只执行一次，Back目标为4/4/6/5/5/6/5/6/5/7/6/7/6/5/8/8/8/0，没有目标2，因此只把满槽激发的首次原生结果列为日志证明，不冒充独立跨该步恢复/重做。所测球删除/重生、容量/暗球私有值/随机球、实际回合末胜利等闭环成立，不机械追加旧步骤或宣称全球/遗物矩阵完成；花粉核心依旧未覆盖。
 
-开始C前补存原账号51份已知当前文件/3,942,450 bytes，`CONTENT005-post-Defect-current-20261030-133452`，原件/副本逐hash一致，收据`evidence/content-005/post-Defect-current-files.json`；非全账号快照、无history/其他账号遍历/恢复。安装保持004，下一先保留起始Osty录制成长/攻击/死亡/原对象重召及Doom真正致胜，再用该片普通入口验证恢复；首次创建另用默认关闭的可选准备取样。
+本轮后补存原账号51份已知当前文件/3,942,450 bytes，`CONTENT005-post-Defect-current-20261030-133452`，原件/副本逐hash一致，收据`evidence/content-005/post-Defect-current-files.json`；非全账号快照、无history/其他账号遍历/恢复。原拟接C，随后PM传达用户已确认的D-133顺序，故先做下文D，再接回C；C未实际开录，不能称Osty/Doom已验收。
+
+## D-133：开场控制与完整开场Back，006已安装待实测
+
+新原生入口在加载Task未完成期间运行同一OperationRequests驱动。请求路线增加完整开场-1、Boundary0原生选择细阶段、首次可出牌0，既有操作1..N不重编号。首开自然走原生开场，遇选择手动等；单次Whole以0为目标，补完所有初始选择和原生开场尾业务，不附送操作1。Fine只推进下一阶段，Auto连续；没有选择的首开自然到0。选择页仍不是独立Seek目标，原始Initial比较仍在操作1之前。
+
+普通Back可0→开场；开场选择中Back撤整段开场、清FIFO/Active/Auto。首次实现不是开场直接memento：先结束或取消旧房间原生等待、清理监听/场景，确认旧turn-loop任务已结束，再以房间前checkpoint和新的隔离SaveManager重建Run/战斗；在新的StartCombatInternal入口门控等待。新请求释放后原生初始化、遗物、抽牌/选择、单位/球和RNG重新运行，不能用开场后Initial倒填前态，也不复活旧Task/TCS。旧房间memento清空，重新访问后才可Seek。日志记录请求至开场门控就绪耗时，当前未测延迟。Back清Auto；Seek开场保留请求时Auto，沿既有D-131。
+
+取消顺序区分原生入口和旧STATE工具：原生开场先RunManager.CleanUp使turn-state不再live，再取消新开场gate/选择TCS，等待旧turn-loop退休；加载资产/场景本身不可取消时先到原生安全等待再退出，不让晚到loader写入新run。旧STATE原有选择取消次序保留。只移除原生入口的WaitForOpeningPresentation额外尾等，保留原生横幅动画时长；横幅只作展示不吞鼠标，迟到的回合1横幅若当前回合已更晚则不创建，旧房间节点随退出取消自身动画。真实取消/层级/横幅效果需本轮人工日志与观察，不由编译证明。
+
+新增可选已有工具箱片入口`76f55fed77ab448b9ff318b9d50eff98`，不改recent指针/原片；新DLL显式兼容004的Defect录制hash，格式仍8。主工程及DirectContracts构建0警告0错误；7组开场请求政策（自然选择等待、Fine、Whole止0、Auto接1、Back清计划、无选择/Seek模式、连续初始选择）、14组D-131、4组完整路线及真实A/B生产读回通过。输出`evidence/content-005/checks/opening/`；均不是原生场景重入或视觉运行证明。
+
+安装006 DLL `80B35DCAC8D0798DED2F32E26159C7CF154153B758A8B06FF588C2693390457C`、manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`evidence/content-005/preparation/build-006-207d814c.json`；005是同轮封存但未测试的中间pair，006补保留旧STATE取消路径，005/004及其配置均私有保留。安装前game0、原账号匹配、固定native hash、仅ReplayMod/modded1；post-Defect 51份当前源文件全部仍与备份hash相同，Cloud沿本批关闭确认，无整档恢复/其他账号读取。下一人工复用工具箱片：初始手动等、Whole止0、0/选择中Back→干净开场再Fine/Whole、后续操作与相关Stop/重开；原生开场重入/延迟Pending。必要时再补抽牌后ChoicesParadox代表片，C仍本包接回。
 
 ## B：球机制源码增量，所测闭环通过
 

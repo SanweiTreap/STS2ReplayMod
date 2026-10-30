@@ -303,7 +303,7 @@ internal static class NativeChoice
         }
         var source=Field(ui,ui is NPlayerHand?"_selectionCompletionSource":"_completionSource");
         if(source is not null)AccessTools.Method(source.GetType(),"TrySetCanceled",Type.EmptyTypes).Invoke(source,null);
-        if(ui is IOverlayScreen overlay&&GodotObject.IsInstanceValid((Node)ui))NOverlayStack.Instance!.Remove(overlay);
+        if(ui is IOverlayScreen overlay&&GodotObject.IsInstanceValid((Node)ui)&&!((Node)ui).IsQueuedForDeletion())NOverlayStack.Instance!.Remove(overlay);
         Runtime.Log("choice-wait-cancelled",new{s.Frame.Sequence,s.Frame.Boundary,NativeWaitCancelled=true,ResultSubmitted=false,PresentationOnly=DecisionRoute.Enabled});
     }
 }
