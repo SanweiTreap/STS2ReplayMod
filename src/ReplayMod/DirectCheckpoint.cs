@@ -60,10 +60,12 @@ internal sealed class DirectCheckpoint
     internal static IEnumerable<object> Roots(CombatRoster roster)
     {
         var run=LiveState.Run;
-        return new object?[]{((CombatRoom)run.CurrentRoom!).CombatState,LiveState.Player,CombatManager.Instance,NetCombatCardDb.Instance,run.Rng,run.Odds,run.ExtraFields,run.CurrentMapPointHistoryEntry}.Concat(roster.Initial).Where(v=>v is not null).Cast<object>();
+        return new object?[]{((CombatRoom)run.CurrentRoom!).CombatState,LiveState.Player,CombatManager.Instance,NetCombatCardDb.Instance,run.Rng,run.Odds,run.ExtraFields,run.CurrentMapPointHistoryEntry,
+            LiveState.Format>=8?OrbState.Identities:null}.Concat(roster.Initial).Where(v=>v is not null).Cast<object>();
     }
     internal static bool Data(object value)
     {
+        if(value is OrbIdentityMap<OrbModel>)return true;
         if(value is GodotObject||value is Task||value is CancellationTokenSource)return false;
         if(value is AbstractModel model)return model.IsMutable&&model is not CharacterModel;
         var n=value.GetType().Namespace??"";
@@ -129,6 +131,7 @@ internal sealed class DirectCheckpoint
         Runtime.Log("checkpoint-display-cleanup",new{Position,RebuildLiveEnemies=rebuildEnemies,Removed=removedDisplays,WaitedForDeathAnimations=false});
         var keptPotions=_route&&ContentPresentation.CanKeepPotions(_potions);
         if(LiveState.Format>=3&&!keptPotions)ContentPresentation.RetirePotions();
+        OrbPresentation.Retire();
         var cards=((Dictionary<uint,CardModel>)Get(NetCombatCardDb.Instance,"_idToCard")!).Values.ToArray();
         foreach(var card in cards)CombatManager.Instance.StateTracker.Unsubscribe(card);
         if(_route)
@@ -151,6 +154,7 @@ internal sealed class DirectCheckpoint
         }
         CombatCardTracking.RestoreSubscriptions();
         if(LiveState.Format>=3)ContentPresentation.Restore(keptPotions,refreshRelics:!_route);
+        OrbPresentation.Restore();
         if(rebuildEnemies)_roster.AddEnemyDisplays(_combat,onlyMissing:forwardHandoff);
         for(var i=0;i<_creatures.Length;i++)if(!_creatures[i].IsPlayer)_presentation[i].BindEnemyDisplay();
         foreach(var presentation in _presentation)presentation.Restore(_route&&NativeDisplayTrace.Replaying);

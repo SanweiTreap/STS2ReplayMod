@@ -9,6 +9,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Relics;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Entities.Orbs;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Combat;
@@ -43,6 +44,7 @@ internal static class Patches
         Patch(typeof(PotionModel),"EnqueueManualUse",prefix:nameof(ManualPotion));
         Patch(typeof(PlayerChoiceSynchronizer),"ReserveChoiceId",prefix:nameof(Choice));
         Patch(typeof(CombatState),"CreateCreature",prefix:nameof(Spawn));
+        Patch(typeof(OrbQueue),"TryEnqueue",prefix:nameof(OrbAdmitted));
         Patch(typeof(CardPileCmd),"AddGeneratedCardsToCombat",prefix:nameof(GeneratedCards),postfix:nameof(GeneratedAfter));
         Patch(typeof(ForgeCmd),"Forge",postfix:nameof(ForgedAfter));
         Patch(typeof(DivineRight),"AfterRoomEntered",postfix:nameof(DivineAfter));
@@ -111,6 +113,7 @@ internal static class Patches
     private static bool ManualPotion()=>!PlayerLoop.Active||PlayerLoop.Dispatching;
     private static void Choice(){if(Observing&&LiveState.Format<4)Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-player-choice"));}
     private static void Spawn(){if(Observing)Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-creature-generation"));}
+    private static void OrbAdmitted(OrbQueue __instance,OrbModel __0)=>Runtime.Guard(()=>OrbState.Admit(__instance,__0));
     private static void GeneratedCards(){if(Observing&&LiveState.Format<4)Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-card-generation"));}
     private static void PileBrowsed(NCombatCardPile __instance)=>Runtime.Guard(()=>RoutePresentation.Browsed(__instance));
     private static bool ContentObserving=>LiveState.Format>=4&&(Recorder.CollectingChoices||PlayerLoop.Active&&!PlayerLoop.TearingDown);

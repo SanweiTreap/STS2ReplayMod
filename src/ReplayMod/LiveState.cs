@@ -47,8 +47,8 @@ internal static class LiveState
     {
         var r=Run;var p=Player;
         Codec.Require(RunManager.Instance.NetService.Type.ToString()=="Singleplayer"&&r.CurrentActIndex==0&&r.AscensionLevel==0&&r.Modifiers.Count==0&&r.CurrentMapCoord?.row==1&&
-            (p.Character.Id.ToString()=="CHARACTER.IRONCLAD"||Format>=4&&p.Character.Id.ToString()=="CHARACTER.SILENT"||Format>=5&&p.Character.Id.ToString()=="CHARACTER.REGENT")&&p.Deck.Cards.Count is >0 and <=128&&
-            p.Deck.Cards.All(c=>IsCard(c)),"only-first-monster-Ironclad-Silent-Regent-A0-supported-format");
+            (p.Character.Id.ToString()=="CHARACTER.IRONCLAD"||Format>=4&&p.Character.Id.ToString()=="CHARACTER.SILENT"||Format>=5&&p.Character.Id.ToString()=="CHARACTER.REGENT"||Format>=8&&p.Character.Id.ToString()=="CHARACTER.DEFECT")&&p.Deck.Cards.Count is >0 and <=128&&
+            p.Deck.Cards.All(c=>IsCard(c)),"only-first-monster-Ironclad-Silent-Regent-Defect-A0-supported-format");
     }
     internal static bool SimpleTarget(TargetType type)=>type is TargetType.None or TargetType.Self or TargetType.AnyEnemy or TargetType.AllEnemies or TargetType.RandomEnemy or TargetType.AnyPlayer or TargetType.AllAllies;
     internal static bool IsCard(CardModel c)=>c.IsMutable&&c.GetType().Assembly==typeof(CardModel).Assembly&&SimpleTarget(c.TargetType)&&c.CurrentUpgradeLevel is >=0 and <=20;
@@ -71,12 +71,17 @@ internal static class LiveState
     internal static string Fingerprint(object value)=>Codec.Hash(JsonSerializer.SerializeToUtf8Bytes(value,Values));
     internal static CardKey CardIdentity(CardModel card)=>new(NetCombatCard.FromModel(card).CombatCardIndex,card.CurrentUpgradeLevel,Fingerprint(CardDetails(card)),card.TargetType.ToString());
     internal static PotionKey PotionIdentity(PotionModel potion,int slot)=>new(slot,potion.Id.ToString(),Fingerprint(PotionDetails(potion,slot)),potion.TargetType.ToString());
-    internal static object Mechanics()=>new{Player=new{Turn=Turn,Player.PlayerCombatState!.Energy,Player.PlayerCombatState.MaxEnergy,Player.PlayerCombatState.Stars,
+    internal static object Mechanics()
+    {
+        var basic=new{Player=new{Turn=Turn,Player.PlayerCombatState!.Energy,Player.PlayerCombatState.MaxEnergy,Player.PlayerCombatState.Stars,
             Player.Creature.CurrentHp,Player.Creature.Block,Powers=Player.Creature.Powers.Select(p=>new{Model=p.Id.ToString(),p.Amount}).ToArray()},
         RoomHistory=RoomHistory(),
         Relics=Player.Relics.Select(r=>new{Model=r.Id.ToString(),Saved=r.ToSerializable(),Status=r.Status.ToString(),Vars=Vars(r.DynamicVars)}).ToArray(),
         Potions=Player.PotionSlots.Select((p,i)=>p is null?null:PotionDetails(p,i)).ToArray(),
         CombatCards=Player.PlayerCombatState!.AllPiles.Select(p=>new{Pile=p.Type.ToString(),Cards=p.Cards.Select(CardStateEntry).ToArray()}).ToArray()};
+        if(Format<8)return basic;
+        var node=JsonSerializer.SerializeToNode(basic,Values)!.AsObject();node["OrbQueue"]=JsonSerializer.SerializeToNode(OrbState.Capture(),Values);return node;
+    }
     private static object CardStateEntry(CardModel card)
     {
         var state=CardDetails(card);

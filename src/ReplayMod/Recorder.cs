@@ -14,7 +14,7 @@ internal static class Recorder
     private static Task? _entry;
     internal static bool CollectingChoices=>_waiting||Active;
     internal static int ChoiceBoundary=>_waiting?0:ActionMonitor.Pending is not null?Operations.Count+1:throw new InvalidDataException("choice-outside-initial-or-current-operation");
-    internal static void NewRun(bool fresh=true){if(PlayerLoop.Active)return;Active=false;_waiting=false;_attempted=false;_fresh=fresh;_clip=null;_entry=null;Operations.Clear();ActionMonitor.Reset();ChoiceTape.Clear();RecordingClock.Reset();if(fresh)RecordedState.NewRun();Runtime.Status=fresh?"自动录制：铁甲／猎人／储君A0首场普通战斗，出牌／用药／选择":"ReplayMod 就绪。新建支持的普通战斗将自动录制；Continue不录制";}
+    internal static void NewRun(bool fresh=true){if(PlayerLoop.Active)return;Active=false;_waiting=false;_attempted=false;_fresh=fresh;_clip=null;_entry=null;Operations.Clear();ActionMonitor.Reset();ChoiceTape.Clear();RecordingClock.Reset();OrbState.Reset();if(fresh)RecordedState.NewRun();Runtime.Status=fresh?"自动录制：铁甲／猎人／储君／故障机器人A0首场普通战斗，出牌／用药／丢药／选择":"ReplayMod 就绪。新建支持的普通战斗将自动录制；Continue不录制";}
     internal static void Entry(MapCoord coord,Task task)
     {
         if(!PlayerLoop.Active&&coord.row==1)_entry=task;
@@ -22,7 +22,7 @@ internal static class Recorder
     internal static void Checkpoint(SerializableRun save)
     {
         if(PlayerLoop.Active||!_fresh||_attempted||LiveState.Run.CurrentMapCoord?.row!=1||LiveState.Run.CurrentMapPoint?.PointType!=MapPointType.Monster)return;
-        _attempted=true;LiveState.Format=RecordedState.Recording?3:7;LiveState.Supported();Runtime.CheckEnvironment();
+        _attempted=true;LiveState.Format=RecordedState.Recording?3:8;OrbState.Reset();LiveState.Supported();Runtime.CheckEnvironment();
         if(LiveState.Format>=5)RecordingClock.Start();else RecordingClock.Reset();
         var run=LiveState.Run;var coord=run.CurrentMapCoord!.Value;
         _clip=new(LiveState.Format,Guid.NewGuid().ToString("N"),DateTimeOffset.UtcNow,Runtime.GameHash,Runtime.ModHash,Runtime.Scope,

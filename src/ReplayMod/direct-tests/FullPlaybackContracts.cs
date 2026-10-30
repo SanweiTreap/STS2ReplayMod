@@ -6,7 +6,7 @@ internal static class FullPlaybackContracts
     internal static void VerifyRecording(string output,string path,string recordingMod)
     {
         var bytes=File.ReadAllBytes(path);var clip=JsonSerializer.Deserialize<ClipEnvelope>(bytes,Codec.Json)!.Data;
-        Codec.Require(clip.ModHash==recordingMod&&clip.Format is >=6 and <=7&&clip.Operations[^1].Victory,"new-native-recording-metadata");
+        Codec.Require(clip.ModHash==recordingMod&&clip.Format is >=6 and <=8&&clip.Operations[^1].Victory,"new-native-recording-metadata");
         var read=new ClipStore(Path.GetDirectoryName(Path.GetFullPath(path))!).Read(clip.Id,
             "0861BFA1DF347538D932F22D580E75420F08082792EB914E53B4882764ACDBE9","next-playback-build",clip.Scope,recordingMod);
         Codec.Require(Codec.Bytes(read).SequenceEqual(Codec.Bytes(clip))&&NativePlaybackSupport.Reason(read) is null,"new-native-recording-production-readback");
