@@ -4,9 +4,9 @@
 
 目前为开发原型，固定目标 **STS2 public-beta v0.111.0**。**CONTENT-005五角色基础战斗支持已按代表样本阶段验收**：自动录制、独立原生回放、选择界面、已访问操作点恢复和原生续播；已测储君资源/可变牌、球、Osty首次创建/死亡重召及Doom结算。
 
-当前保留CONTENT-005/build-011。开场可见地自然进入选择，支持精细/整段推进及整体Back；所测EndTurn在途Back五次总到达约0.56–0.65秒，状态/RNG与退出核对通过，非发布性能保证。
+已验收基线CONTENT-005：开场可见地自然进入选择，支持精细/整段推进及整体Back；所测EndTurn在途Back五次总到达约0.56–0.65秒，状态/RNG与退出核对通过，非发布性能保证。当前CONTENT-006正在扩展持续多场录制、Continue、战斗列表与敌方召援；首个候选已安装，原生运行仍待验证，具体版本见项目状态。
 
-范围仍限A0首幕首排普通战斗的已支持机制；尚未完成整局、全部内容/难度、一般敌方召唤/多阶段、任意文件点恢复或可移植导入。公开的是开发快照，不是正式发布包。当前状态/版本边界见[项目状态](project-management/CURRENT_STATUS.md)与[本包报告](project-management/investigation-reports/CONTENT-005-report.md)。
+实际运行验证以A0首幕首排普通战斗的已支持机制为基线；尚未完成整局、全部内容/难度、一般敌方召唤/多阶段、任意文件点恢复或可移植导入。公开的是开发快照，不是正式发布包。当前状态/版本边界见[项目状态](project-management/CURRENT_STATUS.md)、[已验收报告](project-management/investigation-reports/CONTENT-005-report.md)与[当前任务报告](project-management/investigation-reports/CONTENT-006-report.md)。
 
 ## 目录
 
