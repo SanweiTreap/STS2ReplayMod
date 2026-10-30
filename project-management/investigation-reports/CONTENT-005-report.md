@@ -152,6 +152,16 @@ D-133按本工具箱片所测可见流程/开场请求/整体Back/完整胜利�
 
 主工程构建0警告0错误，C原片生产读回/兼容检查通过（`evidence/content-005/checks/osty-hud-fix/production-read.json`）；不以离线读取冒充原生UI验证。009 DLL `990FBAE08166BEA8E7C524A1A7375EE6AA6B745E2DD43B2779CE3184403A2F50`已安装，收据`evidence/content-005/preparation/build-009-7c09473c.json`；008 pair/config保留，录后51份已知当前文件备份源hash安装前全部仍一致，原账号/固定本体/仅ReplayMod/modded1核对，Cloud沿本批关闭，无restore/其他账号遍历。下一同片先到5，再Back4重做5多次查原生血条淡入，必要Back3重做死亡再重召；随后真实胜利/Stop及一次短重开。首次新建Osty仍未覆盖，待默认对象修复验证后接已有可选准备。
 
+## r10：009默认Osty恢复/重召血条、真实胜利与短重开通过
+
+009/session `bc93e4325a99485283ab22756f84ea9d`最终916事件，两次普通recent打开默认C原片，35次原生结果/RNG、25次Back状态/RNG匹配，无observer/mod失败。多次5→Back4→原生重召、退3重做碎骨死亡与重召均有原生结果匹配；25条osty-hud-restored均Visible true，其中8条死亡alpha0，9条native-revive-hud均Visible true，原生fade拥有alpha、诊断未改可见性。用户明确确认血条/死亡重做视觉正常，取得009修复实际证明。
+
+一次Back0后再Back完整开场，原生重建至无选择初态、Initial匹配，随后继续正常出牌；本轮不声称重测工具箱/ChoicesParadox。完整9项Doom真实胜利，终点Auto关，Stop9与短重开Stop1均Error null、Outstanding false、Pending0，原manager/所比较Continue进度恢复。含该次开场重入的三次房间清理，Osty回调均Known1/Remaining0，牌登记监听5/0/5→0。原片SHA `73079FEFAD3ECB156299038422DE5D1A4FC4A9D34C7D79554791334637CD6A5B`未变；916事件+原片/Godot共918数据文件逐hash封存`runtime/content-005-r10-20261030-151419`，摘要`evidence/content-005/runtime-verification-r10.json`，正常Quit/shutdown及game0已核，原始引擎诊断保留。
+
+默认起始Osty所测录制→生产读回→成长/死亡/同对象重召/Back→真实Doom胜利→Stop/短重开闭环按008/r8–r9与009/r10分版本成立；Doom胜利Back后原生循环续接是008/r9的已测路径，009仅改显示恢复与诊断，不追认本轮新增该项运行证据。首次新建Osty仍未覆盖，C基础范围尚有该明确任务，不把起始对象复活当成生成证明。
+
+009保持，无需新DLL；接已有可选准备勾“Osty首次召唤”，在checkpoint前移除BoundPhylactery并增加第三Bodyguard，使战斗初始无宠物。首回合能量药水→Bodyguard首次创建→第二Bodyguard成长→Unleash→BoneShards死亡→第三Bodyguard重召→EndTurn，第二回合Deathbringer+→EndTurn取胜。随后同片跨首次创建Back/原生再创建，核存在性/原生ID未来计数/当前节点与订阅，必要普通相关bug同包修。当前已知51份文件另存逐hash备份（`evidence/content-005/pre-first-Osty-current-files.json`），原账号/game0及当前009核对，Cloud沿本批关闭，无restore/history/其他账号遍历。
+
 ## B：球机制源码增量，所测闭环通过
 
 用户进行002人工测试期间继续开发，安装保持002。下一增量源码使用格式8：`Mechanics.OrbQueue`明确保存容量、有序球条目、每个原生实例的Replay逻辑ID、未来身份计数、所有者、移除标记、当前被动/激发值及各球派生模型的私有标量字段。暗球`_evokeVal`、玻璃球`_passiveVal`不会只靠模型名或当前画面推断。已有格式1–7不新增字段、不修改原片，精确兼容002录制build。
