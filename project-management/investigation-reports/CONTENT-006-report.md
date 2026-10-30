@@ -1,6 +1,6 @@
 # CONTENT-006：持续录制、Continue、战斗列表与召援
 
-2026-10-30。D-134同工程实施中。001/r1已取得六场录制、资源承接与新进程Continue续录证据，但发现一次真实分组错误；用户另确认旧储君回放中“保存并退出”卡死后手动关游戏。当前安装004，包含002读取/保存边界修复、D召援候选及暂停菜单退出修复，均尚待原生验证。新录像列表回看、一般召援恢复未验收，本包未完成。
+2026-10-30。D-134同工程实施中。001/r1六场录制/资源与新进程后续录有证据但曾误拆组；004/r2原生暂停菜单保存退出及隔离恢复已通过。用户确认两局各三场，第二局在问号/战后SL；005现已安装，按此证据修Replay索引及后续计数，六原片不改。完整早晚片观看、写后再Continue、强普通/召援与未完房间attempt仍未验收，本包未完成。
 
 ## build-001：A/B/C首个可测增量，尚未游戏实测
 
@@ -114,3 +114,29 @@ Preparation均null，无本mod测试注入；表中战外变化证明实际后�
 004保留提前接管PauseMenu、原生关闭capstone/解除暂停及该外部UI的真实清理完成Task；global fallback仍请求相同Stop/菜单关闭，但立即返回以允许原生业务自然结束，随后由观看循环完成退出。沿原有business fallback早返回合同，避免为了修菜单引入业务循环；不提前标记任何真实动作Task完成。普通游戏仍直接执行原函数。003完成信号最外finally/每会话归属保持。
 
 主工程0警告0错误、diff-check通过，不重复未变的旧矩阵；004实际菜单、边界读写/Continue、早晚片观看、D仍未跑。game0安装004，DLL `11B57F1F51A35B21D6B62A1303E06FB9D4360F0718671D54A143EF3FAC21D17C`，manifest同前，收据`evidence/content-006/preparation/build-004-323f7a3d.json`。003/002/001 pair/config保留；本次没有新游戏进程/正常游玩进度、无restore/自行启动。用户下一步骤保持上述合并短测，当前版本以004为准。
+
+## r2 / 005：保存退出实际通过；按用户确认修旧样本分组索引
+
+用户确认“现在保存并退出正常了”，并说明原先是**两局，每局三场**，第一局连续，第二局中途在问号及战后SL。不是三局；也不把问号变成战斗房间或新run。r1原生start_time/同一进程Continue/实际checkpoint与六片分布和用户说明一致，第二局的3fd0f55b/9ec7bc8c是001误拆出的两个Replay身份。原始错组仍是有效失败，下面显式修正不当成自动分组修复已过。
+
+004/session `4aa9a617f5124438ab0dc5aed6fc6a36`82事件，全部从battle-list打开新格式9片：33a9bbfe一次、ad557e94两次，各自Initial匹配。第一份出1个完整原生操作/结果匹配后Stop1，后两次Stop0；三次Error null、原manager/所比较Continue和progress恢复。没有Back或完整胜利，不能把这些打开当早晚全场已验收。无新录制/无强普通或D样本。
+
+第三次ad557e94在0通过原生pause-save-and-quit退出：PausedBefore true、After false、NativeCapstoneClosed true、NormalSaveRequested false，约169.33ms后playback-closed0，Error null、隔离比较通过，用户视觉确认正常。这一精确入口/点位的退出修复取得原生证明；不外推所有在途/选择/异常退出。牌监听及Osty清理沿日志保留，未出现observer/playback-failed，最新正常Quit/shutdown/game0。
+
+本进程20:47:03.767有一次Continue，匹配9ec7bc8c、PreFinished true、FromNativeLoadSnapshot true、Loaded/Setup键相同（ChangedBeforeSetup false）。随后20:47:03.795记录原生成功保存读回，20:47:07.964菜单再次加载同键；说明实际write和后续load路径已运行。但此次Continue发生在write之前，**没有该write之后的下一次Continue**，仍未完成PM要求的实际写→读→Continue闭环，不用001已知存档第一次匹配替代。六原片之外没有新战斗文件。
+
+82事件+两份实际打开原片+校正前journal+Godot共86数据文件逐hash封存，见`evidence/content-006/runtime-verification-r2.json`的ArchiveRelative；原片同r1 hash不变，原始引擎退出诊断保留。用户本轮两局说明已写派生摘要，不回改raw。
+
+### 005：显式、有证据的旧索引校正，不修改录像载荷
+
+RecordingJournal新增可选Corrections（旧journal仍可读）。仅显式调用、具证据且两组已有房间不重叠/场次连续才允许把旧alias连到canonical；重复同一校正幂等，拒绝重叠房间/嵌套关系，不凭seed自动合并。这里按用户确认及r1共同start_time/seed/顺序，将9ec7bc8c作为3fd0f55b的延续、旧场次偏移1；原journal run条目及旧clip事实保留。菜单最近详情和列表都应用显示映射，原catalog存原字段不重写，六份封存JSON及其checksum完全不改。
+
+Canonical的已知房间/attempt计数承接两段，实际SaveKey若原来指alias，后续Continue解析到canonical；成功保存关联比较canonical身份，避免因显式校正误标ambiguous。下次新普通战斗应接本局第4场；同坐标正常重进仍沿既有新attempt机制。未写普通存档、未注入expected/RNG，也不凭索引校正宣称原自动分组根因已证明修复。
+
+当前game0下先封存校正前journal并补存已知51份当前文件3,966,529 bytes（`CONTENT006-post-r2-current-20261030-205256`，逐hash读回、非完整账号快照），再用真实生产journal方法作本次显式校正。读回显示恰好两组各3场，组内1/2/3；所有六份原片hash及native current_run hash不变。校正前后journal另双份保留，before `7ED815DA391F954DDBF3E07979D3A9CF0AD0131A603626518DD49D24034C016C`，after `06A4C13E948EB76A5489885D67B468E92BEA8A21F327C2F995B4B3719FF6EC8B`；位置及逐片视图在`evidence/content-006/run-index-correction.json`。这是真实索引/文件读回证明，不是Godot列表渲染或后续原生续录已过。
+
+主工程/DirectContracts0警告0错误；journal/library现10组，新增旧分组显示合并/重进后counter第4/alias保存不误ambiguous、校正列表不重写真实ClipStore载荷、重叠房间拒绝与不同新局不合并。输出`checks/run-correction/library.json`，仍非实际原生创建/渲染证明。本次自然源码修订也把ExitFromMenu日志等待字段改为调用者显式传入：PauseMenu true、global business fallback false，控制流不变，不为该字段另加测试。
+
+005已安装，DLL `07CE397A9450ACB0D15E4B4B0630B7343B07668448F5EB7CE9A914ECE57E3E3F`，manifest同前，收据`evidence/content-006/preparation/build-005-f239a8aa.json`。004/003/002/001 pair及失败素材保留，原账号/game0/本批Cloud关闭，无restore/其他账号history遍历/自行启动。原生SaveQuit已按004/r2通过，005只改索引/显示/计数及日志参数，后续索引在实际菜单、写后Continue和第4场仍待看运行；本包不关闭。
+
+下一不重录六片：先确认菜单确为两局各三场，可用第二局3fd0f55b第1/3场（均6操作）合并早晚独立完整回放、相关Back与胜利/Stop；沿现有Continue进地图→存退→再Continue取实际write后的匹配，再在自然停点正常游玩下一普通强怪及D。未完成的原生路径不由本次用户身份澄清替代。
