@@ -97,6 +97,35 @@ internal static class RecordingContracts
             try{j.CorrectContinuation(secondId,firstId,"explicit-but-unsupported-overlapping-attempt-correction");}catch(InvalidDataException){rejected=true;}
             Need(rejected&&j.CurrentRun==secondId&&firstId!=secondId,"ambiguous-overlap-was-silently-merged");
         });
+        Test("raw-save-and-native-load-default-representation-are-both-explicitly-observed-not-field-ignored",()=>
+        {
+            var jpath=Path.Combine(dir,"load-defaults.json");var j=new RecordingJournal(jpath);j.NewRun();var id=j.CurrentRun!;
+            var raw="{\"start_time\":100,\"map\":[{\"coord\":1}]}";var loaded="{\"start_time\":100,\"map\":[{\"coord\":1,\"can_modify\":true}]}";
+            Need(RecordingJournal.SaveKey(raw)!=RecordingJournal.SaveKey(loaded),"gameplay-field-was-ignored");
+            j.ObserveFor(id,raw);j.ObserveFor(id,loaded);j=new(jpath);j.Continue(loaded);
+            Need(j.ContinueMatched&&j.CurrentRun==id,"native-read-representation-not-bound");
+            j.Continue(loaded.Replace("true","false"));Need(!j.ContinueMatched,"unobserved-gameplay-change-was-guessed");
+        });
+        Test("explicit-single-room-reentry-correction-preserves-attempt-order-and-next-counter-across-reload",()=>
+        {
+            var jpath=Path.Combine(dir,"same-room-repair.json");var j=new RecordingJournal(jpath);j.NewRun();var firstId=j.CurrentRun!;
+            var firstBattle=j.Begin(0,1,4,2,100,"map");j.NewRun();var alias=j.CurrentRun!;j.Observe(save);
+            var raw=j.Begin(0,1,4,2,100,"continue-unmatched");
+            j.CorrectReentry(alias,firstId,"explicit-runtime-two-processes-same-native-checkpoint-and-load-default-diff");
+            j.CorrectReentry(alias,firstId,"idempotent-explicit-runtime-reentry-correction");j=new(jpath);j.Continue(save);
+            var displayed=j.Display(raw);Need(displayed.RunId==firstId&&displayed.Battle==1&&displayed.Attempt==2&&j.Display(firstBattle)==firstBattle,"same-room-attempt-repair-wrong");
+            Need(j.ContinueMatched&&j.CurrentRun==firstId&&j.Begin(0,1,4,2,100,"continue-known").Attempt==3,"next-reentry-did-not-inherit-count");
+            Need(j.Begin(0,3,4,4,100,"map").Battle==2,"next-room-count-wrong");
+        });
+        Test("explicit-reentry-correction-refuses-different-rooms-and-multi-room-alias",()=>
+        {
+            var j=new RecordingJournal(Path.Combine(dir,"wrong-room-repair.json"));j.NewRun();var firstId=j.CurrentRun!;j.Begin(0,1,0,2,100,"map");
+            j.NewRun();var alias=j.CurrentRun!;j.Begin(0,2,0,3,100,"map");var rejected=false;
+            try{j.CorrectReentry(alias,firstId,"explicit-but-different-room-must-not-merge");}catch(InvalidDataException){rejected=true;}
+            Need(rejected&&j.CurrentRun==alias,"different-room-reentry-was-accepted");j.Begin(0,1,0,2,100,"map");rejected=false;
+            try{j.CorrectReentry(alias,firstId,"explicit-but-multi-room-alias-is-not-supported");}catch(InvalidDataException){rejected=true;}
+            Need(rejected,"multi-room-alias-reentry-was-accepted");
+        });
         File.WriteAllBytes(output,Codec.Bytes(new{Result="CONTINUOUS_RECORDING_JOURNAL_FORMAT_LIBRARY_CONTRACTS_PASS_NOT_NATIVE_RUNTIME",Tests=tests}));
     }
 }

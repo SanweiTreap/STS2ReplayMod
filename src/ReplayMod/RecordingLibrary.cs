@@ -12,7 +12,8 @@ public sealed record ClipListing(string Id,DateTimeOffset CreatedUtc,string Char
 public sealed class RecordingJournal(string path)
 {
     public sealed record RunEntry(string Id,Dictionary<string,int> Battles,Dictionary<string,int> Attempts);
-    public sealed record RunCorrection(string CanonicalRun,int BattleOffset,string Evidence);
+    public sealed record RunCorrection(string CanonicalRun,int BattleOffset,string Evidence,
+        [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)] int AttemptOffset=0);
     public sealed record Data(Dictionary<string,string> Saves,Dictionary<string,RunEntry> Runs,
         [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] Dictionary<string,RunCorrection>? Corrections=null);
     private Data _data=Load(path);
@@ -58,7 +59,24 @@ public sealed class RecordingJournal(string path)
     }
     private string CanonicalRun(string run)=>_data.Corrections?.GetValueOrDefault(run)?.CanonicalRun??run;
     public BattleRecording Display(BattleRecording battle)=>_data.Corrections?.GetValueOrDefault(battle.RunId) is {} correction?
-        battle with{RunId=correction.CanonicalRun,Battle=battle.Battle+correction.BattleOffset}:battle;
+        battle with{RunId=correction.CanonicalRun,Battle=battle.Battle+correction.BattleOffset,Attempt=battle.Attempt+correction.AttemptOffset}:battle;
+    // Explicit correction for one evidenced re-entry of the SAME room. This is
+    // never called by Continue or inferred from seed/coordinates alone.
+    public void CorrectReentry(string alias,string canonical,string evidence)
+    {
+        Codec.Require(alias!=canonical&&_data.Runs.ContainsKey(alias)&&_data.Runs.ContainsKey(canonical)&&evidence.Length>=20,"invalid-reentry-correction");
+        if(_data.Corrections?.GetValueOrDefault(alias) is {} existing)
+        {Codec.Require(existing.CanonicalRun==canonical&&existing.AttemptOffset>0,"conflicting-reentry-correction");return;}
+        Codec.Require(CanonicalRun(canonical)==canonical&&!(_data.Corrections?.Values.Any(c=>c.CanonicalRun==alias)??false),"nested-run-correction-unsupported");
+        var source=_data.Runs[alias];var target=_data.Runs[canonical];
+        Codec.Require(source.Battles.Count==1&&source.Battles.Values.Single()==1&&source.Attempts.Count==1,"reentry-correction-not-single-room");
+        var key=source.Battles.Keys.Single();
+        Codec.Require(target.Battles.ContainsKey(key)&&target.Attempts.GetValueOrDefault(key)>0&&source.Attempts.GetValueOrDefault(key)>0,"reentry-correction-room-mismatch");
+        var offset=target.Attempts[key];target.Attempts[key]=checked(offset+source.Attempts[key]);
+        _data=_data with{Corrections=_data.Corrections??new()};
+        _data.Corrections.Add(alias,new(canonical,target.Battles[key]-1,evidence,offset));
+        if(CurrentRun==alias)CurrentRun=canonical;Save();
+    }
     // Explicit, evidence-backed correction of an old split after completed rooms.
     // Never infer this link from a seed; the original clips and catalog stay immutable.
     public void CorrectContinuation(string alias,string canonical,string evidence)
