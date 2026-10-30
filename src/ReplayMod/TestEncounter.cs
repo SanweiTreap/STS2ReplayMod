@@ -51,13 +51,15 @@ internal static class TestEncounter
         {
             var player=_run.Players[0];var defense=player.Deck.Cards.OfType<DefendIronclad>().Take(3).Cast<CardModel>().ToArray();
             Codec.Require(defense.Length==3&&defense.All(c=>c.CurrentUpgradeLevel==0),"rat-test-starter-defends");
-            var attacks=Enumerable.Range(0,2).Select(_=>ModelDb.Card<BodySlam>().ToMutable()).ToArray();
+            var attacks=Enumerable.Range(0,2).Select(_=>_run.CreateCard<BodySlam>(player)).ToArray();
             foreach(var card in attacks)player.Deck.AddInternal(card,silent:true);
             foreach(var card in defense.Concat(attacks))
             {
                 card.UpgradeInternal();var enchantment=ModelDb.Enchantment<MegaCrit.Sts2.Core.Models.Enchantments.RoyallyApproved>().ToMutable();
                 card.EnchantInternal(enchantment,1);enchantment.ModifyCard();
             }
+            Codec.Require(player.Deck.Cards.All(c=>ReferenceEquals(c.Owner,player)&&_run.ContainsCard(c)),
+                "rat-test-deck-owner-or-run-registration");
         }
         if(_mode==TestPreparation.NecrobinderContent)
         {
@@ -200,6 +202,7 @@ internal static class TestEncounter
         }
         Runtime.Log("test-encounter-prepared",new{Preparation,PreviousFirstEncounter=previous,ActualFirstEncounter=rooms.normalEncounters[0].Id.ToString(),
             SerializedBeforeCheckpoint=true,NormalEntryUnchangedWhenUnarmed=true,Character=_run.Players[0].Character.Id.ToString(),
+            DeckOwnersAndRunRegistrationValid=_run.Players[0].Deck.Cards.All(c=>ReferenceEquals(c.Owner,_run.Players[0])&&_run.ContainsCard(c)),
             Deck=_run.Players[0].Deck.Cards.Select(c=>new{Model=c.Id.ToString(),c.CurrentUpgradeLevel,Saved=c.ToSerializable()}).ToArray(),
             Relics=_run.Players[0].Relics.Select(r=>r.Id.ToString()).ToArray(),Potions=_run.Players[0].PotionSlots.Select(p=>p?.Id.ToString()).ToArray()});
         Runtime.Status=_mode==TestPreparation.EnemySummon?"三鼠召援测试已准备：原牌组中三防御升级，添加两张全身撞击+，五牌先天保留；先防御等原生召援，再攻击新怪":
