@@ -79,7 +79,21 @@ internal sealed class CreaturePresentation
         if(AccessTools.Field(display.GetType(),"_showHideTween").GetValue(display) is Tween entrance&&GodotObject.IsInstanceValid(entrance))entrance.Kill();
         display.Position=(Vector2)AccessTools.Field(display.GetType(),"_originalPosition").GetValue(display)!;
         display.Modulate=Colors.White;display.Visible=true;
-        if(_creature.Monster is Osty)_node.ToggleIsInteractable(_creature.IsAlive);
+        if(_creature.Monster is Osty)
+        {
+            // Native death fades this existing display, while StartReviveAnim only
+            // restores alpha. A node rebuilt while dead must therefore remain Visible;
+            // ToggleIsInteractable(false) would leave it hidden after native revival.
+            _node.ToggleIsInteractable(true);
+            if(_creature.IsDead)
+            {
+                display.Modulate=new Color(1,1,1,0);
+                _node.DisableInteractionForDeath();
+                AccessTools.Method(display.GetType(),"OnCreatureDied").Invoke(display,[_creature]);
+            }
+            Runtime.Log("osty-hud-restored",new{_creature.CombatId,Alive=_creature.IsAlive,display.Visible,
+                Alpha=display.Modulate.A,NativeReviveCanFadeIn=true,ReviveAnimationRun=false});
+        }
         AccessTools.Method(display.GetType(),"RefreshValues").Invoke(display,null);
         AccessTools.Method(typeof(NCreature),"UpdateBounds",[typeof(Node)]).Invoke(_node,[_visuals]);
     }
@@ -88,6 +102,14 @@ internal sealed class CreaturePresentation
         var state=(AnimState)AccessTools.Field(typeof(CreatureAnimator),"_currentState").GetValue(animator)!;
         for(var i=0;i<16&&!state.IsLooping&&state.GetNextState() is {} next;i++)state=next;
         return state.Id;
+    }
+    internal static void VerifyNativeOstyRevive(NCreature node)
+    {
+        if(!NativeSeek.Enabled||node.Entity.Monster is not Osty)return;
+        var display=(Control)AccessTools.Field(typeof(NCreature),"_stateDisplay").GetValue(node)!;
+        Codec.Require(NCombatUi.IsDebugHidingHpBar||display.Visible,"osty-native-revive-health-display-hidden");
+        Runtime.Log("osty-native-revive-hud",new{node.Entity.CombatId,Alive=node.Entity.IsAlive,
+            display.Visible,Alpha=display.Modulate.A,NativeFadeOwnsAlpha=true,VisibilityChangedByObserver=false});
     }
     internal static string? CurrentState(NCreature node)=>Animator.GetValue(node) is CreatureAnimator animator?
         ((AnimState)AccessTools.Field(typeof(CreatureAnimator),"_currentState").GetValue(animator)!).Id:null;

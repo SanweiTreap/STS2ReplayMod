@@ -140,6 +140,18 @@ D-133按本工具箱片所测可见流程/开场请求/整体Back/完整胜利�
 
 49事件+原片/Godot共51数据文件逐hash封存`runtime/content-005-r8-20261030-141840`，摘要`evidence/content-005/runtime-verification-r8.json`。用户正常退出、Godot正常Quit/shutdown、game0已核；播放前补存已知当前51文件/3,953,133 bytes，收据`evidence/content-005/post-necrobinder-recording-current-files.json`，源/副本逐hash匹配，不遍历history/其他账号、无restore。008保持；接同片普通recent原生全播、成长/死亡/同对象重召/Doom回退重做、胜利Back8再EndTurn、Stop与短重开。C回放/显示/订阅/恢复及Doom胜利续播仍Pending，不以录成代验收。
 
+## r9 / 009修复：骨妹逻辑恢复与Doom续播匹配，重召血条视觉失败
+
+008/session `e6c5f8467f2440a7b9ebb7bfdbde1073`最终1038事件，两次普通recent打开C原片；43次原生结果/RNG、29次Back状态/RNG匹配，包含多次4→5同ID重召与3→4死亡重做。3次真实Doom胜利；两次胜利Back8都新建信号以原生阶段方法续接，第一次之后确实EndTurn再次获胜，第二次先再Back到更早状态，不能计为第二次立即末步再胜。C敌方回合末Doom胜利后的原生循环桥接已取得实际运行证明，不重跑开场/旧Task。
+
+29次Osty当前Pets/Died回调修复有运行检查，Stop9/5均Known1、NativePetDiedCallbacksRemaining0，牌登记监听0/5→0；两次Stop无Error/Outstanding、Running/Auto false/Pending0，原manager/所比较Continue进度恢复。原片SHA `73079FEFAD3ECB156299038422DE5D1A4FC4A9D34C7D79554791334637CD6A5B`未变；1038事件+原片/Godot共1040数据文件逐hash封存`runtime/content-005-r9-20261030-142529`，摘要`evidence/content-005/runtime-verification-r9.json`，正常Quit/shutdown及game0已核，原始引擎诊断保留。
+
+用户发现“5/9做Back后再Step，召唤出来的小手没有血条”。源码根因是CreaturePresentation.Restore对死亡Osty调用ToggleIsInteractable(false)，将_stateDisplay.Visible=false；原生NCreature.StartReviveAnim仅调用AnimEnableUi把alpha淡回1，不负责把Visible打开。数据/回调/原生结果可匹配，却因重建的死亡显示不符合原生不变量而无法显示血条，因此C视觉未验收。
+
+009在恢复Osty时保留状态栏节点可见（尊重原生debug隐藏），活体alpha1；死体alpha0，再调用原生DisableInteractionForDeath与OnCreatureDied恢复死亡hitbox行为，后续HealInternal/Revived/StartReviveAnim按原生链淡入。没有在Step末尾强制补血条或手写召唤动画。增加原生StartReviveAnim postfix只读核对/日志，记录Visible与原生fade拥有alpha，隐藏且非debug状态会显式报错；没有修改Observer看到的Visible。显式兼容008录制hash，格式仍8，原片不改。
+
+主工程构建0警告0错误，C原片生产读回/兼容检查通过（`evidence/content-005/checks/osty-hud-fix/production-read.json`）；不以离线读取冒充原生UI验证。009 DLL `990FBAE08166BEA8E7C524A1A7375EE6AA6B745E2DD43B2779CE3184403A2F50`已安装，收据`evidence/content-005/preparation/build-009-7c09473c.json`；008 pair/config保留，录后51份已知当前文件备份源hash安装前全部仍一致，原账号/固定本体/仅ReplayMod/modded1核对，Cloud沿本批关闭，无restore/其他账号遍历。下一同片先到5，再Back4重做5多次查原生血条淡入，必要Back3重做死亡再重召；随后真实胜利/Stop及一次短重开。首次新建Osty仍未覆盖，待默认对象修复验证后接已有可选准备。
+
 ## B：球机制源码增量，所测闭环通过
 
 用户进行002人工测试期间继续开发，安装保持002。下一增量源码使用格式8：`Mechanics.OrbQueue`明确保存容量、有序球条目、每个原生实例的Replay逻辑ID、未来身份计数、所有者、移除标记、当前被动/激发值及各球派生模型的私有标量字段。暗球`_evokeVal`、玻璃球`_passiveVal`不会只靠模型名或当前画面推断。已有格式1–7不新增字段、不修改原片，精确兼容002录制build。
