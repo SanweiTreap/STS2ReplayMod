@@ -213,7 +213,6 @@ internal static class PlayerLoop
             if(RunManager.Instance.DebugOnlyGetState() is not null)RunManager.Instance.CleanUp(true);
             // Cancel NEW native waits only after the run is no longer live, so its turn
             // loop treats cancellation as teardown rather than a stuck combat.
-            NativeOpening.Cancel();
             if(ChoiceTape.Scope is {} choice)NativeChoice.Cancel(choice);
             if(room is not null)CombatCardTracking.Cleanup(room);
             if(pcs is not null&&LiveState.Format>=8)OstySubscriptions.Cleanup(pcs,pets);

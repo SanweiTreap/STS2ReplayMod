@@ -1,37 +1,13 @@
 using Godot;
-using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 
 namespace ReplayMod;
 
-// Only a clean opening re-entry waits here. The initial open proceeds naturally to
-// its first choice or playable state. This gate owns NEW native tasks, never a memento.
+// Banners keep native timing while opening navigation waits at a real choice,
+// never at the unfinished scene before native combat initialization.
 internal static class NativeOpening
 {
-    private static TaskCompletionSource? _gate;
-    private static bool _hold,_invoking;
-    internal static bool Waiting=>_gate is {Task.IsCompleted:false};
-    internal static void Arm(){Cancel();_hold=true;}
-    internal static void Release()=>_gate?.TrySetResult();
-    internal static void Cancel(){_hold=false;_gate?.TrySetCanceled();_gate=null;}
-    internal static bool Start(CombatManager manager,object state,ref Task result)
-    {
-        if(!NativeSeek.Enabled||!_hold||_invoking)return true;
-        _hold=false;var gate=new TaskCompletionSource();_gate=gate;
-        result=Continue(manager,state,gate.Task);NativeSeek.OpeningStartReady();return false;
-    }
-    private static async Task Continue(CombatManager manager,object state,Task gate)
-    {
-        await gate;Task original;
-        try
-        {
-            _invoking=true;
-            original=(Task)AccessTools.Method(typeof(CombatManager),"StartCombatInternal").Invoke(manager,[state])!;
-        }
-        finally{_invoking=false;}
-        await original;
-    }
     internal static bool TurnBanner(int turn,ref NPlayerTurnBanner? result)
     {
         if(!NativeSeek.Enabled||PlayerLoop.TearingDown)return true;
