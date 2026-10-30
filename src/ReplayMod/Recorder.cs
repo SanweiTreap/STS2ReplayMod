@@ -1,5 +1,7 @@
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Saves;
+using MegaCrit.Sts2.Core.Saves.Managers;
+using HarmonyLib;
 
 namespace ReplayMod;
 
@@ -10,6 +12,8 @@ internal static class Recorder
     private static bool _waiting,_attempted,_captureEntry,_release,_enabled;
     private static Clip? _clip;
     private static string? _continueSave;
+    private static SerializableRun? _loadedSave;
+    private static string? _loadedJson;
     private static readonly List<Operation> Operations=[];
     private static Task? _entry;
     internal static bool CollectingChoices=>_waiting||Active;
@@ -24,16 +28,46 @@ internal static class Recorder
     {
         if(PlayerLoop.Active)return;
         ResetSegment();_enabled=false;_attempted=false;_continueSave=null;
-        if(fresh){Runtime.CheckEnvironment();Runtime.Journal.NewRun();RecordedState.NewRun();_enabled=true;}
+        if(fresh){_loadedSave=null;_loadedJson=null;Runtime.CheckEnvironment();Runtime.Journal.NewRun();RecordedState.NewRun();_enabled=true;}
         Runtime.Status="自动录制：五角色A0首幕普通战斗，每场胜利独立保存；支持保存退出后继续";
     }
     internal static void Continue(SerializableRun save)
     {
         if(PlayerLoop.Active)return;
-        NewRun(false);Runtime.CheckEnvironment();_continueSave=JsonSerializationUtility.ToJson(save);Runtime.Journal.Continue(_continueSave);
+        var fromLoad=ReferenceEquals(save,_loadedSave)&&_loadedJson is not null;
+        var setup=JsonSerializationUtility.ToJson(save);var original=fromLoad?_loadedJson!:setup;
+        NewRun(false);Runtime.CheckEnvironment();_continueSave=original;Runtime.Journal.Continue(_continueSave);
         _enabled=true;
         Runtime.Log("recording-continue",new{RunId=Runtime.Journal.CurrentRun,MatchedObservedSave=Runtime.Journal.ContinueMatched,
-            save.StartTime,save.CurrentActIndex,PreFinished=save.PreFinishedRoom is not null,ReusesOldOperations=false});
+            save.StartTime,save.CurrentActIndex,PreFinished=save.PreFinishedRoom is not null,FromNativeLoadSnapshot=fromLoad,
+            LoadedSaveKey=RecordingJournal.SaveKey(original),SetupSaveKey=RecordingJournal.SaveKey(setup),
+            ChangedBeforeSetup=RecordingJournal.SaveKey(original)!=RecordingJournal.SaveKey(setup),ReusesOldOperations=false});
+    }
+    internal static void Loaded(SerializableRun save)
+    {
+        // NMainMenu reconstructs RunState before SetUpSavedSingleplayer. Freeze the
+        // actual loaded DTO before that reconstruction can normalize/mutate it.
+        _loadedSave=save;_loadedJson=JsonSerializationUtility.ToJson(save);
+        Runtime.Log("recording-native-save-loaded",new{save.StartTime,save.CurrentActIndex,BeforeRunStateReconstruction=true,
+            SaveKey=RecordingJournal.SaveKey(_loadedJson)});
+    }
+    internal static Task NativeSaved(RunSaveManager manager,Task saved)
+    {
+        if(!_enabled||Runtime.Journal.CurrentRun is not {} runId)return saved;
+        return Observe();
+        async Task Observe()
+        {
+            await saved; // Preserve the original native failure/cancellation.
+            Runtime.Guard(()=>
+            {
+                var store=(ISaveStore)AccessTools.Field(typeof(RunSaveManager),"_saveStore").GetValue(manager)!;
+                var path=(string)AccessTools.Property(typeof(RunSaveManager),"CurrentRunSavePath").GetValue(manager)!;
+                var json=store.ReadFile(path)??throw new InvalidDataException("native-saved-run-readback-missing");
+                Runtime.Journal.ObserveFor(runId,json);
+                Runtime.Log("recording-native-save-written",new{RunId=runId,SaveKey=RecordingJournal.SaveKey(json),
+                    ExactStoredContent=true,NativeSaveSucceeded=true,OriginalSaveWrittenByReplay=false});
+            });
+        }
     }
     // BOTH normal travel and Continue's saveGame:false entrance pass here, before room creation.
     internal static void BeginEntry(MapCoord coord,bool preFinished,bool saveGame)

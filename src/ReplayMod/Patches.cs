@@ -16,6 +16,7 @@ using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Screens.MainMenu;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
+using MegaCrit.Sts2.Core.Saves.Managers;
 
 namespace ReplayMod;
 
@@ -33,6 +34,8 @@ internal static class Patches
         Patch(typeof(RunManager),"SetUpNewSingleplayer",prefix:nameof(FreshBefore),postfix:nameof(Fresh));
         Patch(typeof(RunManager),"SetUpSavedSingleplayer",prefix:nameof(Saved));
         Patch(typeof(RunManager),"ToSave",postfix:nameof(Checkpoint));
+        Patch(typeof(SaveManager),"LoadRunSave",postfix:nameof(SaveLoaded),parameters:[]);
+        Patch(typeof(RunSaveManager),"SaveRun",postfix:nameof(NativeRunSaved),parameters:[typeof(SerializableRun),typeof(bool)]);
         Patch(typeof(RunManager),"EnterMapCoordInternal",prefix:nameof(EntryBefore),postfix:nameof(Entry));
         Patch(typeof(ActionQueueSynchronizer),"RequestEnqueue",prefix:nameof(Queue));
         Patch(typeof(PlayCardAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
@@ -87,6 +90,13 @@ internal static class Patches
     private static void Fresh()=>Runtime.Guard(()=>{Recorder.NewRun();TestEncounter.AfterNew();});
     private static void Saved(SerializableRun __1){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Continue(__1));}
     private static void Checkpoint(SerializableRun __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Checkpoint(__result));}
+    private static void SaveLoaded(SaveManager __instance,ReadSaveResult<SerializableRun> __result)
+    {
+        if(!ReferenceEquals(__instance,PlayerLoop.IsolatedManager)&&__result.Success&&__result.SaveData is {} save&&
+            SaveManager.Instance.CurrentProfileId==1)Runtime.Guard(()=>Recorder.Loaded(save));
+    }
+    private static void NativeRunSaved(RunSaveManager __instance,bool __1,ref Task __result)
+    {if(!PlayerLoop.Active&&!__1)__result=Recorder.NativeSaved(__instance,__result);}
     private static void EntryBefore(MapCoord __0,object? __1,bool __2){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.BeginEntry(__0,__1 is not null,__2));}
     private static void Entry(Task __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Entry(__result));}
     private static bool Queue(GameAction __0)
