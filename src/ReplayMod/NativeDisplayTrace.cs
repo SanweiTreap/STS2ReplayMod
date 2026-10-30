@@ -243,7 +243,9 @@ internal sealed class NativeDisplayTrace
             {card.PlayPileTween?.Kill();card.QueueFreeSafely();}
             if(GodotObject.IsInstanceValid(flight)&&!flight.IsQueuedForDeletion()){flight.GetParent()?.RemoveChild(flight);flight.QueueFree();}
         }
-        foreach(var node in SourceVisuals.Concat(ContinuedSmiths).Distinct().Where(n=>GodotObject.IsInstanceValid(n)&&!n.IsQueuedForDeletion()).ToArray())
+        var sources=SourceVisuals.Concat(ContinuedSmiths).Distinct().Where(n=>GodotObject.IsInstanceValid(n)&&!n.IsQueuedForDeletion()).ToArray();
+        var sourceTypes=sources.GroupBy(n=>n.GetType().Name).Select(g=>new{Type=g.Key,Count=g.Count()}).ToArray();
+        foreach(var node in sources)
         {
             if(node is NCardSmithVfx)
             {
@@ -272,7 +274,7 @@ internal sealed class NativeDisplayTrace
             node.GetParent()?.RemoveChild(node);node.QueueFree();
         }
         SourceVisuals.Clear();ContinuedSmiths.Clear();
-        Runtime.Log("native-display-retired",new{CardFlights=flights.Length,DelayedNativePileCallbacksRetired=true});
+        Runtime.Log("native-display-retired",new{CardFlights=flights.Length,SourceEffects=sourceTypes,DelayedNativePileCallbacksRetired=true});
     }
     internal static void Tick()
     {
@@ -1241,6 +1243,8 @@ internal sealed class NativeDisplayTrace
         Hook(typeof(NCardFlyShuffleVfx),"_Ready",nameof(ShuffleReady),postfix:true);
         Hook(typeof(NCardExhaustVfx),"Create",nameof(Exhaust));Hook(typeof(NCardExhaustQuickVfx),"Create",nameof(QuickExhaust));
         Hook(typeof(NCardExhaustVfx),"Create",nameof(VisualCreated),postfix:true);Hook(typeof(NCardExhaustQuickVfx),"Create",nameof(VisualCreated),postfix:true);
+        Hook(typeof(NGrandFinaleVfx),"Create",nameof(VisualCreated),[typeof(Vector2)],postfix:true);
+        Hook(typeof(NGrandFinaleImpactVfx),"Create",nameof(VisualCreated),[typeof(Vector2),typeof(Vector2)],postfix:true);
         Hook(typeof(CardPileCmd),"AppendPileLerpTween",nameof(PileMove));
         Hook(typeof(NCard),"AnimCardToPlayPile",nameof(CardToPlay));
         Hook(typeof(NCard),"UpdateVisuals",nameof(CardVisualsChanged),postfix:true);
