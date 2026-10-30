@@ -46,6 +46,8 @@ internal static class PlayerLoop
     internal static void Control(string control)
     {
         var cursor=Cursor;if(!Active||cursor is null||TearingDown)return;
+        if(RunPlayback.Active&&(RunPlayback.NonCombat||control=="stop"||NativeSeek.Finished&&control is "fine" or "step" or "auto"))
+        {RunPlayback.Control(control);return;}
         if(NativeSeek.Enabled){NativeSeek.Control(control);return;}
         if(DecisionRoute.Enabled){DecisionRoute.Control(control);return;}
         var from=cursor.Position;
@@ -84,7 +86,7 @@ internal static class PlayerLoop
         return closed;
     }
 
-    internal static async Task Open(string id,bool fromFile=false,bool nativeSeek=true,string entry="recent")
+    internal static async Task Open(string id,bool fromFile=false,bool nativeSeek=true,string entry="recent",RunDocument? chain=null,int? chainStart=null)
     {
         if(Active)return;
         if(fromFile){nativeSeek=false;entry="state-file";}
@@ -94,11 +96,12 @@ internal static class PlayerLoop
         try
         {
             Runtime.CheckEnvironment();Codec.Require(RunManager.Instance.DebugOnlyGetState() is null,"open-from-main-menu-only");
+            if(chain is not null)RunPlayback.Begin(chain,chainStart);
             var clip=Runtime.ReadClip(id);_playingClip=clip;LiveState.Format=clip.Format;Cursor=new(clip.Operations.Length);
             if(nativeSeek){DecisionRoute.Clear();NativeSeek.Start(clip);}else DecisionRoute.Start(clip);
             Runtime.Status="加载回放：独立内存会话";Ui.Playback();ActionMonitor.Reset();ChoiceTape.Play(clip);
             if(SaveManager.Instance.CurrentRunSaveTask is {} saving)await saving;
-            memory=new();memory.Install();IsolatedManager=memory.Isolated;
+            memory=new(chain is null?null:RunPlayback.Current?.Progress);memory.Install();IsolatedManager=memory.Isolated;
             if(nativeSeek)
             {
                 var restartMemory=false;
@@ -124,7 +127,9 @@ internal static class PlayerLoop
                     TotalOperations=clip.Operations.Length,ExpectedVictory=clip.Operations[^1].Victory,InitialMatched=true,
                     InitialChoices=(clip.Choices??[]).Count(c=>c.Boundary==0),FixedClipIdRequired=false,DisplayTracePlayed=false,
                     ControlModel="D131-two-modes",PublicPlayPause=false});
-                await NativeSeek.Run();complete=NativeSeek.AllMatched;Cursor.Stop();checks.Add("native-complete-single-battle");return;
+                if(chain is not null){complete=await RunPlayback.Run();checks.Add("native-run-chain");}
+                else {await NativeSeek.Run();complete=NativeSeek.AllMatched;checks.Add("native-complete-single-battle");}
+                Cursor.Stop();return;
             }
             if(clip.Authority is not null)_fileBindings=RecordedState.Bind(_roster!);
             if(fromFile)
@@ -181,7 +186,7 @@ internal static class PlayerLoop
                 try{NativeChoice.Cancel(legacyChoice);}catch(Exception ex){Error="choice-cleanup-"+ex.GetBaseException().GetType().Name;Runtime.Log("choice-cleanup-failed",new{Reason=Error});}
             try
             {
-                if(memory is not null){await ClearRoom(memory);restored=memory.Restore();Codec.Require(restored,"normal-Continue-or-original-progress-changed");}
+                if(memory is not null){await ClearRoom(memory);await RunPlayback.DrainAfterSceneExit();await memory.Drain();restored=memory.Restore();Codec.Require(restored,"normal-Continue-or-original-progress-changed");}
                 var load=(Task)AccessTools.Method(typeof(NGame),"LoadMainMenu",[typeof(bool)]).Invoke(NGame.Instance,[false])!;await load;
                 if(Error is null)Runtime.Status=complete?"回放完成并退出。正常Continue保留，可再次打开":"回放已停止。正常Continue保留，可再次打开";
             }
@@ -192,7 +197,8 @@ internal static class PlayerLoop
                 if(memory is not null&&!ReferenceEquals(SaveManager.Instance,memory.Original))try{restored=memory.Restore();}catch{restored=false;}
                 Runtime.Log("playback-closed",new{Id=id,Entry=entry,Core=NativeSeek.Enabled?"native-actions":nativeSeek?"not-started":"legacy-tool",TotalOperations=_playingClip?.Operations.Length,
                     Checks=checks,Position=NativeSeek.Enabled?(int?)NativeSeek.Position:Cursor?.Rebuilding==true?(int?)null:Cursor?.Position,Opening=NativeSeek.Enabled&&NativeSeek.Opening,AllOperationsMatched=complete,VictoryReached,Error,NativeSeek=NativeSeek.Enabled,OriginalManagerRestored=memory is not null&&ReferenceEquals(SaveManager.Instance,memory.Original),NormalContinueAndOriginalProgressUnchanged=restored,OriginalProgressFileIncluded=true,WallMilliseconds=Stopwatch.GetElapsedTime(started).TotalMilliseconds});
-                Active=false;TearingDown=false;ChoiceAbort=false;Prequeuing=false;DispatchIndex=-1;_playingClip=null;Prequeued.Clear();Committed.Clear();IsolatedManager=null;Ui.ClosePlayback();ActionMonitor.Reset();ChoiceTape.Clear();NativeSeek.Clear();DecisionRoute.Clear();Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;
+                if(chain is not null)Runtime.Log("run-playback-closed",new{chain.Id,Complete=complete,Error,OriginalContextRestored=restored});
+                RunPlayback.Clear();Active=false;TearingDown=false;ChoiceAbort=false;Prequeuing=false;DispatchIndex=-1;_playingClip=null;Prequeued.Clear();Committed.Clear();IsolatedManager=null;Ui.ClosePlayback();ActionMonitor.Reset();ChoiceTape.Clear();NativeSeek.Clear();DecisionRoute.Clear();Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;
                 OrbState.Reset();await Runtime.FlushLog();
             }
             }
@@ -222,6 +228,37 @@ internal static class PlayerLoop
             Relics=LiveState.Player.Relics.Select(r=>r.Id.ToString()).ToArray(),NativeCharacterAssets=true,Authority=clip.Authority});
         EnsureRoster();
         if(DecisionRoute.Enabled)await NativeDisplayTrace.WaitForOpeningPresentation();
+    }
+
+    // Continue the existing native run after map travel. Never load the next
+    // clip's checkpoint or apply its expected resources to the current state.
+    internal static async Task LoadEnteredBattle(Clip clip,Func<Task> enter)
+    {
+        Loading=true;RunPlayback.NonCombat=false;_roster=null;Checkpoints.Clear();Prequeued.Clear();Committed.Clear();
+        _playingClip=clip;LiveState.Format=clip.Format;VictoryReached=false;Cursor=new(clip.Operations.Length);
+        OrbState.Reset();ActionMonitor.Reset();NativeSeek.Start(clip);ChoiceTape.Play(clip);
+        if(RunPlayback.Auto)NativeSeek.Control("auto");
+        else if(RunPlayback.CompletingOperation)NativeSeek.Control("step");
+        async Task Load()
+        {
+            await enter();await WaitReady();LiveState.Supported();ChoiceTape.AssertBoundary(0);
+            Check("run-next-battle-initial",clip.Initial,LiveState.Capture());BattleEnd.Begin();EnsureRoster();
+            Runtime.Log("run-next-battle-initial-verified",new{clip.Id,InitialAndRngMatched=true,CheckpointLoaded=false,ExpectedStateInjected=false});
+        }
+        Codec.Require(await NativeSeek.LoadOpening(Load,()=>throw new InvalidDataException("run-cross-room-opening-navigation-disabled")),"run-next-battle-opening-stopped");
+    }
+    internal static void ReleaseBattleForTravel()
+    {
+        if(_roster is not {} roster)return;
+        var room=LiveState.Run.CurrentRoom as CombatRoom;
+        if(room is not null)
+        {
+            CombatCardTracking.Cleanup(room);
+            if(LiveState.Player.PlayerCombatState is {} pcs&&LiveState.Format>=8)
+                OstySubscriptions.Cleanup(pcs,roster.Anchors.Where(c=>c.Monster is MegaCrit.Sts2.Core.Models.Monsters.Osty).ToArray());
+            if(LiveState.Format>=10)CombatUnitSubscriptions.Cleanup(CombatManager.Instance.StateTracker,roster.Anchors.ToArray());
+        }
+        _roster=null;
     }
 
     private static async Task ClearRoom(MemorySession memory)

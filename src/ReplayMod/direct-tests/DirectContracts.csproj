@@ -2,6 +2,7 @@
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net9.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><TreatWarningsAsErrors>true</TreatWarningsAsErrors><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup>
   <ItemGroup><Compile Include="../CombatIdentityRegistry.cs" Link="CombatIdentityRegistry.cs" /><Compile Include="EnemyGenerationContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../RecordingLibrary.cs" Link="RecordingLibrary.cs" /><Compile Include="RecordingContracts.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../RunData.cs" Link="RunData.cs" /><Compile Include="RunContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="DirectProgram.cs" /><Compile Include="VictoryContracts.cs" /><Compile Include="ContentContracts.cs" /><Compile Include="StateContracts.cs" /><Compile Include="ChoiceContracts.cs" /><Compile Include="../ChoiceData.cs" Link="ChoiceData.cs" /><Compile Include="../StateGraph.cs" Link="StateGraph.cs" /><Compile Include="../StateFile.cs" Link="StateFile.cs" /><Compile Include="../IdentityMemento.cs" Link="IdentityMemento.cs" /><Compile Include="../Clip.cs" Link="Clip.cs" /></ItemGroup>
   <ItemGroup><Compile Include="ChoiceProcessContracts.cs" /><Compile Include="DecisionRouteContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="PresentationContracts.cs" /><Compile Include="../PresentationTiming.cs" Link="PresentationTiming.cs" /></ItemGroup>

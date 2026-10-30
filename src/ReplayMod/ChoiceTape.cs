@@ -89,6 +89,7 @@ internal static class ChoiceTape
     // Only non-delegating CardSelectCmd entry points are patched. Their actual native effects and signals remain intact.
     internal static ChoiceScope? Begin(MethodBase method,object[] args)
     {
+        if(RunPlayback.NonCombat)return null;
         if(!(_record&&Recorder.CollectingChoices||_watch&&PlayerLoop.Active&&!PlayerLoop.TearingDown))return null;
         Codec.Require(_scope is null,"overlapping-player-choice-not-supported");
         Codec.Require(CardSelectCmd.LocalSelector is null,"external-local-test-selector-active");
