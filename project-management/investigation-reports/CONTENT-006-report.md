@@ -204,3 +204,17 @@ Debug音效除按owner精确Stop外，007在原生Play前把撤销owner音量设
 两次后续session 39343403e57f48f8bf198148b1e9df33、901d736d0f0a487b89e633a1cec778e8均有原生写盘/Continue身份观察，解析到校正后的同局3fd0f55b6eee4fdaab1167f30737e619；未见recording-room-checkpoint/start或clip-sealed、observer-error。源码入口明确只收MapPointType.Monster，精英房间保留_enabled以待下一受支持普通战斗，不生成尝试或假片。此为范围外路径观察，不判普通战斗录制失败，也不补判第4场/未完房间newattempt通过。
 
 前述SeapunkNormal是下一普通遭遇池，并非保证地图紧接着就是普通战斗；操作说明应强调普通怪物节点，不能让用户为此重打精英。007保持安装，不回滚进度、不扩精英支持、无新DLL或自行启动；游戏已退出。下一次实际进入首幕普通Monster房间时继续既定第4场/未完房间测试。
+
+## r5：第4场后续普通群怪两次尝试封存通过，同进程重进与跨进程分开
+
+用户完成下一普通战斗保存退出、重进、获胜后正常退出。007/session 650174eb3f9e487097c1c329aa650fa7（2026-10-31 00:27:56–00:29:52，86事件）实际进入第11层row10/col6的ENCOUNTER.SEAPUNK_NORMAL，CalcifiedCultist/Seapunk两敌，属于后续普通群怪。沿校正后RunId 3fd0f55b6eee4fdaab1167f30737e619，正确记本局第4场，无Preparation。开场HP19、金币234、牌组13；包含精英后获得的BookOfFiveRings和第10层Planisphere及升级Neutralize等真实资源，不恢复旧首战基线。
+
+尝试1 `2a9fa4fc286c47c889fd4d2d807c6fa6`格式10，map入口，完整执行一张Expose后正常存退，封存1操作/0选择的interrupted片段，Victory false，未强补EndTurn。文件194,198 bytes，SHA `D65B1E2E32F533C3365E9A4D9B10EE1EB1238447819E89CF6B6B60E4E84A36E0`。尝试2 `a97044e637a347db873713727f605a5b`格式10，continue-known入口，14操作/0选择、最后GrandFinale真实胜利自动封存；文件918,515 bytes，SHA `4782AF8D853D14FC7FC53D76CDE52EF6A15755C6ED81201926A99DF6B2243A0D`。两片均原生clip-production-readback ExactPayloadMatched，尝试2从独立开场重新以Sequence1记录Expose，没有续接尝试1完成后的状态或操作序列。
+
+两个checkpoint均在房间创建前，pre_finished_room null；仅去除原生save_time/run_time/num_reloads后内容相同，Initial原始投影字符串完全相等（含开场手牌/单位/AI/RNG）。00:28:49成功原生写入key40C250…→00:28:58实际load→00:28:59 Continue及checkpoint命中同局，Loaded/Setup一致、ChangedBeforeSetup false、ReusesOldOperations false。尝试1与2分立而同局同场，胜利完成与短片边界真实；同进程未完房间newattempt路径通过。
+
+严格保留覆盖界限：本次三次menu-ready的ProcessId均108208、同session/同ProcessStartedUtc。中途是保存返回主菜单后Continue，不是关掉整个游戏再启动；最终退出是真实Quit confirmed/NGame.Quit/Steamworks shutdown，当前game0。此前r3已完成房间write→新进程Continue闭环不替代此未完房间跨进程。当前不要求重打这场，将未完跨进程合并后续D三鼠准备。两片尚未实际打开观看，故不把录制原生读回等同格式10冷开场/前进/Back/Stop通过，也不补判D一般敌方召援。
+
+前一session178a7f2976a04dfb998b8d23213d82d2的9事件与本次86事件、两原片/Godot/journal合计99数据文件逐hash封存`runtime/content-006-r5-20261031-003209`；摘要`evidence/content-006/runtime-verification-r5.json`。未见observer-error，本次无播放事件；引擎退出shader/RID/resource诊断原样保留，不声称引擎零错误。既有DirectContracts对真实尝试2做生产ClipStore完整读取/兼容和路线终点检查通过，见`checks/r5/victory-production-read.json`；该检查不运行Godot或原生观看，尝试1实际生产封存读回由原生事件提供。
+
+当前原账号已知51文件4,002,995 bytes补存`CONTENT006-post-r5-current-20261031-003209`并逐hash读回，收据`post-r5-current-files.json`；未遍历其他账号或新建全账号快照，无restore/新候选/自行运行。007保持，下一最短人工观看：列表第4场尝试1播放唯一操作到片段终点并Stop；独立打开第4场尝试2，完成第3项BladeOfInk生成小刀后Back至2、重做第3项，再Auto至真实胜利、Back13重做14，Stop并正常退出。无需重录、继续推进地图或重跑旧片矩阵。CONTENT-006保持未完成。
