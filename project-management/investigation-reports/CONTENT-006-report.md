@@ -1,12 +1,13 @@
 # CONTENT-006：持续录制、Continue、战斗列表与召援
 
-## 最新摘要 · 2026-10-31 · 009/r9
+## 最新摘要 · 2026-10-31 · 009/r10 · DONE_WITH_LIMITATIONS
 
 - 当前安装009（DLL `163F63D7A8D9042AC9A17AA3F05C4C45CA52AADC12898FE704723CE36A89F0B7`），无需换版；收据`evidence/content-006/preparation/build-009-4f319035.json`。
-- 已确认：后续普通战斗连续录制/真实资源承接、短片与完整片独立观看、已完成房间跨进程、未完房间同进程newattempt、相关Back/胜利/Stop；r9新增三鼠真实召援前恢复/原生再召/召援后已访问点恢复、稳定目标/击杀和完整胜利通过，用户确认符合预期。
-- 仍未完成：r8未完跨进程路径确实运行但自动分组FAIL；009登记成功保存的原生读入表示已实现，自动路径仍待一次实际短测。两份旧片显式归属修正不算自动分组PASS；本包未关闭。无新增范围或旧矩阵复测。
-- 下一动作：沿009新开一次明确三鼠铁甲A0测试局，首战仅一张防御+后存退并完全退出桌面；手动重启Continue后再打一张防御+，存退并完全退出，至此停手。核不同PID、raw/read登记、同Run/同Battle/Attempt1→2及两份独立一步片段，不需打完整战斗或等待召援。
-- 最新证据：本地`evidence/content-006/runtime-verification-r9.json`、`collection-r9.json`；原生50步片SHA保持，994事件等997文件归档。当前51文件补存，无restore/自行启动；current_run及主progress与r8不变，两个backup变化单列。
+- 已确认：后续普通战斗持续录制/真实资源承接、短片与完整片独立观看、已完成与未完房间跨进程关联/newattempt、相关Back/胜利/Stop；r9三鼠真实召援前恢复/原生再召/召援后已访问点恢复、稳定目标/击杀和完整胜利通过。
+- r10自动路径闭环：不同PID135492→107384，成功raw写盘key7212D1…与原生读入keyC1AC17…确实不同；009预先登记后，新进程Continue MatchedObservedSave true，自动保持同Run/同Battle并Attempt1→2。两份独立一步片段开场相同，没有对该局做显式修正，用户确认分组正确。
+- 历史FAIL保留：r7新局准备空归属、r8跨进程错拆、旧001错组及退出问题分别保留；后续修复不追改原片/原结论。范围限固定本体、单人A0首幕普通地图战斗与所测代表机制；不覆盖精英/Boss/事件战斗/失败、通用文件权威恢复、未访问/跨房间Seek或整局外壳。
+- 下一动作：本包实现验证按既定样本完成，交PM作阶段收束；保留可用009，不再请求本包重复测试或自行启动/restore。后续产品目标由PM与用户讨论。
+- 关键证据：本地`evidence/content-006/runtime-verification-r10.json`、`runtime-verification-r9.json`及对应`collection-r10/r9.json`。r10共34事件等39数据文件归档，当前51文件补存；本轮正常新局/保存产生的进度变化如实保留，不称零写入。
 
 ## 实施历史（以下各节状态以当时轮次为准）
 
@@ -284,3 +285,13 @@ NativeSaved继续先await真实原生SaveRun成功，捕获原runId、读实际s
 回12时成员仅ID2、原生与登记Next均4；回11含ID2/3；回13含ID2/4、Next5且VisitedPointObjectsRetained true，未再次触发spawn业务；回49重建ID6显示、Next7，后续末项正常原生击杀。八次恢复均RoomRebuilt false、PrefixOperations0、SpawnHooksRun false，单位订阅17次核对无retired残留，Stop时Active0；用户确认新鼠模型/血条/意图与目标操作正常。两次实际终局是同一片首次/末项重做，不是两份录像。最终Stop50 AllOperationsMatched/VictoryReached true、Error null，原manager及所比较正常Continue/progress恢复，driver无Outstanding/Auto/待执行项；正常Quit/shutdown/game0。两次在途退役总约1.40s/0.88s仍如实留日志，未用本次功能PASS宣称所有召援演出等待已做性能优化。
 
 原事件+片/Godot/journal共997数据文件封存`runtime/content-006-r9-20261031-020856`；摘要`runtime-verification-r9.json`、收集收据`collection-r9.json`。复用本地小脚本`C:/Projects/STS2ReplayMod-local/tools/Collect-Content006.ps1`完成固定账号会话/片段归档及已知文件逐hash补存，不另造框架或扫描其他账号。当前51文件4,057,762 bytes备份`CONTENT006-post-r9-current-20261031-020856`；current_run与主progress不变，progress.save.backup和settings.save.backup变化，未归因/恢复或称51项零写入；原始引擎诊断保留。无新DLL/构建或重复纯合同。所测D录制/观看/跨召援恢复闭环通过；009自动分组未测试，不以D通过替代，下一按顶部两次一步片段的极短真实存退/重启收束。
+
+## r10：009未完房间跨进程自动分组/新attempt通过，按样本收束本包
+
+用户“测试完毕。看起来分组对了”。009/session d6edd545995d48e9985ec41420f9d58b有18事件，PID135492/Started02:12:04；cbb11646497441be8eeae60eab1bdf1a有16事件，PID107384/Started02:13:15。两份原始Godot均有Quit confirmed/Steamworks shutdown，game0。第一进程最后成功raw写盘key`7212D12F2B425F85AB1572441A5FB9189AD4B1A7865E09802CEC710881B210A9`，其实际原生DTO读入表示登记为`C1AC1796291B14C0AD935F639B781FE1A86BA06980C047B8ABD97237D11507E6`；两key确实不同，实际触发上轮缺省字段缺口。新进程冻结load、Setup及Continue同C1AC17…，MatchedObservedSave true、PreFinished false、ChangedBeforeSetup false、ReusesOldOperations false，原生写盘/双表示登记的009新Hook路径取得真实证据。
+
+两片原始Battle均同Run `b5af957dbd7446c4b222e48c1da142e3`、第1场：`53eddcf8126b463c98b0c6597fa32631`尝试1/map、`160f329f73de46fda5c9e66633954df6`尝试2/continue-known，都是格式10、1操作/Sequence1的Defend、interrupted/无胜利，原生生产读回ExactPayloadMatched。Initial原字符串完全相同，第二片独立从房间开头录制，没有拼旧步骤。第一片Preparation标明原三鼠准备，第二片null，prepared事件仅一次，重启未重新注入；当前原生存档仍为未完房间，符合本轮停手点。两原片SHA分别`CA09D336F346CBB71B640B7BE2CD9E5831FCACDC3EE5372BC41EC238438E6CCB`、`54D82DC76240F144B67272E3DA008C3AFAE576964C2B17D8E6C9874BC94EF620`，176,039/176,329 bytes。该Run不存在Corrections条目，没有调用显式校正，本次自动匹配与r8人工修历史归属严格分开。
+
+34事件+两片/journal/两进程Godot共39数据文件逐hash封存`runtime/content-006-r10-20261031-021506`；摘要`runtime-verification-r10.json`、复用收集脚本收据`collection-r10.json`。新正常测试局及存盘造成current_run及backup、主progress及backup、原生latest.mcr、settings.backup与r9变化，按正常测试操作留存，不写零写入或自动回滚。当前51文件3,952,518 bytes补存`CONTENT006-post-r10-current-20261031-021506`并读回；猎人r6、三鼠r8及旧失败恢复点均保留。observer-error0，原引擎诊断保留；无新DLL/构建/离线镜像测试，也不为新一步片再重复已过的短片观看矩阵。
+
+实现侧结论DONE_WITH_LIMITATIONS：A持续逐场录制与资源承接、B已完成/未完房间跨进程真实关联和独立attempt、C普通列表早晚/片段/完整战斗独立观看与退出隔离、D一般敌方新增单位的本条三鼠原生录制/稳定目标/生成前后Back与后点恢复/再召/胜利均已有实际样本闭环。仍限固定本体、单人A0首幕普通地图战斗；未知卡/所有组合、精英/Boss/事件战斗、玩家失败、孵化/复活/变形/多阶段、多人/跨版本、任意文件冷恢复/权威纠偏、未访问/跨房间Seek、整局外壳和发布性能不外推。旧FAIL/Unknown留原章节；009保持安装，无需继续本包测试，阶段交PM收束。
