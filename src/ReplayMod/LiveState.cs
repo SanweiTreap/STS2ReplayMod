@@ -46,9 +46,9 @@ internal static class LiveState
     internal static void Supported()
     {
         var r=Run;var p=Player;
-        Codec.Require(RunManager.Instance.NetService.Type.ToString()=="Singleplayer"&&r.CurrentActIndex==0&&r.AscensionLevel==0&&r.Modifiers.Count==0&&r.CurrentMapCoord?.row==1&&
+        Codec.Require(RunManager.Instance.NetService.Type.ToString()=="Singleplayer"&&r.CurrentActIndex==0&&r.AscensionLevel==0&&r.Modifiers.Count==0&&(Format>=9?r.CurrentMapCoord?.row>=1:r.CurrentMapCoord?.row==1)&&
             (p.Character.Id.ToString()=="CHARACTER.IRONCLAD"||Format>=4&&p.Character.Id.ToString()=="CHARACTER.SILENT"||Format>=5&&p.Character.Id.ToString()=="CHARACTER.REGENT"||Format>=8&&p.Character.Id.ToString() is "CHARACTER.DEFECT" or "CHARACTER.NECROBINDER")&&p.Deck.Cards.Count is >0 and <=128&&
-            p.Deck.Cards.All(c=>IsCard(c)),"only-first-monster-five-characters-A0-supported-format");
+            p.Deck.Cards.All(c=>IsCard(c)),"only-act1-monster-five-characters-A0-supported-format");
     }
     internal static bool SimpleTarget(TargetType type)=>type is TargetType.None or TargetType.Self or TargetType.AnyEnemy or TargetType.AllEnemies or TargetType.RandomEnemy or TargetType.AnyPlayer or TargetType.AllAllies||Format>=8&&type==TargetType.Osty;
     internal static bool IsCard(CardModel c)=>c.IsMutable&&c.GetType().Assembly==typeof(CardModel).Assembly&&SimpleTarget(c.TargetType)&&c.CurrentUpgradeLevel is >=0 and <=20;

@@ -32,16 +32,38 @@ internal static class Ui
         {
             Runtime.CheckEnvironment();id=Runtime.Store.LatestId();
             clip=id is null?null:Runtime.ReadClip(id);
-            info=clip is null?"暂无片段。新建五角色任一A0，首场普通战斗会自动录制。首战胜利自动保存。":
-                $"最近{(clip.Operations[^1].Victory?"完整胜利战斗":"片段")} {clip.Id[..8]} · {clip.CreatedUtc.ToLocalTime():MM-dd HH:mm}\n{clip.Operations.Length}个操作 · {(clip.Character=="CHARACTER.NECROBINDER"?"亡灵契约师":clip.Character=="CHARACTER.DEFECT"?"故障机器人":clip.Character=="CHARACTER.REGENT"?"储君":clip.Character=="CHARACTER.SILENT"?"猎人":"铁甲")} A0\nSeed {clip.Seed}\n首战 · 出牌／用药／丢弃药水／原生选择"+
+            info=clip is null?"暂无片段。五角色任一A0首幕普通战斗会逐场自动录制，支持Continue后续录。":
+                $"最近{(clip.Operations[^1].Victory?"完整胜利战斗":"片段")} {clip.Id[..8]} · {clip.CreatedUtc.ToLocalTime():MM-dd HH:mm}\n{clip.Operations.Length}个操作 · {(clip.Character=="CHARACTER.NECROBINDER"?"亡灵契约师":clip.Character=="CHARACTER.DEFECT"?"故障机器人":clip.Character=="CHARACTER.REGENT"?"储君":clip.Character=="CHARACTER.SILENT"?"猎人":"铁甲")} A0\nSeed {clip.Seed}\n本场 · 出牌／用药／丢弃药水／原生选择"+
                     (clip.Preparation is null?"":clip.Preparation.StartsWith("CONTENT004",StringComparison.Ordinal)?"\n定向测试：储君／星星／锻造与复制":clip.Preparation.StartsWith("CONTENT003",StringComparison.Ordinal)?"\n定向测试：猎人／连续弃牌／生成小刀":clip.Preparation.StartsWith("DEMO005",StringComparison.Ordinal)?"\n定向测试：升级牌＋能力＋小花＋能量药水":"\n定向测试样本：暗港双蛞蝓")+
-                    (clip.Timing is null?"\n原始操作时间：未知（旧片）":"\n已记录操作接受／完成时间");
+                    (clip.Timing is null?"\n原始操作时间：未知（旧片）":"\n已记录操作接受／完成时间")+
+                    (clip.Battle is {} battle?$"\n第{battle.Floor}层 · 本局第{battle.Battle}场 · 尝试{battle.Attempt}":"\n旧片：局归属未知");
         }
         catch(Exception ex){info="片段暂不可打开："+(ex is InvalidDataException?ex.Message:ex.GetType().Name);}
         box.AddChild(Label(info));
         var open=Button(box,"打开最近片段 · 原生播放器",()=>{if(id is not null)TaskHelper.RunSafely(PlayerLoop.Open(id));});
         var unavailable=clip is null?null:NativePlaybackSupport.Reason(clip);open.Disabled=clip is null||unavailable is not null;
         if(unavailable is not null)box.AddChild(Label(unavailable));
+        box.AddChild(Label("战斗列表 · 每场独立打开"));
+        try
+        {
+            var rows=RecordingLibrary.List(Path.Combine(Runtime.Root,"clips"),Runtime.ReadClip);
+            foreach(var group in rows.GroupBy(r=>r.Battle?.RunId))
+            {
+                box.AddChild(Label(group.Key is {} run?$"对局 {run[..8]}":"旧片／未知归属"));
+                foreach(var row in group.OrderBy(r=>r.Battle?.Battle??int.MaxValue).ThenBy(r=>r.Battle?.Attempt??0))
+                {
+                    var where=row.Battle is {} b?$"第{b.Floor}层 · 第{b.Battle}场／尝试{b.Attempt}":"旧片";
+                    var text=$"{where} · {(row.Victory?"胜利":"片段")} · {row.Operations}步\n{row.Character.Replace("CHARACTER.","")} · {row.Encounter.Replace("ENCOUNTER.","")}\n{row.CreatedUtc.ToLocalTime():MM-dd HH:mm} · {row.Id[..8]}";
+                    var pick=Button(box,text,()=>TaskHelper.RunSafely(PlayerLoop.Open(row.Id,entry:"battle-list")));
+                    pick.Disabled=row.Problem is not null;pick.TooltipText=row.Problem??"从本场房间前存档独立打开";
+                }
+            }
+            Runtime.Log("replay-library-listed",new{Count=rows.Length,Problems=rows.Count(r=>r.Problem is not null),PerFrameScan=false});
+        }
+        catch(Exception ex){box.AddChild(Label("战斗列表暂不可用："+ex.GetType().Name));}
+        _menuStatus=Label(Runtime.Status);box.AddChild(_menuStatus);
+        var development=new VBoxContainer{Visible=false};
+        Button(box,"开发／旧样本与定向准备",()=>development.Visible=!development.Visible);box.AddChild(development);box=development;
         const string hunterReference="1d5346b085b04635ab3e00b43fe9190c";
         try{_ =Runtime.ReadClip(hunterReference);Button(box,"打开已有猎人样本 · 完整27项",()=>TaskHelper.RunSafely(PlayerLoop.Open(hunterReference,entry:"hunter-reference")));}catch{/* Optional reference, not the production input. */}
         const string continuousSample="fc6432b4c0af41d69defda73f1770824";
@@ -103,7 +125,7 @@ internal static class Ui
         prepare.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.Content?TestPreparation.None:TestPreparation.Content;PreparationText();
             Runtime.Status=TestEncounter.Armed==TestPreparation.Content?"请新建铁甲A0：定向双蛞蝓，增加耸肩无视+／燃烧／开心小花／能量药水，会正常保存进度":"已取消测试准备";});
         PreparationText();
-        _menuStatus=Label(Runtime.Status);box.AddChild(_menuStatus);menu.AddChild(panel);
+        menu.AddChild(panel);
     }
     internal static void Playback()
     {

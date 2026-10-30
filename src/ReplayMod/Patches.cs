@@ -33,7 +33,7 @@ internal static class Patches
         Patch(typeof(RunManager),"SetUpNewSingleplayer",prefix:nameof(FreshBefore),postfix:nameof(Fresh));
         Patch(typeof(RunManager),"SetUpSavedSingleplayer",prefix:nameof(Saved));
         Patch(typeof(RunManager),"ToSave",postfix:nameof(Checkpoint));
-        Patch(typeof(RunManager),"EnterMapCoord",postfix:nameof(Entry));
+        Patch(typeof(RunManager),"EnterMapCoordInternal",prefix:nameof(EntryBefore),postfix:nameof(Entry));
         Patch(typeof(ActionQueueSynchronizer),"RequestEnqueue",prefix:nameof(Queue));
         Patch(typeof(PlayCardAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
         Patch(typeof(EndPlayerTurnAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
@@ -83,9 +83,10 @@ internal static class Patches
     private static void Menu(NMainMenu __instance)=>Runtime.Menu(__instance);
     private static void FreshBefore(RunState __0)=>Runtime.Guard(()=>TestEncounter.BeforeNew(__0));
     private static void Fresh()=>Runtime.Guard(()=>{Recorder.NewRun();TestEncounter.AfterNew();});
-    private static void Saved(){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.NewRun(false));}
-    private static void Checkpoint(object? __0,SerializableRun __result){if(__0 is null&&!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Checkpoint(__result));}
-    private static void Entry(MapCoord __0,Task __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Entry(__0,__result));}
+    private static void Saved(SerializableRun __1){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Continue(__1));}
+    private static void Checkpoint(SerializableRun __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Checkpoint(__result));}
+    private static void EntryBefore(MapCoord __0,object? __1,bool __2){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.BeginEntry(__0,__1 is not null,__2));}
+    private static void Entry(Task __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Entry(__result));}
     private static bool Queue(GameAction __0)
     {
         if(DecisionRoute.Enabled&&DecisionRoute.Historical&&__0 is not (PlayCardAction or EndPlayerTurnAction or UsePotionAction or DiscardPotionGameAction))
@@ -219,7 +220,7 @@ internal static class Patches
     private static bool Cleanup()
     {
         if(PlayerLoop.Active&&!PlayerLoop.TearingDown&&!PlayerLoop.CleaningRoom){PlayerLoop.Control("stop");return false;}
-        if(!PlayerLoop.Active)Runtime.Guard(Recorder.Seal);return true;
+        if(!PlayerLoop.Active)Runtime.Guard(Recorder.EndRun);return true;
     }
     private static bool Return(ref Task __result)
     {

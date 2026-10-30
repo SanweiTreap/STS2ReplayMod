@@ -95,6 +95,7 @@ internal static class RecordedState
         Recording=Armed;Armed=false;_recordGraph=null;_write=null;_captured=false;
         if(Recording)Codec.Require(LiveState.Player.Character.Id.ToString()=="CHARACTER.IRONCLAD","state-test-only-Ironclad");
     }
+    internal static void Release(){Recording=false;_recordGraph=null;_write=null;_captured=false;_captureDiagnostics=null;}
     internal static void Begin()
     {
         if(!Recording)return;
