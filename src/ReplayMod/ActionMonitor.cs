@@ -44,7 +44,7 @@ internal static class ActionMonitor
     {
         if(!NativeSeek.Enabled||Pending is not {Executing:true} p||p.Template.Kind==OperationKind.EndTurn||
             p.Action.State!=MegaCrit.Sts2.Core.Entities.Actions.GameActionState.Finished||ChoiceTape.Waiting||BattleEnd.Ending)return;
-        if(Success(p.ActionTask)&&Success(p.EffectTask)&&p.DerivedTasks.All(Success))Complete(p,false,"before-next-action");
+        if(Success(p.ActionTask)&&EffectSucceeded(p)&&p.DerivedTasks.All(Success))Complete(p,false,"before-next-action");
     }
     internal static void Reset(){Pending=null;Completed=null;Error=null;StartTurnTask=null;Generation=0;Accepted.Clear();PlaybackAccepted.Clear();BattleEnd.Reset();}
     internal static void RebaseNativeSeek()
@@ -79,7 +79,18 @@ internal static class ActionMonitor
             Codec.Require(potion.IsValidTarget(target),"queued-potion-target-invalid");
             acceptedOperation=new(action,OperationKind.Potion,LiveState.Turn,null,null,LiveState.Target(target),null,Generation,potion,(int)use.PotionIndex,accepted);
         }
-        else acceptedOperation=new(action,OperationKind.EndTurn,LiveState.Turn,null,null,null,null,Generation,accepted:accepted);
+        else if(action is DiscardPotionGameAction discard)
+        {
+            Codec.Require(LiveState.Format>=7&&discard.OwnerId==LiveState.Player.NetId&&discard.WasEnqueuedInCombat,"unsupported-discard-potion-context");
+            var slot=(int)((NetDiscardPotionGameAction)discard.ToNetAction()).potionSlotIndex;
+            var potion=LiveState.Player.GetPotionAtSlotIndex(slot)??throw new InvalidDataException("discard-potion-slot-empty");
+            acceptedOperation=new(action,OperationKind.DiscardPotion,LiveState.Turn,null,null,null,null,Generation,potion,slot,accepted);
+        }
+        else
+        {
+            Codec.Require(action is EndPlayerTurnAction,"unrecognized-manual-operation");
+            acceptedOperation=new(action,OperationKind.EndTurn,LiveState.Turn,null,null,null,null,Generation,accepted:accepted);
+        }
         acceptedOperation.PlaybackIndex=PlayerLoop.Active?PlayerLoop.DispatchIndex:-1;
         Codec.Require(Accepted.TryAdd(action,acceptedOperation),"duplicate-accepted-action");
         if(PlayerLoop.Active)Codec.Require(acceptedOperation.PlaybackIndex>=0&&PlaybackAccepted.TryAdd(acceptedOperation.PlaybackIndex,acceptedOperation),"duplicate-playback-submission");
@@ -100,7 +111,7 @@ internal static class ActionMonitor
         if(Pending is {} previous&&!ReferenceEquals(previous,operation))
         {
             Codec.Require(previous.Template.Kind!=OperationKind.EndTurn&&LiveState.InputPhase&&!BattleEnd.Ending&&
-                Success(previous.ActionTask)&&Success(previous.EffectTask)&&previous.DerivedTasks.All(Success),"queued-action-before-prior-semantic-boundary");
+                Success(previous.ActionTask)&&EffectSucceeded(previous)&&previous.DerivedTasks.All(Success),"queued-action-before-prior-semantic-boundary");
             Complete(previous,false,"before-next-action");
         }
         Pending=operation;operation.Executing=true;operation.Generation=Generation;
@@ -111,6 +122,12 @@ internal static class ActionMonitor
             var index=LiveState.Player.PlayerCombatState!.Hand.Cards.ToList().FindIndex(c=>ReferenceEquals(c,card));
             Codec.Require(index>=0,"queued-card-left-hand-before-execution");
             operation.Template=operation.Template with{Turn=LiveState.Turn,HandIndex=index,CardState=LiveState.CardIdentity(card)};
+        }
+        if(operation.Potion is {} potion)
+        {
+            var slot=operation.Template.Potion!.Slot;
+            Codec.Require(ReferenceEquals(LiveState.Player.GetPotionAtSlotIndex(slot),potion),"queued-potion-instance-changed-before-execution");
+            operation.Template=operation.Template with{Turn=LiveState.Turn,Potion=LiveState.PotionIdentity(potion,slot)};
         }
         if(PlayerLoop.Active){if(NativeSeek.Enabled)NativeSeek.Started(operation);else PlayerLoop.VerifySubmittedStart(operation);}
         Runtime.Log("native-input-executing",new{Kind=operation.Template.Kind.ToString(),operation.Template.Card,
@@ -136,13 +153,15 @@ internal static class ActionMonitor
         if(task is null)return false;
         Codec.Require(!task.IsCanceled&&!task.IsFaulted,"original-operation-task-fault-or-cancel");return task.IsCompletedSuccessfully;
     }
+    // Discard has one native action task and never calls PotionModel.OnUseWrapper.
+    private static bool EffectSucceeded(PendingOperation p)=>p.Template.Kind is not (OperationKind.Card or OperationKind.Potion)||Success(p.EffectTask);
     internal static void Tick()
     {
         if(PlayerLoop.Active&&PlayerLoop.ChoiceAbort)return;
         if(Pending is not {Executing:true} p||Error is not null)return;
         Codec.Require(Stopwatch.GetElapsedTime(p.Started).TotalSeconds-(ChoiceTape.WaitingSeconds-p.ChoiceWaitAtStart)<60,"operation-did-not-reach-stable-boundary");
         if(!Success(p.ActionTask))return;
-        if(p.Template.Kind is OperationKind.Card or OperationKind.Potion){if(!Success(p.EffectTask))return;}
+        if(!EffectSucceeded(p))return;
         if(p.DerivedTasks.Any(t=>!Success(t)))return;
         var victory=BattleEnd.Ready;
         if(!victory)

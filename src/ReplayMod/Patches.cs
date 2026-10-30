@@ -37,6 +37,7 @@ internal static class Patches
         Patch(typeof(PlayCardAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
         Patch(typeof(EndPlayerTurnAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
         Patch(typeof(UsePotionAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
+        Patch(typeof(DiscardPotionGameAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
         Patch(typeof(CardModel),"OnPlayWrapper",prefix:nameof(CardBefore),postfix:nameof(CardTask));
         Patch(typeof(PotionModel),"OnUseWrapper",postfix:nameof(PotionTask));
         Patch(typeof(PotionModel),"EnqueueManualUse",prefix:nameof(ManualPotion));
@@ -78,19 +79,19 @@ internal static class Patches
     private static void Entry(MapCoord __0,Task __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Entry(__0,__result));}
     private static bool Queue(GameAction __0)
     {
-        if(DecisionRoute.Enabled&&DecisionRoute.Historical&&__0 is not (PlayCardAction or EndPlayerTurnAction or UsePotionAction))
+        if(DecisionRoute.Enabled&&DecisionRoute.Historical&&__0 is not (PlayCardAction or EndPlayerTurnAction or UsePotionAction or DiscardPotionGameAction))
         {
             Runtime.Guard(()=>throw new InvalidDataException("route-business-action-during-history-"+__0.GetType().Name));return false;
         }
         if(PlayerLoop.Active&&!PlayerLoop.Dispatching)
         {
             if(__0 is GenericHookGameAction or ReadyToBeginEnemyTurnAction)return true;
-            if(__0 is PlayCardAction or EndPlayerTurnAction or UsePotionAction)
+            if(__0 is PlayCardAction or EndPlayerTurnAction or UsePotionAction or DiscardPotionGameAction)
             {Runtime.Log("spectator-decision-blocked",new{Action=__0.GetType().Name,ChoiceUnchanged=true});return false;}
             Runtime.Guard(()=>throw new InvalidDataException("incomplete-unexpected-replay-action-"+__0.GetType().Name));return false;
         }
         if(!Recorder.Active&&!PlayerLoop.Active)return true;
-        if(__0 is not (PlayCardAction or EndPlayerTurnAction or UsePotionAction))
+        if(__0 is not (PlayCardAction or EndPlayerTurnAction or UsePotionAction or DiscardPotionGameAction))
         {
             if(__0 is not (GenericHookGameAction or ReadyToBeginEnemyTurnAction))Runtime.Guard(()=>throw new InvalidDataException("unsupported-action-"+__0.GetType().Name));
             return true;

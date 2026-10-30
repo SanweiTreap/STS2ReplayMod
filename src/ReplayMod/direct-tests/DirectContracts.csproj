@@ -13,6 +13,7 @@
   <ItemGroup><Compile Include="../NativePlaybackSupport.cs" Link="NativePlaybackSupport.cs" /><Compile Include="FullPlaybackContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../PileSubscriptionRepair.cs" Link="PileSubscriptionRepair.cs" /><Compile Include="CardTrackingContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="CharacterContracts.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="DiscardPotionContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="TimingContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="RegentRecordingContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="LogWriterContracts.cs" /><Compile Include="../OrderedFileLog.cs" Link="OrderedFileLog.cs" /></ItemGroup>

@@ -31,7 +31,8 @@ internal sealed class OperationRequests
             foreach(var choice in (clip.Choices??[]).Where(c=>c.Boundary==op.Sequence&&!c.Automated))
                 for(var prefix=0;prefix<SeekPlan.Events(choice).Length;prefix++)
                     points.Add(new(points.Count,op.Sequence,choice.Sequence,prefix,false,$"选择{choice.Sequence} · "+(prefix==0?"已打开":$"已选{prefix}")));
-            points.Add(new(points.Count,op.Sequence,0,0,true,op.Kind==OperationKind.EndTurn?$"结束回合{op.Turn}":op.Card??op.Kind.ToString()));
+            points.Add(new(points.Count,op.Sequence,0,0,true,op.Kind==OperationKind.EndTurn?$"结束回合{op.Turn}":
+                op.Kind==OperationKind.DiscardPotion?$"丢弃 {op.Potion!.Model}":op.Card??op.Kind.ToString()));
         }
         Route=points.ToArray();
     }
