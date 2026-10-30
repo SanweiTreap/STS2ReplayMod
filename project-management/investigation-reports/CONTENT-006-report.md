@@ -1,6 +1,6 @@
 # CONTENT-006：持续录制、Continue、战斗列表与召援
 
-2026-10-30。D-134同工程实施中。001/r1六场录制/资源与新进程后续录、004/r2原生菜单退出、005/r3早晚独立完整原生播放/Back及已完成房间write→load→Continue均有各自实证。原误拆组六片不改，005已按用户两局各三场校正索引。当前安装007（006预运行补强）修GrandFinale在途Back的长等待/攻击声/花瓣尾迹，效果待测；强普通/召援及未完房间attempt仍未验收，本包未完成。
+2026-10-30。D-134同工程实施中。001/r1六场录制/资源与新进程后续录、004/r2原生菜单退出、005/r3早晚独立完整播放/Back及已完成房间write→load→Continue有各自实证；007/r4华丽收场在途Back等待/声效/尾迹通过，用户明确确认。原误拆组六片不改，索引已有据校正。007保持；后续强普通/未来第4场、召援及未完房间attempt仍未验收，本包未完成。
 
 ## build-001：A/B/C首个可测增量，尚未游戏实测
 
@@ -178,3 +178,21 @@ Canonical的已知房间/attempt计数承接两段，实际SaveKey若原来指al
 Debug音效除按owner精确Stop外，007在原生Play前把撤销owner音量设0，然后让Play仍完整执行pitch RNG/音源池并按其实际ID停止，避免Play与postfix之间的音频线程间隙漏出开头；普通声音参数不变。Muted统计按API调用次数命名OwnedAudioCallsMuted，不当作唯一FMOD事件数量。原等待/VFX方案及全部数据校验保持。构建0警告0错误，实际线程/作用域与体验仍待同片短测。
 
 007已在game0安装，DLL `9BCECE95FF90DE51CB3A06B3E9B5F8069838C1E10F139D0FA43602D22926F0FF`，manifest同前，收据`evidence/content-006/preparation/build-007-1ee95b73.json`。006/005及此前pair/config保留，本轮没有新游戏进程、无restore/自行启动；当前测试以007为准，不重复要求005已经答过的B/C或004退出矩阵。
+
+## r4：007华丽收场在途Back提速/声效/花瓣通过，保留当前版本
+
+用户完成后明确回答遮罩时长、攻击声和花瓣尾迹“都正常，符合预期”。007/session `eff15ca1e3b94fb298e97ae385c49474`412事件，一次普通battle-list打开33a9bbfe原片（格式9/6项/第6华丽收场），Initial匹配。13次原生结果/RNG中正常7、Retiring6；7次Back到5，状态/RNG/模式及清计划均匹配。八次原生终局到达为正常2/退役6，是同一原片的首次/重做，不当八场或八份独立录像。
+
+六次真正in-flight GrandFinale Back均实际Released1/Skipped1，退役59.6481/18.4658/17.5755/15.1840/15.0215/15.8155ms，总到达474.2154/361.8846/357.3587/359.0780/351.4746/362.9596ms。另一次已到稳定胜利后Back总36.458ms、released/skipped0，不混作在途提速证据。005/r3旧真在途499.2–1752.1ms与新351.5–474.2ms分别留存，请求时点不严格配对，不宣称固定百分比；用户此次体感确认是独立依据。
+
+43条真实pacing绑定含8条native-card-visual-anticipation，对应该片八次GrandFinale；其余StartTurn2、Damage10、TriggerAnim20、PerformMove2、PerformIntent1，当前owner/room/gen检查通过。共享AttackCommand.before-hit本样本未触发，不能补判其独立运行覆盖。六次退役各精确停止1个Debug声、静音API调用3次；原生Play仍跑，音源池/pitch路径没有被全局跳过。七次显示退役均登记/退出一个NGrandFinaleVfx及一个Impact，还有相应伤害字/火花；用户确认揭罩后不再见尾迹，原生取消视觉CTS未带来mod或late timer fault。
+
+最后正常再做第6步到真实胜利，Stop6 AllOperationsMatched/VictoryReached true，Error null、Outstanding false、Auto false/Pending0，原manager及所比较正常Continue/progress恢复；牌/Osty订阅按日志清理。正常Quit/shutdown/game0，原片SHA `F50C99D4EE6AE3B4571AB9A288EE3E61EE3783C480A6E984CC1F9E825EB22472`未变。没有新录制或下一强普通/D/未完房间样本。
+
+412事件+原片/Godot/journal共415数据文件逐hash封存`runtime/content-006-r4-20261030-221541`，摘要`evidence/content-006/runtime-verification-r4.json`，含用户明确回答。未见observer/playback/retired timer fault；Godot原始Invalid Task ID及退出shader/RID等诊断保留，不把mod错误0写成引擎全无诊断，也不无证据归因本次视觉清理。该单片、真在途时点的体验/数据闭环按007/r4通过；未知卡/VFX、其他音效类型、所有并发/异常路径不因此放宽。
+
+不再构建/换DLL或重复GrandFinale/两片/菜单矩阵。原账号/game0下当前已知51文件3,966,529 bytes补存`CONTENT006-post-r4-current-20261030-221927`，逐hash读回，收据`evidence/content-006/post-r4-current-files.json`；非新完整账号快照，无restore/history/其他账号/自行启动。007安装保持，已有恢复pair/失败及索引校正前后材料保留。
+
+下一把后续普通强怪/第4场与未完房间跨进程newattempt合并：Continue现有猎人局，沿普通地图进入下一Monster战斗（存档下一个普通为SeapunkNormal，不替用户选路/消耗RNG）；先打一张普通防御/打击、等该操作完整核对后正常保存退出并关游戏。新进程Continue应从同场原生开场重进，记本局第4场新attempt，不拼退出前步骤；再正常获胜领奖、存退并正常关游戏。预期新封存为第4场尝试1的中断前缀、尝试2的完整胜利，各自真实checkpoint/选择/资源/RNG。没有完整操作时只诊断无假片，此处指定一张稳定基础牌以明确取得前缀。
+
+这不是观看Seek/Back测试或要求一次战斗中间状态原生接续，SL回到房间前是原游戏保存语义；游戏本身重进/存盘不算观看隔离失败。先查实际文件/attempt/强普通/冷进房开场，再安排该新格式10片观看；D三鼠按后续自然停点用既有明确默认关闭准备接原生生成/跨生成Back，不重roll旧六片，不追加旧五角色矩阵。CONTENT-006仍未关闭。

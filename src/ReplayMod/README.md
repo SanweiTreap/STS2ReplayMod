@@ -1,6 +1,12 @@
 # ReplayMod 0.1.0 · 原生单场回放
 
-## 当前安装：CONTENT-006 / build-007，华丽收场在途Back等待/尾迹修复候选
+## 当前安装：CONTENT-006 / build-007，华丽收场在途Back短测通过
+
+007/r4六次真正在途GrandFinale Back总到达351.5–474.2ms、退役15.0–59.6ms，每次实际释放当前纯演出等待并跳过一个既审pacing；43条caller绑定中8次对应牌效演出等待，音效owner退役/VFX整节点退出均有日志。13次原生结果/RNG（正常7/退役6）与7次Back匹配，最后真实胜利Stop6及原context恢复/退出正常，用户明确确认遮罩/声效/尾迹均符合预期。八次终局是同一片首次与重做，不当八场；未知VFX/所有卡牌或共享before-hit未触发路径不补判。
+
+保持007，无新DLL/旧矩阵；资料415文件已封存，当前已知51文件补存后下一同一猎人局普通强怪/本局第4场合并未完房间newattempt：打一张稳定基础牌后正常存退关游戏，新进程Continue从本场开头重录，再正常胜利领奖存退退出。期待尝试1中断前缀/尝试2完整片，不拼旧操作；尚无运行结果，三鼠召援再沿自然停点接测。详见[CONTENT-006报告](../../project-management/investigation-reports/CONTENT-006-report.md)。
+
+## CONTENT-006 / build-007 实现与安装历史
 
 007在006实际运行前补强派生动作继承有效父owner，以及撤销owner的Debug音效在原生Play前静音、Play/pitch RNG仍执行后再按实际ID停止；不改普通播放，未新增玩法或原生PASS。007 DLL `9BCECE95FF90DE51CB3A06B3E9B5F8069838C1E10F139D0FA43602D22926F0FF`已在game0安装，006/005及此前pair保留。下一仅同片华丽收场真正in-flight Back、声音/花瓣/耗时及后继胜利/Stop短测，当前以007为准。
 
