@@ -150,7 +150,7 @@ internal static class PlayerLoop
                 Runtime.Log("playback-closed",new{Id=id,Entry=entry,Core=NativeSeek.Enabled?"native-actions":nativeSeek?"not-started":"legacy-tool",TotalOperations=_playingClip?.Operations.Length,
                     Checks=checks,Position=NativeSeek.Enabled?(int?)NativeSeek.Position:Cursor?.Rebuilding==true?(int?)null:Cursor?.Position,AllOperationsMatched=complete,VictoryReached,Error,NativeSeek=NativeSeek.Enabled,OriginalManagerRestored=memory is not null&&ReferenceEquals(SaveManager.Instance,memory.Original),NormalContinueAndOriginalProgressUnchanged=restored,OriginalProgressFileIncluded=true,WallMilliseconds=Stopwatch.GetElapsedTime(started).TotalMilliseconds});
                 Active=false;TearingDown=false;ChoiceAbort=false;Prequeuing=false;DispatchIndex=-1;_playingClip=null;Prequeued.Clear();Committed.Clear();IsolatedManager=null;Ui.ClosePlayback();ActionMonitor.Reset();ChoiceTape.Clear();NativeSeek.Clear();DecisionRoute.Clear();Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;
-                await Runtime.FlushLog();
+                OrbState.Reset();await Runtime.FlushLog();
             }
         }
     }
@@ -158,6 +158,7 @@ internal static class PlayerLoop
     private static async Task LoadRoom(Clip clip)
     {
         Runtime.Log("playback-room-load",new{clip.Id,Reason="open",Position=0});
+        OrbState.Reset();
         ActionMonitor.Reset();
         var parsed=JsonSerializationUtility.FromJson<SerializableRun>(clip.Checkpoint);
         Codec.Require(parsed.Success&&parsed.SaveData is not null,"checkpoint-parse");var save=parsed.SaveData!;
@@ -185,6 +186,7 @@ internal static class PlayerLoop
         try
         {
             var room=RunManager.Instance.DebugOnlyGetState()?.CurrentRoom as CombatRoom;
+            if(room is not null)OrbPresentation.Retire();
             if(RunManager.Instance.DebugOnlyGetState() is not null)RunManager.Instance.CleanUp(true);
             if(room is not null)CombatCardTracking.Cleanup(room);
             // Remove the old NRun before yielding: its _Process uses RunManager's current net service.

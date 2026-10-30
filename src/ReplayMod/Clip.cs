@@ -35,14 +35,16 @@ public static class Codec
     public const int MaxOperations=256;
     public static void Validate(Clip clip,string game,string mod,string scope,params string[] compatibleRecordedMods)
     {
-        Require(clip.Format is >=1 and <=7&&Regex.IsMatch(clip.Id,"^[a-f0-9]{32}$"),"unsupported-format-or-id");
+        Require(clip.Format is >=1 and <=8&&Regex.IsMatch(clip.Id,"^[a-f0-9]{32}$"),"unsupported-format-or-id");
         Require(clip.GameHash==game&&(clip.ModHash==mod||clip.ModHash is not null&&compatibleRecordedMods.Contains(clip.ModHash,StringComparer.Ordinal))&&clip.Scope==scope&&clip.Mods.SequenceEqual(new[]{"ReplayMod:0.1.0"}),"different-build-or-profile-or-mods");
-        Require((clip.Character=="CHARACTER.IRONCLAD"||clip.Format>=4&&clip.Character=="CHARACTER.SILENT"||clip.Format>=5&&clip.Character=="CHARACTER.REGENT")&&clip.Row==1&&clip.Col>=0&&clip.Encounter.Length>0&&
+        Require((clip.Character=="CHARACTER.IRONCLAD"||clip.Format>=4&&clip.Character=="CHARACTER.SILENT"||clip.Format>=5&&clip.Character=="CHARACTER.REGENT"||clip.Format>=8&&clip.Character=="CHARACTER.DEFECT")&&clip.Row==1&&clip.Col>=0&&clip.Encounter.Length>0&&
             clip.Checkpoint.Length>0&&clip.Initial.Length>0,"unsupported-scene");
         Require(clip.Operations.Length>0&&clip.Operations.Length<=(clip.Format==1?32:MaxOperations),"clip-operation-count");
         Require(clip.Format>=4?clip.Choices is not null:clip.Choices is null,"choice-format");
         if(clip.Choices is not null)ChoiceContract.Validate(clip.Choices,clip.Operations.Length);
         ValidateTiming(clip);
+        if(clip.Format>=8)
+            foreach(var projection in new[]{clip.Initial}.Concat(clip.Operations.Select(o=>o.After)))ValidateOrbs(projection);
         Require(clip.Authority is null||clip.Character=="CHARACTER.IRONCLAD"&&clip.Format==3&&clip.Authority=="STATE001-first-Defend-v1"&&
             clip.Operations[0] is {Kind:OperationKind.Card,Card:"CARD.DEFEND_IRONCLAD",Turn:1,Victory:false,CardState.Upgrade:0},"unsupported-authority-point");
         var victory=clip.Operations[^1].Victory;
@@ -85,6 +87,19 @@ public static class Codec
                 },"unsupported-operation");
             }
         }
+    }
+    private static void ValidateOrbs(string projection)
+    {
+        using var parsed=JsonDocument.Parse(projection);
+        var state=parsed.RootElement;
+        using var terminal=state.TryGetProperty("Outcome",out _)?JsonDocument.Parse(state.GetProperty("State").GetString()!):null;
+        if(terminal is not null)state=terminal.RootElement;
+        var queue=JsonSerializer.Deserialize<OrbQueueState>(state.GetProperty("Mechanics").GetProperty("OrbQueue").GetRawText(),Json);
+        Require(queue is {Capacity:>=0 and <=10,Orbs:not null}&&queue.Orbs.Length<=queue.Capacity&&
+            queue.Orbs.Select(o=>o.Identity).Distinct().Count()==queue.Orbs.Length,"orb-queue-capacity-or-identity");
+        foreach(var orb in queue!.Orbs!)
+            Require(orb.Identity>0&&orb.Identity<=queue.NextIdentity&&orb.Owner==0&&Regex.IsMatch(orb.Model,"^ORB\\.[A-Z0-9_]+$")&&
+                orb.Mutable is not null&&orb.Mutable.Count<=64,"orb-queue-entry");
     }
     private static void ValidateTiming(Clip clip)
     {

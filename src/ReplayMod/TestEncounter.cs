@@ -10,7 +10,7 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace ReplayMod;
 
-internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent }
+internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent }
 // Explicit opt-in, consumed by ONE new supported run. Never applied to Continue or playback.
 internal static class TestEncounter
 {
@@ -18,7 +18,8 @@ internal static class TestEncounter
     private static TestPreparation _mode;
     private static RunState? _run;
     internal static string? Preparation=>_run is not null&&ReferenceEquals(_run,RunManager.Instance.DebugOnlyGetState())?
-        (_mode==TestPreparation.SharedContent?"CONTENT005-A-Regent-Toolbox-StarPotion-KingsCourage-discard-EnergyPotion":
+        (_mode==TestPreparation.DefectContent?"CONTENT005-B-Defect-starter10-CrackedCore-Darkness-ColdSnap-Capacitor-ChaosPlus-6-innate-retain-BagOfPreparation-FocusPotion":
+         _mode==TestPreparation.SharedContent?"CONTENT005-A-Regent-Toolbox-StarPotion-KingsCourage-discard-EnergyPotion":
          _mode==TestPreparation.QueuedCards?"PLAYBACK001-Ironclad-starters-three-native-Defend-innate-retain-CorpseSlugsWeak":
          _mode==TestPreparation.RegentContent?"CONTENT004-Regent-starter10-DivineRight-RefineBlade-DualWield-Enlightenment-4-innate-retain-StarPotion-KingsCourage":
          _mode==TestPreparation.SilentContent?"CONTENT003-Silent-starter12-RingOfTheSnake-Burst-BladeDance-3-innate-retain-CorpseSlugsWeak":
@@ -30,7 +31,7 @@ internal static class TestEncounter
         _run=null;_mode=Armed;if(_mode==TestPreparation.None||PlayerLoop.Active)return;Armed=TestPreparation.None;
         Runtime.CheckEnvironment();
         Codec.Require(state.CurrentActIndex==0&&state.AscensionLevel==0&&state.Players.Count==1&&
-            state.Players[0].Character.Id.ToString()==(_mode is TestPreparation.RegentContent or TestPreparation.SharedContent?"CHARACTER.REGENT":_mode==TestPreparation.SilentContent?"CHARACTER.SILENT":"CHARACTER.IRONCLAD")&&state.Modifiers.Count==0,"test-entry-character-or-A0-mismatch");
+            state.Players[0].Character.Id.ToString()==(_mode==TestPreparation.DefectContent?"CHARACTER.DEFECT":_mode is TestPreparation.RegentContent or TestPreparation.SharedContent?"CHARACTER.REGENT":_mode==TestPreparation.SilentContent?"CHARACTER.SILENT":"CHARACTER.IRONCLAD")&&state.Modifiers.Count==0,"test-entry-character-or-A0-mismatch");
         state.SetActDebug(ModelDb.Act<Underdocks>().ToMutable());_run=state;
     }
     internal static void AfterNew()
@@ -39,6 +40,23 @@ internal static class TestEncounter
         var rooms=(RoomSet)AccessTools.Field(typeof(ActModel),"_rooms").GetValue(_run!.Act)!;
         Codec.Require(rooms.normalEncountersVisited==0&&rooms.normalEncounters.Count>0,"test-entry-room-list-not-ready");
         var previous=rooms.normalEncounters[0].Id.ToString();rooms.normalEncounters[0]=ModelDb.Encounter<CorpseSlugsWeak>();
+        if(_mode==TestPreparation.DefectContent)
+        {
+            var player=_run.Players[0];
+            Codec.Require(player.Deck.Cards.Count==10&&player.Relics.Any(r=>r is CrackedCore),"defect-starter-preparation-shape");
+            var darkness=_run.CreateCard<Darkness>(player);var cold=_run.CreateCard<ColdSnap>(player);
+            var capacitor=_run.CreateCard<Capacitor>(player);var chaos=_run.CreateCard<Chaos>(player);
+            chaos.UpgradeInternal();chaos.FinalizeUpgradeInternal();
+            var zap=player.Deck.Cards.Single(c=>c is Zap);zap.UpgradeInternal();zap.FinalizeUpgradeInternal();
+            foreach(var card in new CardModel[]{darkness,cold,capacitor,chaos})player.Deck.AddInternal(card,silent:true);
+            foreach(var card in new[]{darkness,cold,capacitor,chaos,zap,player.Deck.Cards.Single(c=>c is Dualcast)})
+            {
+                var enchantment=ModelDb.Enchantment<MegaCrit.Sts2.Core.Models.Enchantments.RoyallyApproved>().ToMutable();
+                card.EnchantInternal(enchantment,1);enchantment.ModifyCard();
+            }
+            player.AddRelicInternal(ModelDb.Relic<BagOfPreparation>().ToMutable(),silent:true);
+            Codec.Require(player.AddPotionInternal(ModelDb.Potion<FocusPotion>().ToMutable(),0,silent:true).success,"defect-test-focus-potion");
+        }
         if(_mode==TestPreparation.QueuedCards)
         {
             var player=_run.Players[0];var cards=player.Deck.Cards.OfType<DefendIronclad>().Take(3).ToArray();
@@ -143,7 +161,8 @@ internal static class TestEncounter
             SerializedBeforeCheckpoint=true,NormalEntryUnchangedWhenUnarmed=true,Character=_run.Players[0].Character.Id.ToString(),
             Deck=_run.Players[0].Deck.Cards.Select(c=>new{Model=c.Id.ToString(),c.CurrentUpgradeLevel,Saved=c.ToSerializable()}).ToArray(),
             Relics=_run.Players[0].Relics.Select(r=>r.Id.ToString()).ToArray(),Potions=_run.Players[0].PotionSlots.Select(p=>p?.Id.ToString()).ToArray()});
-        Runtime.Status=_mode==TestPreparation.SharedContent?"共用测试已准备：储君／工具箱初始选择／星星与锻造／第3槽能量药水供丢弃；首战双蛞蝓":
+        Runtime.Status=_mode==TestPreparation.DefectContent?"故障机器人已准备：保留原10张／破损核心；六张先天保留；暗球／冰球／扩槽／随机球／集中药水，首战双蛞蝓":
+            _mode==TestPreparation.SharedContent?"共用测试已准备：储君／工具箱初始选择／星星与锻造／第3槽能量药水供丢弃；首战双蛞蝓":
             _mode==TestPreparation.QueuedCards?"排队测试已准备：铁甲原牌组，三张防御先天保留，首战双蛞蝓；快速连续打两张防御":
             _mode==TestPreparation.RegentContent?"储君测试已准备：原10张起始牌／王权；精炼／双持／启蒙／陨落之星先天保留；星星与锻造药水；双蛞蝓":
             _mode==TestPreparation.SilentContent?"猎人测试已准备：保留12张起始牌和蛇之戒；爆发／生存者／刀刃之舞先天保留；暗港双蛞蝓":

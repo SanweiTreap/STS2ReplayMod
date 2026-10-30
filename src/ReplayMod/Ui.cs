@@ -25,14 +25,15 @@ internal static class Ui
     internal static void AttachMenu(NMainMenu menu)
     {
         var panel=new PanelContainer{Name="ReplayModRecentClip",AnchorLeft=.65f,AnchorRight=.96f,AnchorTop=.12f,AnchorBottom=.90f};
-        var box=new VBoxContainer();panel.AddChild(box);box.AddChild(Label("Replay · 单房间原型 0.1.0"));
+        var scroll=new ScrollContainer{HorizontalScrollMode=ScrollContainer.ScrollMode.Disabled};panel.AddChild(scroll);
+        var box=new VBoxContainer{SizeFlagsHorizontal=Control.SizeFlags.ExpandFill};scroll.AddChild(box);box.AddChild(Label("Replay · 单房间原型 0.1.0"));
         string? id=null;Clip? clip=null;string info;
         try
         {
             Runtime.CheckEnvironment();id=Runtime.Store.LatestId();
             clip=id is null?null:Runtime.ReadClip(id);
-            info=clip is null?"暂无片段。新建铁甲／猎人／储君A0，首场普通战斗会自动录制。首战胜利自动保存。":
-                $"最近{(clip.Operations[^1].Victory?"完整胜利战斗":"片段")} {clip.Id[..8]} · {clip.CreatedUtc.ToLocalTime():MM-dd HH:mm}\n{clip.Operations.Length}个操作 · {(clip.Character=="CHARACTER.REGENT"?"储君":clip.Character=="CHARACTER.SILENT"?"猎人":"铁甲")} A0\nSeed {clip.Seed}\n首战 · 出牌／用药／原生选择"+
+            info=clip is null?"暂无片段。新建铁甲／猎人／储君／故障机器人A0，首场普通战斗会自动录制。首战胜利自动保存。":
+                $"最近{(clip.Operations[^1].Victory?"完整胜利战斗":"片段")} {clip.Id[..8]} · {clip.CreatedUtc.ToLocalTime():MM-dd HH:mm}\n{clip.Operations.Length}个操作 · {(clip.Character=="CHARACTER.DEFECT"?"故障机器人":clip.Character=="CHARACTER.REGENT"?"储君":clip.Character=="CHARACTER.SILENT"?"猎人":"铁甲")} A0\nSeed {clip.Seed}\n首战 · 出牌／用药／丢弃药水／原生选择"+
                     (clip.Preparation is null?"":clip.Preparation.StartsWith("CONTENT004",StringComparison.Ordinal)?"\n定向测试：储君／星星／锻造与复制":clip.Preparation.StartsWith("CONTENT003",StringComparison.Ordinal)?"\n定向测试：猎人／连续弃牌／生成小刀":clip.Preparation.StartsWith("DEMO005",StringComparison.Ordinal)?"\n定向测试：升级牌＋能力＋小花＋能量药水":"\n定向测试样本：暗港双蛞蝓")+
                     (clip.Timing is null?"\n原始操作时间：未知（旧片）":"\n已记录操作接受／完成时间");
         }
@@ -60,6 +61,11 @@ internal static class Ui
         regent.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.SharedContent?TestPreparation.None:TestPreparation.SharedContent;
             RecordedState.Armed=false;RegentText();Runtime.Status=TestEncounter.Armed==TestPreparation.SharedContent?
                 "新建储君A0：工具箱开场选择；先丢弃第3槽能量药水，再星星／锻造／复制／降费，跨回合用锻造药水":"已取消共用测试准备";});RegentText();
+        var defect=Button(box,"CONTENT-005 故障机器人测试：关闭",()=>{});
+        void DefectText()=>defect.Text=TestEncounter.Armed==TestPreparation.DefectContent?"CONTENT-005 故障机器人测试：已启用":"CONTENT-005 故障机器人测试：关闭";
+        defect.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.DefectContent?TestPreparation.None:TestPreparation.DefectContent;
+            RecordedState.Armed=false;RegentText();DefectText();Runtime.Status=TestEncounter.Armed==TestPreparation.DefectContent?
+                "新建故障机器人A0：第一回合暗球→冰球→电击+，集中药水后结束回合；第二回合双重释放→扩容→混沌+":"已取消故障机器人准备";});DefectText();
         var cold=Button(box,"STATE测试：从落盘第1步打开",()=>{if(id is not null)TaskHelper.RunSafely(PlayerLoop.Open(id,fromFile:true));});cold.Disabled=clip?.Authority is null;
         var queued=Button(box,"PLAYBACK-001 排队录制：关闭",()=>{});
         void QueuedText()=>queued.Text=TestEncounter.Armed==TestPreparation.QueuedCards?"PLAYBACK-001 排队录制：已启用":"PLAYBACK-001 排队录制：关闭";
