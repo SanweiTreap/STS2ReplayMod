@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-005进行中**：A共用输入、B机器人、D开场按各自样本闭环验收；当前008保持，**下一C骨妹代表录制/回放**，尚无Osty/Doom运行结论。D的008/r7可见开场/Back/完整胜利/Stop通过，ChoicesParadox与独立短重开未测；006/007失败保留。
+更新：2026-10-30。**CONTENT-005进行中**：A/B/D样本闭环已验收；当前008，**C默认Osty的r8录制/生产读回通过，下一同片原生回放/Back/Doom续播**，尚无C恢复结论。首次创建Osty未覆盖；D工具箱r7通过，ChoicesParadox与独立短重开未测，旧失败保留。
 
 ## 玩家现在能用到什么
 
@@ -29,7 +29,7 @@ r6/r7的恢复后选牌失败保留：PM已核完整异常栈及固定源码，�
 
 ## 尚未完成的产品目标
 
-- 固定STS2 v0.111.0，仅ReplayMod；候选已接五角色A0首幕首排普通战斗、无额外run modifiers，Continue不录。三旧角色及机器人代表组合已验，Necrobinder仍未实测，不能称五角色或全内容运行完成。
+- 固定STS2 v0.111.0，仅ReplayMod；候选已接五角色A0首幕首排普通战斗、无额外run modifiers，Continue不录。三旧角色及机器人代表组合已验，Necrobinder仅录制通过、回放恢复待测，不能称五角色或全内容完成。
 - 后续房间、精英/Boss、事件战斗、奖励/商店与整局；Necrobinder/Osty/Doom实际覆盖、更广球/宠物、新单位/一般复活换形、玩家失败等。
 - 全卡牌/遗物/药水覆盖。原生模型负责效果，但输入、身份、私有状态、订阅与恢复仍需按共用机制补齐；丢弃药水是已确认的输入漏项。
 - 通用文件强记录/纠偏及未访问位置的直接Seek。当前后退主要用观看内存；STATE-001只证明新进程读取首回合首张防御后的一个文件状态点及受控纠偏，不是每步完整文件恢复。
@@ -56,7 +56,9 @@ A的002/r1：PM核[报告](investigation-reports/CONTENT-005-report.md)与[运�
 
 A的r2已按所测范围验收：PM读真实用户“测试完毕，符合预期”、报告和[封存摘要](../evidence/content-005/runtime-verification-r2.json)，未重计276原事件。两次recent、16结果/RNG、4匹配Back（0/0/9/8）、1真实胜利，丢药与锻造恢复后原生再做通过；Stop11/1无Error/Outstanding、计划清空、原context恢复，牌堆监听0/5→0。两次开场原生选择自动完成后初态匹配。开场横幅/选择控制及整体回退现按D-133排队，具体见[体验规格](technical-notes/PLAYBACK-EXPERIENCE.md)；恢复方式/延迟待验证，不追判本次A失败。
 
-B/C基础源码B提交ccbbcde、C提交1235aaa，004准备3a7f711；B恢复/显示/订阅已有r4运行证明，C的Osty/Doom路径仍仅代码/离线、未取样。球/单位权威冷文件恢复未实现。003曾安装但未发测，004仅调整准备提示以避免提前胜利漏机制；不把它与后续D-133候选混用。
+B/C基础源码B提交ccbbcde、C提交1235aaa，004准备3a7f711；B恢复/显示/订阅已有r4证明，C已录默认Osty样本、播放恢复待测。球/单位权威冷文件恢复未实现。003曾安装未发测，004仅改准备提示，不与后续D-133候选混用。
+
+C的008/r8：PM核报告/[摘要](../evidence/content-005/runtime-verification-r8.json)，未重计49原事件。格式8片7393a0279941453297b75597dcea5446录成9项/0选择，胜利自动封存/生产精确读回。Osty ID3/Owner0，初始1/1→成长6/6→死0/6且Pets保留→同ID重召5/5→新回合6/6；Doom26在第9项EndTurn敌方结算致胜，终态死宠留Allies/Pets清空、FishingRod计数0→1已有文件事实，尚非Back证明。同session之前2条observer-error/1录制失败事件保留，未知具体错误条件，不称整session零失败；有效录制区间无失败。下一同片recent测成长/死亡重召/Doom恢复、胜利Back8再EndTurn和退出重开，首次创建另按可选准备取样；008不变。
 
 B的004/r3–r4已按样本验收：r3格式8片dfa22d43c501492786b19cacee1411c7录成9项，含暗球12→20、槽3→5、随机球流0→2与玻璃/冰ID5/6。r4的[封存摘要](../evidence/content-005/runtime-verification-r4.json)/报告经PM复核，未重计697原事件：2次recent、28结果/RNG、18匹配恢复、4真实球胜利；三次胜利Back8后以新信号/原生阶段续播，未重跑开场/回合开始。18球显示恢复及20次退场监听零余量；Stop9/1无Error/Outstanding，原context恢复，原片不变。满槽激发第3项只有首次前进原日志，跨该项Back/重做仅用户反馈，保留边界而不补旧矩阵。此证明限玩家回合末电球致胜，不代替C的Doom敌方回合结算。花粉核心旧bug/全遗物及冷文件恢复未覆盖；报告已随b095f5a保存。
 
@@ -67,7 +69,7 @@ B的004/r3–r4已按样本验收：r3格式8片dfa22d43c501492786b19cacee1411c7
 - 工程：[src/ReplayMod](../src/ReplayMod/README.md)；固定版本反编译C#留本地，日常直接查源码，IL仅在有歧义时核对。
 - 当前安装CONTENT-005/build-008，SHA256 `792B181B68CDB8267F3565EDC09B030352E019C63472623482FED3E5C3200024`，[收据](../evidence/content-005/preparation/build-008-e48f6522.json)，D工具箱样本已实测，C待测。007/006失败及对应pair/日志、004/002/旧PLAYBACK-003/008恢复pair保留；任务间编号勿混用。
 - [公开Git仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始证据、存档录像、备份、依赖及反编译缓存留本地，见[协作规则](REPOSITORY.md)。
-- 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，A后51当前文件/候选pair已补存，见本包报告，不冒充更新后的完整账号快照。未整包恢复；用户有新增进度时先备份，另一账号不纳入。
+- 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续已知当前文件/候选pair补存见本包报告与各收据（已含C录制后），不冒充更新后的完整账号快照。未整包恢复；用户有新增进度时先备份，另一账号不纳入。
 - Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)，当前CONTENT-005；PM管状态/规划，不承担大规模源码实现。
 - D-092有效：备份后允许较大胆的mod/hook与同包普通修复，不为每个失败退役代码或另开调查/审批。默认modded1；unmodded1不再禁止读取/复制，备份权限不降低成品Continue隔离目标。
 - 游戏由用户手动启动/操作，不用Computer Use、替代GUI自动化或自行启动headless；换DLL前退出，Cloud由用户现场确认，不自动改。保留可用安装，不自动卸载；见[WORKFLOW](WORKFLOW.md)/[TEST_PROTOCOL](TEST_PROTOCOL.md)。
