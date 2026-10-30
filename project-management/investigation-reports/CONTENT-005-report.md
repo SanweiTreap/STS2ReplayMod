@@ -1,6 +1,6 @@
 # CONTENT-005：五角色基础战斗支持
 
-2026-10-30，D-132授权，同包按A/B/C分段。A段build-002所测共用闭环通过。B段build-004/r3–r4已取得机器人格式8新录→recent→相关Back/续播→回合末球胜利Back再胜利→Stop/短重开真实闭环；C的Osty/Doom尚待实测，不称五角色运行完成。起点PLAYBACK-003/build-008及007/r8既有结论保持，不追认成本包验证。
+2026-10-30，实现侧按所测范围完成交接：A共用输入/丢药（002/r1–r2）、B机器人球（004/r3–r4）、C默认及首次Osty/Doom（008/r8–r9、009/r10–r12）、D工具箱原生可见开场（008/r7）、E在途回退等待优化（011/r14）分别有实际运行证据和用户反馈。当前安装011保持，旧pair与重要失败保留；最终覆盖索引/状态由PM维护。单人A0首场普通战斗的代表机制通过，不外推全内容、整局/多人或任意文件点冷恢复。下文实现增量保留当时的待测描述，当前结论以对应逐轮结果及限制为准；既有PLAYBACK-003结论不追认成本包新增测试。
 
 ## A：共用输入与已有资源
 
@@ -197,6 +197,16 @@ D-133按本工具箱片所测可见流程/开场请求/整体Back/完整胜利�
 剩余玩家准备等待涉及CardPileCmd.Add原生Tween及其Finished、AfterCardChangedPiles等回调，011保留完整流程，不用skipVisuals/假完成信号抹掉牌堆事件。必要退役遮罩/静默、旧回合cue定向清理、普通播放/录制/原游戏速度边界沿010保持。日志增加PacingSource，便于分辨实际释放的共享调用点；未知等待原样执行，不为提速降低断言。预计减少更多敌行动pacing只是待测推断，不承诺下一候选已达到目标。
 
 主工程构建0警告0错误、既有4组纯async计时合同和原片生产读取通过，输出`evidence/content-005/checks/expanded-retirement/`；原生新增caller绑定/状态RNG/延迟Pending。011 DLL `E222994401F1B3BD89465E540645031BF7214C531EE05F5A81F9D40FD7F321A9`已安装，收据`evidence/content-005/preparation/build-011-ef2b7c26.json`，010/009 pair/config与重要数据保留。当前51文件/3,953,223 bytes补存`CONTENT005-post-phase-wait-r13-current-20261030-160200`逐hash读回，收据`evidence/content-005/post-phase-wait-r13-current-files.json`；原账号/固定本体/仅ReplayMod/modded1/game0核对，Cloud沿本批关闭，无restore/history/其他账号遍历。下一同片真正在途EndTurn Back与Seek、继续到原生胜利和Stop/短重开，按数据与体感判断，不扩全局加速平台或新矩阵。
+
+## r14：011在途EndTurn Back优化通过，按所测范围交接收尾
+
+011/session `e9cf37289e5748329461012f0290e93b`最终357事件，一次recent打开首次Osty片。5次真正在途操作7（EndTurn）Back到6，每次Released1，Skipped依次8/12/12/12/11；退役耗时533/529/545/534/518ms，总到达645/593/635/610/564ms。没有拿稳定点恢复混入该组；96条绑定来自StartTurn13、PerformIntent14、PerformMove28、TriggerAnim22、Damage19，当前state/代归属均匹配。010/r13的约1.88–2.18秒与本轮约0.56–0.65秒分开记录，触发时点不严格配对，不报固定百分比。用户明确“这次效果很不错。过了”，E按本片Back路径取得实际体验和耗时证明。
+
+14次原生结果/RNG均匹配（Retiring6：五次撤销的EndTurn及Stop收束的最后一步），5次Back状态/RNG/模式/清计划均匹配；最后完整真实Doom胜利、原生VictoryTask成功、未生成奖励。Stop9 Error null、Outstanding false、Running/Auto false/Pending0，原manager/所比较Continue进度恢复；Osty清理Known1/NativePetDiedCallbacksRemaining0，牌登记监听0，未复用业务Task或放松断言。observer/mod失败和retired-phase-timer-fault均0。原片SHA `E1CCDFC37BEE7A2BCF67E416C8EFD451BBC14BBBD1ED790B33EDFDB7BEBE96BA`未变，正常Quit/shutdown/game0已核。357事件+原片/Godot共359数据文件逐hash封存`runtime/content-005-r14-20261030-165140`，摘要`evidence/content-005/runtime-verification-r14.json`，原始引擎诊断保留。
+
+本轮raw全部Back true，没有独立Seek或短重开，不追认这两项011新运行覆盖；010/r13的Seek/短重开按原版本保留。相同恢复通路与009/C功能证据不冒充每个版本完整矩阵，也不因该缺口机械追加用户测试。未审计时/Hook/Tween仍等待，约半秒的原生玩家准备回调保留；不是任意时刻瞬时取消或全内容加速，普通播放/录制/原游戏速度未变。
+
+当前011 DLL `E222994401F1B3BD89465E540645031BF7214C531EE05F5A81F9D40FD7F321A9`及安装收据保持不变，009可用pair、010体感失败及其他早期失败证据保留，无restore或账号范围变化。实现侧按A/B/C/D/E各自已测机制交接本包收尾，不另建新候选或重复矩阵；PM维护最终状态/覆盖索引。五角色基础代表性单场支持不等于全卡牌/遗物/药水、其他敌方新生/复活、Boss/失败局、整局/多人或任意文件点冷恢复通过。
 
 ## B：球机制源码增量，所测闭环通过
 
