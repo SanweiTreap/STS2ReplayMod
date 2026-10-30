@@ -1871,6 +1871,20 @@ Implementation按更新后的PLAYBACK-003直接实现、必要重构/合同检�
 
 008/r7验收：PM核报告和封存204事件摘要，未重计原事件。3次room先显露后选择Ready，用户确认可见原生入场/选择中Back；3次Initial匹配/未带op1，随后11项原生结果/RNG和真实胜利、片尾Auto关、Stop11原context与监听清理通过。4旧loop退休，不复活旧Task或新增选择页Seek。D按工具箱样本DONE_WITH_LIMITATIONS，006/007失败保留；本轮无独立短重开/ChoicesParadox样本，不追加旧矩阵。当前008保持，C默认Osty/Doom录制回放接回，尚无C运行结论。
 
+## D-134：将两场候选扩为持续录制、Continue、列表与敌方召援
+
+日期：2026-10-30，Asia/Shanghai
+
+状态：Accepted / AUTHORIZED；CONTENT-006交现有Implementation，尚无新代码/运行结论
+
+CONTENT-005按代表样本收束后，用户要求“好。你安排一下？我感觉也许可以多做一点”。据此将原连续两场建议扩成同一批日常可用增量：首幕A0普通战斗（含后续强怪/群怪）持续自动录制、奖励后真实起点承接、保存退出/Continue后续录、按局/楼层选择较早或较晚战斗独立看，以及三鼠召援的身份/roster/显示/订阅与跨生成Back后原生再执行。五角色资格保持，不要求五角色全矩阵。
+
+PM已读Recorder/LiveState/Codec/菜单/CombatRoster及固定RunManager源码：fresh/单次attempt/row1/最近单片是真限制；Continue的LoadIntoLatestMapCoord走saveGame:false，不能只移除row判断或假设重进一定再次捕获ToSave。具体重构/分组与入口方案交Implementation验证，不预认动态等价。Continue至少录到下一受支持战斗；未完成战斗重进需真实房间前checkpoint并标新attempt，不拼中断操作，非法起点明确未录。
+
+同包A/B/C先提供可测增量、D沿实际路径推进，可合并一次正常三场游玩与一次新进程Continue、奖励变化、召援及列表回看，普通bug/备份安装/请求人工测试沿D-092自主；无需回PM逐段审批、新INV或永久退役失败候选。起点保留011，新的build/报告/原始证据按CONTENT-006区分。PM先提交任务后移交Git index写入窗口；用户仍手动启动/操作游戏，不自动headless、不新建用户对话或覆盖模型。
+
+本包逐场独立回看，不是跨房间Seek或整局地图/奖励语义回放；精英/Boss/事件战斗、其他难度/跨幕、最终失败、卵孵化/留场复活/多阶段、通用文件冷恢复和发布性能仍待后续。原CONTENT-005各版本/失败/未测边界不追认，新范围不能仅删拒绝检查就标完成。
+
 ## 尚未决策
 
 - 是否在跨版本 milestone 前提供 v0.107 的独立同版本构建。

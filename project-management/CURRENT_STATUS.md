@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-005按所测范围DONE_WITH_LIMITATIONS**，保留已安装build-011。用户确认r14“这次效果很不错。过了！”，游戏已正常退出；本包不再追加候选或矩阵，当前无已派发的下一任务。
+更新：2026-10-30。**当前任务CONTENT-006（D-134）**：用户要求下一批可以多做一点，已授权持续多场普通战斗录制、Continue续录、最小战斗列表与三鼠召援，交现有Implementation同工程推进；尚无本包代码/运行结论。CONTENT-005按所测范围DONE_WITH_LIMITATIONS，保留安装011及既有结果，不追加旧矩阵。
 
 ## 玩家现在能用到什么
 
@@ -42,9 +42,11 @@ r14的14次原生结果/RNG包含Retiring6（5次被撤销EndTurn的自然收尾
 - 发布性能、长战斗/整局容量与异常恢复；256操作/4MiB等原型上限不是发布保证，原PERF小pilot不替代预算。用户拖牌取消/凋萎互卡根因未复现。
 - 多人为MVP后第一大型方向、跨版本第二；不可逆接管不纳入当前MVP。
 
-## 下一项建议（未派发）
+## 当前推进：CONTENT-006
 
-优先讨论把“只录首战”扩到同一真实对局连续两场普通战斗：各房间真实起点/奖励后状态承接、自动封存与独立回看，先形成日常游玩可用增量。它不等于整局语义回放；敌方召援（三鼠等）仍是另一重要机制候选。先后/范围待讨论，不创建新对话或自动启动新实现/测试。
+用户已授权扩大下一批，签发[CONTENT-006](handoffs/CONTENT-006.md)：首幕A0普通战斗持续录制（含后续强怪/群怪）、正常奖励后的状态承接、Continue后的录制、按局/楼层选择旧战斗独立观看，以及三鼠敌方召援的原生前进/跨生成Back。沿同一工程分段交付，普通相关bug同包修，无新INV/逐步审批。最小实测争取一段三场游玩合并奖励变化/新进程Continue/召援/较早较晚回看；游戏仍由用户操作。当前仍安装011，新功能尚未实现或验证。
+
+这比原“两场”候选更完整，但不等于整局地图/奖励语义回放、跨房间Seek、Boss/孵化/复活/跨幕、其他难度或通用冷恢复。Continue重进须有真实房间前起点并标newattempt，不能拼未完操作；至少验证下一受支持战斗续录。实际方案/覆盖待Implementation验证，任务细节以工作包为准。
 
 ## 工程、恢复点与协作
 
@@ -52,7 +54,7 @@ r14的14次原生结果/RNG包含Retiring6（5次被撤销EndTurn的自然收尾
 - 工程[src/ReplayMod](../src/ReplayMod/README.md)，本包报告提交2618324。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常直接查源码，有歧义再查IL。
 - 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续当前文件/安装pair补存见报告/收据，不称更新后的完整账号快照。未整包恢复，用户有新进度先补备份，另一账号不纳入。
 - [公开仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始录像/日志/备份、依赖和游戏反编译缓存仅留本地。Git仅一个index写入者，提交精确路径，不reset/clean/force。[协作规则](REPOSITORY.md)。
-- Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)本包已结束写入/测试，等待下一目标。PM管状态/规划/验收，不承担大规模源码实现；新建用户对话须明确要求。
+- Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)接续CONTENT-006；PM提交工作包后移交Git index窗口，维护状态/规划/验收，不承担大规模源码实现；不新建用户对话或覆盖模型。
 - D-092备份后允许同包查源码/hook/普通修复/安装和请求人工短测；默认modded1，unmodded1不再是禁止读取复制的禁区。实验权限不降低成品Continue隔离目标，不恢复逐步审批。
 - 用户手动启动/操作游戏，不Computer Use、替代GUI自动化或自行启动headless；换DLL前正常退出。Cloud按实际确认，不自动更改；保留可用安装，不自动卸载。[WORKFLOW](WORKFLOW.md)/[TEST_PROTOCOL](TEST_PROTOCOL.md)。
 
