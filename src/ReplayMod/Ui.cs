@@ -64,6 +64,11 @@ internal static class Ui
         _menuStatus=Label(Runtime.Status);box.AddChild(_menuStatus);
         var development=new VBoxContainer{Visible=false};
         Button(box,"开发／旧样本与定向准备",()=>development.Visible=!development.Visible);box.AddChild(development);box=development;
+        var rats=Button(box,"CONTENT-006 三鼠召援：关闭",()=>{});
+        void RatsText()=>rats.Text=TestEncounter.Armed==TestPreparation.EnemySummon?"CONTENT-006 三鼠召援：已启用（下一新局）":"CONTENT-006 三鼠召援：关闭";
+        rats.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.EnemySummon?TestPreparation.None:TestPreparation.EnemySummon;
+            RecordedState.Armed=false;RatsText();Runtime.Status=TestEncounter.Armed==TestPreparation.EnemySummon?
+                "下一新铁甲A0：暗港首战三鼠；升级原三防御，增加两张全身撞击+，五牌先天保留。先防御等召援，再击杀新怪":"已取消三鼠准备";});RatsText();
         const string hunterReference="1d5346b085b04635ab3e00b43fe9190c";
         try{_ =Runtime.ReadClip(hunterReference);Button(box,"打开已有猎人样本 · 完整27项",()=>TaskHelper.RunSafely(PlayerLoop.Open(hunterReference,entry:"hunter-reference")));}catch{/* Optional reference, not the production input. */}
         const string continuousSample="fc6432b4c0af41d69defda73f1770824";

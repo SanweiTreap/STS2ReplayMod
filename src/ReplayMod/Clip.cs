@@ -36,7 +36,7 @@ public static class Codec
     public const int MaxOperations=256;
     public static void Validate(Clip clip,string game,string mod,string scope,params string[] compatibleRecordedMods)
     {
-        Require(clip.Format is >=1 and <=9&&Regex.IsMatch(clip.Id,"^[a-f0-9]{32}$"),"unsupported-format-or-id");
+        Require(clip.Format is >=1 and <=10&&Regex.IsMatch(clip.Id,"^[a-f0-9]{32}$"),"unsupported-format-or-id");
         Require(clip.GameHash==game&&(clip.ModHash==mod||clip.ModHash is not null&&compatibleRecordedMods.Contains(clip.ModHash,StringComparer.Ordinal))&&clip.Scope==scope&&clip.Mods.SequenceEqual(new[]{"ReplayMod:0.1.0"}),"different-build-or-profile-or-mods");
         Require((clip.Character=="CHARACTER.IRONCLAD"||clip.Format>=4&&clip.Character=="CHARACTER.SILENT"||clip.Format>=5&&clip.Character=="CHARACTER.REGENT"||clip.Format>=8&&clip.Character is "CHARACTER.DEFECT" or "CHARACTER.NECROBINDER")&&(clip.Format>=9?clip.Row>=1:clip.Row==1)&&clip.Col>=0&&clip.Encounter.Length>0&&
             clip.Checkpoint.Length>0&&clip.Initial.Length>0,"unsupported-scene");
@@ -45,7 +45,7 @@ public static class Codec
         if(clip.Choices is not null)ChoiceContract.Validate(clip.Choices,clip.Operations.Length);
         ValidateTiming(clip);
         if(clip.Format>=8)
-            foreach(var projection in new[]{clip.Initial}.Concat(clip.Operations.Select(o=>o.After)))ValidateResources(projection);
+            foreach(var projection in new[]{clip.Initial}.Concat(clip.Operations.Select(o=>o.After)))ValidateResources(projection,clip.Format);
         Require(clip.Authority is null||clip.Character=="CHARACTER.IRONCLAD"&&clip.Format==3&&clip.Authority=="STATE001-first-Defend-v1"&&
             clip.Operations[0] is {Kind:OperationKind.Card,Card:"CARD.DEFEND_IRONCLAD",Turn:1,Victory:false,CardState.Upgrade:0},"unsupported-authority-point");
         var victory=clip.Operations[^1].Victory;
@@ -93,7 +93,7 @@ public static class Codec
             }
         }
     }
-    private static void ValidateResources(string projection)
+    private static void ValidateResources(string projection,int format)
     {
         using var parsed=JsonDocument.Parse(projection);
         var state=parsed.RootElement;
@@ -112,6 +112,14 @@ public static class Codec
             units.Allies.All(u=>u.Identity<units.NextIdentity&&u.MaxHp>0&&u.Hp>=0&&u.Hp<=u.MaxHp&&u.Powers is not null)&&
             units.Allies.Skip(1).All(u=>u is {Model:"MONSTER.OSTY",Owner:0,Rng:not null})&&
             units.Pets!.All(id=>units.Allies.Any(u=>u.Identity==id&&u.Owner==0)),"combat-ally-content-or-ownership");
+        Require(format>=10?units.Enemies is not null:units.Enemies is null,"enemy-roster-format");
+        if(units.Enemies is {} enemies)
+        {
+            Require(enemies.Length<=128&&enemies.Select(e=>e.Identity).Concat(units.Allies.Select(a=>a.Identity)).Distinct().Count()==enemies.Length+units.Allies.Length,"combat-enemy-identities");
+            Require(enemies.All(e=>e.Identity<units.NextIdentity&&Regex.IsMatch(e.Model,"^MONSTER\\.[A-Z0-9_]+$")&&
+                e.Slot is null or {Length:<=128}&&e.MaxHp>0&&e.Hp>=0&&e.Hp<=e.MaxHp&&e.Alive==(e.Hp>0)&&e.Block>=0&&
+                e.Rng is not null&&e.Powers is not null&&e.Mutable is {Count:<=128}&&e.MoveLog is {Length:<=1024}),"combat-enemy-content-or-allocator");
+        }
     }
     private static void ValidateTiming(Clip clip)
     {

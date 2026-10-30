@@ -10,7 +10,7 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace ReplayMod;
 
-internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent, NecrobinderContent }
+internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent, NecrobinderContent, EnemySummon }
 // Explicit opt-in, consumed by ONE new supported run. Never applied to Continue or playback.
 internal static class TestEncounter
 {
@@ -20,7 +20,8 @@ internal static class TestEncounter
     private static TestPreparation _mode;
     private static RunState? _run;
     internal static string? Preparation=>_run is not null&&ReferenceEquals(_run,RunManager.Instance.DebugOnlyGetState())?
-        (_mode==TestPreparation.NecrobinderContent?(_firstOstySummon?
+        (_mode==TestPreparation.EnemySummon?"CONTENT006-D-Ironclad-Underdocks-TwoTailedRatsNormal-3-starter-DefendPlus-2-added-BodySlamPlus-5-innate-retain":
+         _mode==TestPreparation.NecrobinderContent?(_firstOstySummon?
             "CONTENT005-C-Necrobinder-first-Osty-summon-no-BoundPhylactery-3-Bodyguard-BoneShards-DeathbringerPlus-6-innate-retain-BagOfPreparation-EnergyPotion":
             "CONTENT005-C-Necrobinder-starter10-BoundPhylactery-Bodyguard-BoneShards-DeathbringerPlus-5-innate-retain-BagOfPreparation-EnergyPotion"):
          _mode==TestPreparation.DefectContent?"CONTENT005-B-Defect-starter10-CrackedCore-Darkness-ColdSnap-Capacitor-ChaosPlus-6-innate-retain-BagOfPreparation-FocusPotion":
@@ -45,7 +46,19 @@ internal static class TestEncounter
         if(Preparation is null)return;
         var rooms=(RoomSet)AccessTools.Field(typeof(ActModel),"_rooms").GetValue(_run!.Act)!;
         Codec.Require(rooms.normalEncountersVisited==0&&rooms.normalEncounters.Count>0,"test-entry-room-list-not-ready");
-        var previous=rooms.normalEncounters[0].Id.ToString();rooms.normalEncounters[0]=ModelDb.Encounter<CorpseSlugsWeak>();
+        var previous=rooms.normalEncounters[0].Id.ToString();rooms.normalEncounters[0]=_mode==TestPreparation.EnemySummon?ModelDb.Encounter<TwoTailedRatsNormal>():ModelDb.Encounter<CorpseSlugsWeak>();
+        if(_mode==TestPreparation.EnemySummon)
+        {
+            var player=_run.Players[0];var defense=player.Deck.Cards.OfType<DefendIronclad>().Take(3).Cast<CardModel>().ToArray();
+            Codec.Require(defense.Length==3&&defense.All(c=>c.CurrentUpgradeLevel==0),"rat-test-starter-defends");
+            var attacks=Enumerable.Range(0,2).Select(_=>ModelDb.Card<BodySlam>().ToMutable()).ToArray();
+            foreach(var card in attacks)player.Deck.AddInternal(card,silent:true);
+            foreach(var card in defense.Concat(attacks))
+            {
+                card.UpgradeInternal();var enchantment=ModelDb.Enchantment<MegaCrit.Sts2.Core.Models.Enchantments.RoyallyApproved>().ToMutable();
+                card.EnchantInternal(enchantment,1);enchantment.ModifyCard();
+            }
+        }
         if(_mode==TestPreparation.NecrobinderContent)
         {
             var player=_run.Players[0];
@@ -189,7 +202,8 @@ internal static class TestEncounter
             SerializedBeforeCheckpoint=true,NormalEntryUnchangedWhenUnarmed=true,Character=_run.Players[0].Character.Id.ToString(),
             Deck=_run.Players[0].Deck.Cards.Select(c=>new{Model=c.Id.ToString(),c.CurrentUpgradeLevel,Saved=c.ToSerializable()}).ToArray(),
             Relics=_run.Players[0].Relics.Select(r=>r.Id.ToString()).ToArray(),Potions=_run.Players[0].PotionSlots.Select(p=>p?.Id.ToString()).ToArray()});
-        Runtime.Status=_mode==TestPreparation.NecrobinderContent?"亡灵契约师已准备：保留原10张／原遗物；两张保镖／释放／碎骨／死亡使者+先天保留；能量药水，首战双蛞蝓":
+        Runtime.Status=_mode==TestPreparation.EnemySummon?"三鼠召援测试已准备：原牌组中三防御升级，添加两张全身撞击+，五牌先天保留；先防御等原生召援，再攻击新怪":
+            _mode==TestPreparation.NecrobinderContent?"亡灵契约师已准备：保留原10张／原遗物；两张保镖／释放／碎骨／死亡使者+先天保留；能量药水，首战双蛞蝓":
             _mode==TestPreparation.DefectContent?"故障机器人已准备：保留原10张／破损核心；六张先天保留；暗球／冰球／扩槽／随机球／集中药水，首战双蛞蝓":
             _mode==TestPreparation.SharedContent?"共用测试已准备：储君／工具箱初始选择／星星与锻造／第3槽能量药水供丢弃；首战双蛞蝓":
             _mode==TestPreparation.QueuedCards?"排队测试已准备：铁甲原牌组，三张防御先天保留，首战双蛞蝓；快速连续打两张防御":

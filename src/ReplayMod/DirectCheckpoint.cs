@@ -61,11 +61,11 @@ internal sealed class DirectCheckpoint
     {
         var run=LiveState.Run;
         return new object?[]{((CombatRoom)run.CurrentRoom!).CombatState,LiveState.Player,CombatManager.Instance,NetCombatCardDb.Instance,run.Rng,run.Odds,run.ExtraFields,run.CurrentMapPointHistoryEntry,
-            LiveState.Format>=8?OrbState.Identities:null}.Concat(roster.Anchors).Where(v=>v is not null).Cast<object>();
+            LiveState.Format>=8?OrbState.Identities:null,roster.Identities}.Concat(roster.Anchors).Where(v=>v is not null).Cast<object>();
     }
     internal static bool Data(object value)
     {
-        if(value is OrbIdentityMap<OrbModel>)return true;
+        if(value is OrbIdentityMap<OrbModel> or CombatIdentityRegistry<Creature>)return true;
         if(value is GodotObject||value is Task||value is CancellationTokenSource)return false;
         if(value is AbstractModel model)return model.IsMutable&&model is not CharacterModel;
         var n=value.GetType().Namespace??"";
@@ -141,13 +141,15 @@ internal sealed class DirectCheckpoint
             foreach(var pile in LiveState.Player.PlayerCombatState!.AllPiles)CombatManager.Instance.StateTracker.Unsubscribe(pile);
         }
         // Native removal unsubscribed the dead enemy. Reconcile explicitly without setup/spawn hooks.
-        foreach(var creature in before)CombatManager.Instance.StateTracker.Unsubscribe(creature);
+        if(LiveState.Format>=10)CombatUnitSubscriptions.Retire(_roster.Anchors);
+        else foreach(var creature in before)CombatManager.Instance.StateTracker.Unsubscribe(creature);
         if(fileData is not null)fileData();else (_data??throw new InvalidDataException("checkpoint-data-missing")).Restore();
         var restored=Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-        foreach(var removedPet in before.Except(_creatures).Where(CombatUnits.IsOsty))removedPet.CombatState=null;
+        foreach(var removed in before.Except(_creatures))removed.CombatState=null;
         Codec.Require(_creatures.SequenceEqual(_combat.Creatures)&&_creatures.All(CombatUnits.Restorable),"direct-back-restored-membership-mismatch");
         Codec.Require(_creatures.All(c=>ReferenceEquals(c.CombatState,_combat)&&ReferenceEquals(_combat.GetCreature(c.CombatId),c)),"direct-back-restored-target-identity-mismatch");
-        foreach(var creature in _creatures)CombatManager.Instance.StateTracker.Subscribe(creature);
+        if(LiveState.Format>=10)CombatUnitSubscriptions.Restore(_roster.Anchors,_creatures);
+        else foreach(var creature in _creatures)CombatManager.Instance.StateTracker.Subscribe(creature);
         foreach(var card in LiveState.Player.PlayerCombatState!.AllCards.Distinct())CombatManager.Instance.StateTracker.Subscribe(card);
         if(_route)
         {
@@ -181,6 +183,8 @@ internal sealed class DirectCheckpoint
         Runtime.Log("checkpoint-roster-restored",new{Position,Before=beforeSummary,After=CombatRoster.Summary(_combat.Creatures),
             AllOriginalAnchors=CombatRoster.Summary(_roster.Initial),
             OriginalObjectsRetained=_creatures.All(c=>_roster.Initial.Contains(c)&&ReferenceEquals(_combat.GetCreature(c.CombatId),c)),
+            VisitedPointObjectsRetained=_creatures.All(c=>ReferenceEquals(_combat.GetCreature(c.CombatId),c)),
+            NextNativeIdentity=Get(_combat,"_nextCreatureId"),RegisteredNextIdentity=_roster.Identities.NextIdentity,
             EnemyDisplaysRecreated=rebuildEnemies,StateSubscriptionsReconciled=true,SpawnHooksRun=false,RoomRebuilt=false,PrefixOperations=0});
         if(_route)Runtime.Log("checkpoint-restore-timing",new{Position,RetireMilliseconds=retired,DataMilliseconds=restored-retired,
             CreatureAndContentMilliseconds=creatures-restored,UiMilliseconds=ui-creatures,ValidationAndLogMilliseconds=Stopwatch.GetElapsedTime(started).TotalMilliseconds-ui,

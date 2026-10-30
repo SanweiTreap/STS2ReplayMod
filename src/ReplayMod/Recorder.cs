@@ -67,7 +67,7 @@ internal static class Recorder
     }
     private static void Capture(SerializableRun save,string source)
     {
-        _captureEntry=false;_attempted=true;LiveState.Format=RecordedState.Recording?3:9;LiveState.Supported();Runtime.CheckEnvironment();
+        _captureEntry=false;_attempted=true;LiveState.Format=RecordedState.Recording?3:10;LiveState.Supported();Runtime.CheckEnvironment();
         if(LiveState.Format>=5)RecordingClock.Start();else RecordingClock.Reset();
         var run=LiveState.Run;var coord=run.CurrentMapCoord!.Value;
         var battle=LiveState.Format>=9?Runtime.Journal.Begin(run.CurrentActIndex,coord.row,coord.col,coord.row+1,save.StartTime,source):null;

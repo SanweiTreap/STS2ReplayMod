@@ -128,6 +128,7 @@ internal static class LiveState
             var creature=Player.Creature;Codec.Require(key.Index==0&&creature.IsAlive&&creature.CombatId==key.CombatId&&creature.ModelId.ToString()==key.Model,"player-target-content-or-identity");return creature;
         }
         var enemies=((CombatRoom)Run.CurrentRoom!).CombatState.Enemies.ToList();
+        if(Format>=10&&PlayerLoop.Active)return PlayerLoop.ResolveEnemy(key);
         Codec.Require(key.Index>=0&&key.Index<enemies.Count,"target-index");var e=enemies[key.Index];
         Codec.Require(e.IsAlive&&e.Monster?.Id.ToString()==key.Model&&e.CombatId==key.CombatId,"target-content-or-identity");return e;
     }
