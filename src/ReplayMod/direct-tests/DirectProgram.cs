@@ -1,5 +1,6 @@
 using System.Reflection;
 using ReplayMod;
+if(args.Length>1&&args[1]=="run-envelope"){RunContracts.Run(args[0]);return;}
 if(args.Length>1&&args[1]=="enemy-generation"){EnemyGenerationContracts.Run(args[0]);return;}
 if(args.Length>1&&args[1]=="recording-library"){RecordingContracts.Run(args[0]);return;}
 if(args.Length>1&&args[1]=="phase-wait"){await PhaseWaitContracts.Run(args[0]);return;}

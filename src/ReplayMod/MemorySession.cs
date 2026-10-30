@@ -13,8 +13,10 @@ internal sealed class MemorySession
     private readonly string _nativePath,_progressPath,_beforeProgress;
     private readonly string? _runHash,_backupHash,_progressHash;
     private bool _installed;
-    internal MemorySession()
+    private readonly string? _recordedProgress;
+    internal MemorySession(string? recordedProgress=null)
     {
+        _recordedProgress=recordedProgress;
         Original=SaveManager.Instance;
         _nativePath=ProjectSettings.GlobalizePath(RunSaveManager.GetRunSavePath(Original.CurrentProfileId,RunSaveManager.runSaveFileName));
         _runHash=FileHash(_nativePath);_backupHash=FileHash(_nativePath+".backup");_beforeProgress=Progress(Original);
@@ -29,7 +31,7 @@ internal sealed class MemorySession
         memory.WriteFile(ProfileSaveManager.GetProfileSavePath(null),JsonSerializationUtility.ToJson(profile));
         memory.WriteFile(SettingsSaveManager.settingsSaveFileName,JsonSerializationUtility.ToJson(Original.SettingsSave));
         memory.WriteFile(PrefsSaveManager.GetPrefsPath(Original.CurrentProfileId,null),JsonSerializationUtility.ToJson(Original.PrefsSave));
-        memory.WriteFile(ProgressSaveManager.GetProgressPathForProfile(Original.CurrentProfileId,null),_beforeProgress);
+        memory.WriteFile(ProgressSaveManager.GetProgressPathForProfile(Original.CurrentProfileId,null),_recordedProgress??_beforeProgress);
         var isolated=new SaveManager(memory,memory,true);isolated.InitProfileId(null);
         Codec.Require(isolated.InitSettingsData().Success&&isolated.InitPrefsData().Success&&isolated.InitProgressData().Success,"memory-context-init");
         Codec.Require(isolated.CurrentProfileId==Original.CurrentProfileId&&!ReferenceEquals(Original.SettingsSave,isolated.SettingsSave)&&

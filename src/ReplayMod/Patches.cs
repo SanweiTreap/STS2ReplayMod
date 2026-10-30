@@ -65,6 +65,7 @@ internal static class Patches
         Patch(typeof(JossPaper),"DoActivateVisuals",prefix:nameof(PaperVisuals));
         Patch(typeof(CardModel),"TryManualPlay",prefix:nameof(Manual));
         ChoicePatches.Install(h);
+        RunPatches.Install(h);
         Patch(typeof(CombatManager),"StartTurn",prefix:nameof(TurnBefore),postfix:nameof(TurnAfter));
         Patch(typeof(NCombatStartBanner),"_Ready",postfix:nameof(BannerReady),parameters:[]);
         Patch(typeof(NPlayerTurnBanner),"_Ready",postfix:nameof(BannerReady),parameters:[]);
@@ -102,6 +103,7 @@ internal static class Patches
     private static void Entry(Task __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Entry(__result));}
     private static bool Queue(GameAction __0)
     {
+        if(RunPlayback.Active&&RunPlayback.Driving&&__0 is VoteForMapCoordAction)return true;
         if(DecisionRoute.Enabled&&DecisionRoute.Historical&&__0 is not (PlayCardAction or EndPlayerTurnAction or UsePotionAction or DiscardPotionGameAction))
         {
             Runtime.Guard(()=>throw new InvalidDataException("route-business-action-during-history-"+__0.GetType().Name));return false;
@@ -209,9 +211,10 @@ internal static class Patches
     private static void OstyReviveHud(NCreature __instance)=>Runtime.Guard(()=>CreaturePresentation.VerifyNativeOstyRevive(__instance));
     private static void EndBefore(){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(BattleEnd.EndStarted);}
     private static void EndTask(Task __result){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(()=>BattleEnd.Track(__result));}
-    private static bool RewardUi()
+    private static bool RewardUi(MegaCrit.Sts2.Core.Rooms.CombatRoom __0)
     {
         if(!PlayerLoop.Active)return true;
+        if(RunPlayback.Active)return !RunPlayback.DeferRewards(__0);
         Runtime.Log("playback-rewards-blocked",new{Reason="victory-is-replay-endpoint",NormalRecordingUnaffected=true});return false;
     }
     private static void ProgressOwner(SaveManager __instance)
@@ -231,6 +234,7 @@ internal static class Patches
     private static void CancelSettled(GameAction __instance){if(NativeSeek.Enabled)Runtime.Guard(()=>NativeSeek.CancelSettled(__instance));}
     private static void ReadyAction(ref GameAction? __result)
     {
+        if(RunPlayback.Active&&RunPlayback.Current?.Kind=="map"&&__result is VoteForMapCoordAction)return;
         if(!NativeSeek.Enabled)return;
         var candidate=__result;GameAction? filtered=null;Runtime.Guard(()=>filtered=NativeSeek.FilterReady(candidate));__result=filtered;
     }

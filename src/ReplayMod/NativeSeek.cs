@@ -45,7 +45,7 @@ internal static class NativeSeek
     internal static bool AllMatched=>Finished;
     internal static bool CanStep=>Enabled&&(!PlayerLoop.Loading||Opening&&Ready)&&!_stopping&&!_restoring&&_seek is null&&!Finished&&_requests.Stage<_requests.Route[^1].Stage;
     internal static bool CanFine=>CanStep&&Ready&&_requests.CanRequestFine;
-    internal static bool CanBack=>Enabled&&!_stopping&&!_restoring&&_seek is null&&_openingNavigation is null&&
+    internal static bool CanBack=>Enabled&&(!RunPlayback.Active||!Opening&&(InFlight||_completed>0))&&!_stopping&&!_restoring&&_seek is null&&_openingNavigation is null&&
         (Opening?HasView:InFlight||_completed>=0);
     internal static bool Stopping=>_stopping;
     internal static bool Restoring=>_restoring;
@@ -95,6 +95,7 @@ internal static class NativeSeek
     }
     internal static void RequestSeek(int host,bool preserveIntent=true)
     {
+        Codec.Require(!RunPlayback.Active||host>=0,"run-cross-room-opening-navigation-disabled");
         Codec.Require(Enabled&&!_restoring&&!_stopping&&(host==-1||Points.ContainsKey(host)),"operation-seek-only-complete-indexed-boundaries");
         var priorIntent=_seek?.Intent??_requests.Intent;
         var intent=PlaybackIntent.ForNavigation(priorIntent.Auto,back:!preserveIntent);
@@ -177,6 +178,7 @@ internal static class NativeSeek
         {
             while(!_stopping)
             {
+                if(Finished&&RunPlayback.WantsNext)break;
                 PlayerLoop.RequireHealthy();
                 if(_choice?.Driver is {IsFaulted:true} failed)await failed;
                 if(_seek is {} target)
@@ -232,6 +234,7 @@ internal static class NativeSeek
         Codec.Require(host==_completed+1&&actual.After==expected.After&&actual.Victory==expected.Victory,"operation-result-or-rng-mismatch");
         Codec.Require(!actual.Victory||host==_clip.Operations.Length,"victory-before-recording-end");
         _completed=host;Host=host;PlayerLoop.VictoryReached=actual.Victory;
+        if(host==_clip.Operations.Length)RunPlayback.AtBattleBoundary(Auto);
         // The terminal result is the frozen native pre-reward victory projection. Restore
         // targets remain playable boundaries; the win is reached again through native business.
         if(!_retiring&&!_restoring){if(!actual.Victory)Capture(host);Arrive(_requests.Route.Single(p=>p.Complete&&p.Host==host));}

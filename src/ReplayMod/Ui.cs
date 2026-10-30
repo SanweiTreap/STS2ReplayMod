@@ -26,7 +26,26 @@ internal static class Ui
     {
         var panel=new PanelContainer{Name="ReplayModRecentClip",AnchorLeft=.65f,AnchorRight=.96f,AnchorTop=.12f,AnchorBottom=.90f};
         var scroll=new ScrollContainer{HorizontalScrollMode=ScrollContainer.ScrollMode.Disabled};panel.AddChild(scroll);
-        var box=new VBoxContainer{SizeFlagsHorizontal=Control.SizeFlags.ExpandFill};scroll.AddChild(box);box.AddChild(Label("Replay · 单房间原型 0.1.0"));
+        var box=new VBoxContainer{SizeFlagsHorizontal=Control.SizeFlags.ExpandFill};scroll.AddChild(box);box.AddChild(Label("Replay · 对局与战斗"));
+        box.AddChild(Label("已记录路线 · 缺少战外历史的旧片仍在下方独立打开"));
+        foreach(var runId in RunRecording.Store.Ids())
+        {
+            try
+            {
+                var run=RunRecording.Store.Read(runId);var start=RunPlayback.StartIndex(run);
+                box.AddChild(Label($"对局 {run.Id[..8]} · {run.Character.Replace("CHARACTER.","")}\n"+
+                    string.Join(" → ",run.Visits.Select(v=>$"{v.Floor}:{v.RoomType??v.MapType}{(v.Gap is null?"":"（缺口）")}"))));
+                if(start<0)box.AddChild(Label("尚无可播放起点"));
+                foreach(var anchor in run.Operations.Where(o=>o.Kind=="battle"&&o.Status=="complete"&&o.Clip is not null))
+                {
+                    var visit=run.Visits.Single(v=>v.Id==anchor.Visit);
+                    var play=Button(box,$"从第{visit.Floor}层战斗／尝试{anchor.Battle?.Attempt??0}顺播路线",()=>
+                        TaskHelper.RunSafely(PlayerLoop.Open(anchor.Clip!,entry:"run-list",chain:run,chainStart:anchor.Sequence)));
+                    play.TooltipText="从该记录起点原生顺播；遇到未支持或中断处停止。战外Back与跨房间Seek暂禁用";
+                }
+            }
+            catch(Exception ex){box.AddChild(Label($"路线 {runId[..8]} 暂不可用：{ex.GetType().Name}"));}
+        }
         string? id=null;Clip? clip=null;string info;
         try
         {
@@ -70,6 +89,11 @@ internal static class Ui
         rats.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.EnemySummon?TestPreparation.None:TestPreparation.EnemySummon;
             RecordedState.Armed=false;RatsText();Runtime.Status=TestEncounter.Armed==TestPreparation.EnemySummon?
                 "下一新铁甲A0：暗港首战三鼠；升级原三防御，增加两张全身撞击+，五牌先天保留。先防御等召援，再击杀新怪":"已取消三鼠准备";});RatsText();
+        var route=Button(box,"RUN-001 短路线准备：关闭",()=>{});
+        route.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();
+            TestEncounter.Armed=TestEncounter.Armed==TestPreparation.RunRoute?TestPreparation.None:TestPreparation.RunRoute;
+            RecordedState.Armed=false;route.Text=TestEncounter.Armed==TestPreparation.RunRoute?"RUN-001 短路线准备：已启用（下一新局）":"RUN-001 短路线准备：关闭";
+            Runtime.Status="下一新铁甲A0：首场普通→营火→普通；三防御+／两全身撞击+先天保留，40HP；按准备路线正常领奖与选路";});
         const string hunterReference="1d5346b085b04635ab3e00b43fe9190c";
         try{_ =Runtime.ReadClip(hunterReference);Button(box,"打开已有猎人样本 · 完整27项",()=>TaskHelper.RunSafely(PlayerLoop.Open(hunterReference,entry:"hunter-reference")));}catch{/* Optional reference, not the production input. */}
         const string continuousSample="fc6432b4c0af41d69defda73f1770824";
@@ -175,25 +199,33 @@ internal static class Ui
         if(Valid(_menuStatus))_menuStatus!.Text=Runtime.Status;
         if(Valid(_playStatus))
         {
-            _playStatus!.Text=Runtime.Status+(NativeSeek.Enabled?NativeSeek.Pending:DecisionRoute.Enabled?DecisionRoute.PendingDisplay:"");
+            _playStatus!.Text=Runtime.Status+RunPlayback.Display+(NativeSeek.Enabled?NativeSeek.Pending:DecisionRoute.Enabled?DecisionRoute.PendingDisplay:"");
             _choiceStatus!.Text=ChoiceTape.VisibleDisplay;_choiceStatus.Visible=_choiceStatus.Text.Length>0;
             var cursor=PlayerLoop.Cursor;
             var choosing=ChoiceTape.Controllable;
             _inputBlock!.MouseFilter=(DecisionRoute.Enabled?DecisionRoute.Ready:choosing)?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
             _inject!.Disabled=!PlayerLoop.CanInject;_inject.Text=PlayerLoop.InjectOnContinue?"STATE扰动：已启用，点播放检验纠偏":"STATE扰动：关闭";
             _inject.Visible=PlayerLoop.CanInject;
+            if(RunPlayback.NonCombat)
+            {
+                _inputBlock.MouseFilter=Control.MouseFilterEnum.Stop;_step!.Disabled=RunPlayback.Stopping;_fine!.Disabled=RunPlayback.Stopping;
+                _step.Text=">> 完整操作";_auto!.Disabled=RunPlayback.Stopping;_auto.Text=RunPlayback.Auto?"Auto：开启":"Auto：关闭";
+                _back!.Disabled=true;_back.Text="Back · 战外暂未开放";_stop!.Disabled=RunPlayback.Stopping;_seekCover!.Visible=false;_inject.Visible=false;
+                if(_seekPoints is not null)_seekPoints.Disabled=true;if(_seekGo is not null)_seekGo.Disabled=true;return;
+            }
             if(NativeSeek.Enabled)
             {
                 _inputBlock.MouseFilter=NativeSeek.Ready?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
                 _step!.Disabled=!NativeSeek.CanStep;_step.Text=NativeSeek.Opening?">> 完成开场":">> 完整操作";_fine!.Disabled=!NativeSeek.CanFine;
                 _auto!.Disabled=PlayerLoop.Loading&&!NativeSeek.Opening||NativeSeek.Finished||NativeSeek.Stopping||NativeSeek.Restoring;_auto.Text=NativeSeek.Auto?"Auto：开启":"Auto：关闭";
+                if(RunPlayback.Active&&NativeSeek.Finished&&RunPlayback.HasFollowing&&!NativeSeek.Stopping){_step.Disabled=false;_fine.Disabled=false;_auto.Disabled=false;_step.Text=">> 继续路线";}
                 _seekCover!.Visible=NativeSeek.Covered;
                 _back!.Disabled=!NativeSeek.CanBack;_back.Text="Back · 撤回整项";
                 _stop!.Disabled=NativeSeek.Stopping||PlayerLoop.TearingDown;
                 _inject.Visible=false;
                 if(_seekPoints is not null)
                 {
-                    var points=NativeSeek.Index;
+                    var points=NativeSeek.Index.Where(p=>!RunPlayback.Active||p.Key>=0).ToArray();
                     if(points.Length!=_seekPoints.ItemCount)
                     {
                         var selected=_seekPoints.ItemCount>0?_seekPoints.GetSelectedId():0;_seekPoints.Clear();

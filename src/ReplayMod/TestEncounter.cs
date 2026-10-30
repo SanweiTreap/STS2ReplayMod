@@ -10,7 +10,7 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace ReplayMod;
 
-internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent, NecrobinderContent, EnemySummon }
+internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent, NecrobinderContent, EnemySummon, RunRoute }
 // Explicit opt-in, consumed by ONE new supported run. Never applied to Continue or playback.
 internal static class TestEncounter
 {
@@ -20,7 +20,8 @@ internal static class TestEncounter
     private static TestPreparation _mode;
     private static RunState? _run;
     internal static string? Preparation=>_run is not null&&ReferenceEquals(_run,RunManager.Instance.DebugOnlyGetState())?
-        (_mode==TestPreparation.EnemySummon?"CONTENT006-D-Ironclad-Underdocks-TwoTailedRatsNormal-3-starter-DefendPlus-2-added-BodySlamPlus-5-innate-retain":
+        (_mode==TestPreparation.RunRoute?"RUN001-Ironclad-Underdocks-two-CorpseSlugsWeak-40HP-3-starter-DefendPlus-2-added-BodySlamPlus-5-innate-retain-connected-Monster-RestSite-Monster":
+         _mode==TestPreparation.EnemySummon?"CONTENT006-D-Ironclad-Underdocks-TwoTailedRatsNormal-3-starter-DefendPlus-2-added-BodySlamPlus-5-innate-retain":
          _mode==TestPreparation.NecrobinderContent?(_firstOstySummon?
             "CONTENT005-C-Necrobinder-first-Osty-summon-no-BoundPhylactery-3-Bodyguard-BoneShards-DeathbringerPlus-6-innate-retain-BagOfPreparation-EnergyPotion":
             "CONTENT005-C-Necrobinder-starter10-BoundPhylactery-Bodyguard-BoneShards-DeathbringerPlus-5-innate-retain-BagOfPreparation-EnergyPotion"):
@@ -47,7 +48,7 @@ internal static class TestEncounter
         var rooms=(RoomSet)AccessTools.Field(typeof(ActModel),"_rooms").GetValue(_run!.Act)!;
         Codec.Require(rooms.normalEncountersVisited==0&&rooms.normalEncounters.Count>0,"test-entry-room-list-not-ready");
         var previous=rooms.normalEncounters[0].Id.ToString();rooms.normalEncounters[0]=_mode==TestPreparation.EnemySummon?ModelDb.Encounter<TwoTailedRatsNormal>():ModelDb.Encounter<CorpseSlugsWeak>();
-        if(_mode==TestPreparation.EnemySummon)
+        if(_mode is TestPreparation.EnemySummon or TestPreparation.RunRoute)
         {
             var player=_run.Players[0];var defense=player.Deck.Cards.OfType<DefendIronclad>().Take(3).Cast<CardModel>().ToArray();
             Codec.Require(defense.Length==3&&defense.All(c=>c.CurrentUpgradeLevel==0),"rat-test-starter-defends");
@@ -60,6 +61,8 @@ internal static class TestEncounter
             }
             Codec.Require(player.Deck.Cards.All(c=>ReferenceEquals(c.Owner,player)&&_run.ContainsCard(c)),
                 "rat-test-deck-owner-or-run-registration");
+            if(_mode==TestPreparation.RunRoute)
+            {Codec.Require(rooms.normalEncounters.Count>=2,"run-test-second-encounter-missing");rooms.normalEncounters[1]=ModelDb.Encounter<CorpseSlugsWeak>();player.Creature.SetCurrentHpInternal(40);}
         }
         if(_mode==TestPreparation.NecrobinderContent)
         {
@@ -205,7 +208,8 @@ internal static class TestEncounter
             DeckOwnersAndRunRegistrationValid=_run.Players[0].Deck.Cards.All(c=>ReferenceEquals(c.Owner,_run.Players[0])&&_run.ContainsCard(c)),
             Deck=_run.Players[0].Deck.Cards.Select(c=>new{Model=c.Id.ToString(),c.CurrentUpgradeLevel,Saved=c.ToSerializable()}).ToArray(),
             Relics=_run.Players[0].Relics.Select(r=>r.Id.ToString()).ToArray(),Potions=_run.Players[0].PotionSlots.Select(p=>p?.Id.ToString()).ToArray()});
-        Runtime.Status=_mode==TestPreparation.EnemySummon?"三鼠召援测试已准备：原牌组中三防御升级，添加两张全身撞击+，五牌先天保留；先防御等原生召援，再攻击新怪":
+        Runtime.Status=_mode==TestPreparation.RunRoute?"短路线已准备：首普通→营火→普通；正常领奖，沿指定连接节点前进":
+            _mode==TestPreparation.EnemySummon?"三鼠召援测试已准备：原牌组中三防御升级，添加两张全身撞击+，五牌先天保留；先防御等原生召援，再攻击新怪":
             _mode==TestPreparation.NecrobinderContent?"亡灵契约师已准备：保留原10张／原遗物；两张保镖／释放／碎骨／死亡使者+先天保留；能量药水，首战双蛞蝓":
             _mode==TestPreparation.DefectContent?"故障机器人已准备：保留原10张／破损核心；六张先天保留；暗球／冰球／扩槽／随机球／集中药水，首战双蛞蝓":
             _mode==TestPreparation.SharedContent?"共用测试已准备：储君／工具箱初始选择／星星与锻造／第3槽能量药水供丢弃；首战双蛞蝓":
@@ -215,5 +219,15 @@ internal static class TestEncounter
             _mode==TestPreparation.ChoiceProcess?"过程测试已准备：原生工具箱／手牌／长抽牌堆与弃牌堆／探寻打击，六张先天保留牌（真实新局）":
             _mode==TestPreparation.Choices?"选择测试已准备：双蛞蝓／工具箱／九张机制牌／金纸4／攻击和能量药水（真实新局）":
             _mode==TestPreparation.Content?"测试准备：双蛞蝓＋耸肩无视+／燃烧／开心小花／能量药水（真实新局）":"测试准备已应用：暗港首战双蛞蝓（真实新局，会正常保存进度）";
+    }
+    internal static void ConfigureRunRoute(MegaCrit.Sts2.Core.Map.ActMap map)
+    {
+        if(PlayerLoop.Active||_mode!=TestPreparation.RunRoute||Preparation is null)return;
+        var first=map.GetPointsInRow(1).Where(p=>p.PointType==MegaCrit.Sts2.Core.Map.MapPointType.Monster).OrderBy(p=>p.coord.col).First();
+        var camp=first.Children.OrderBy(p=>p.coord.col).First();var second=camp.Children.OrderBy(p=>p.coord.col).First();
+        camp.PointType=MegaCrit.Sts2.Core.Map.MapPointType.RestSite;second.PointType=MegaCrit.Sts2.Core.Map.MapPointType.Monster;
+        Runtime.Log("test-run-route-prepared",new{NativeConnectedNodes=true,BeforeRecordingCheckpoint=true,
+            Route=new[]{first,camp,second}.Select(p=>new{Row=p.coord.row,Col=p.coord.col,Type=p.PointType.ToString()}).ToArray()});
+        Runtime.Status=$"短路线：第{first.coord.row+1}层第{first.coord.col+1}列普通 → 第{camp.coord.row+1}层第{camp.coord.col+1}列营火 → 第{second.coord.row+1}层第{second.coord.col+1}列普通";
     }
 }

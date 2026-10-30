@@ -1,0 +1,44 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using ReplayMod;
+
+internal static class RunContracts
+{
+    internal static void Run(string output)
+    {
+        var folder=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(output))!,"runs-"+Guid.NewGuid().ToString("N"));
+        var store=new RunStore(folder);var passed=new List<string>();
+        void Test(string name,Action action){action();passed.Add(name);}
+        void Need(bool value,string why)=>Codec.Require(value,why);
+        var id=Guid.NewGuid().ToString("N");
+        var run=new RunDocument(1,id,"game","mod","scope","CHARACTER.IRONCLAD",DateTimeOffset.UtcNow,
+            [new(1,0,2,1,0,"Monster","Monster","ENCOUNTER.TEST",1,"left",null),new(2,0,3,2,0,"RestSite","RestSite",null,2,"entered",null)],
+            [new(1,1,"battle",new(),null,null,"complete",[],"clip",new(id,1,1,0,2,100,"map","victory")),
+             new(2,1,"reward",new(RewardIndex:1,RewardKey:"cards"),"before","after","complete",[new("reward-card",["same","same"],[1])]),
+             new(3,1,"map",new(2,0),"after",null,"complete",[]),
+             new(4,2,"rest",new(Option:"SMITH"),"after",null,"pending",[])],[]);
+        Test("run-envelope-preserves-visit-versus-battle-identity-and-final-choice-of-duplicate-options",()=>
+        {
+            store.Save(run);var read=store.Read(id);
+            Need(Codec.Bytes(read).SequenceEqual(Codec.Bytes(run))&&read.Visits[1].Entries==2&&read.Operations[1].Decisions[0].Selected.Single()==1,"run-roundtrip-lost-semantics");
+        });
+        Test("incomplete-operation-is-never-promoted-to-complete-on-read",()=>
+        {var read=store.Read(id);Need(read.Operations[^1].Status=="pending"&&read.Operations[^1].After is null,"incomplete-operation-falsified");});
+        Test("altered-run-payload-is-rejected-while-another-good-run-remains-readable",()=>
+        {
+            var good=run with{Id=Guid.NewGuid().ToString("N")};store.Save(good);
+            var path=Path.Combine(folder,id+".json");var node=JsonNode.Parse(File.ReadAllBytes(path))!;node["Data"]!["Character"]="changed";File.WriteAllText(path,node.ToJsonString());
+            var rejected=false;try{store.Read(id);}catch(InvalidDataException){rejected=true;}
+            Need(rejected&&store.Read(good.Id).Character==run.Character,"corrupt-run-not-isolated");
+        });
+        Test("missing-visit-and-noncontiguous-operation-order-are-rejected",()=>
+        {
+            var rejected=0;
+            foreach(var bad in new[]{run with{Operations=[run.Operations[0] with{Sequence=2}]},run with{Visits=[],Operations=[run.Operations[0]]}})
+                try{store.Save(bad);}catch(InvalidDataException){rejected++;}
+            Need(rejected==2,"invalid-run-ownership-accepted");
+        });
+        File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_RUN_METADATA_AND_FILE_CONTRACTS_NOT_NATIVE_RUNTIME",Tests=passed}));
+        Console.WriteLine("PASS_RUN_METADATA_FILE_CONTRACTS_NOT_NATIVE_RUNTIME");
+    }
+}
