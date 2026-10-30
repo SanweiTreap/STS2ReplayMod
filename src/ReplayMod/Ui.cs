@@ -65,7 +65,7 @@ internal static class Ui
         void DefectText()=>defect.Text=TestEncounter.Armed==TestPreparation.DefectContent?"CONTENT-005 故障机器人测试：已启用":"CONTENT-005 故障机器人测试：关闭";
         defect.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.DefectContent?TestPreparation.None:TestPreparation.DefectContent;
             RecordedState.Armed=false;RegentText();DefectText();Runtime.Status=TestEncounter.Armed==TestPreparation.DefectContent?
-                "新建故障机器人A0：第一回合暗球→冰球→电击+，集中药水后结束回合；第二回合双重释放→扩容→混沌+":"已取消故障机器人准备";});DefectText();
+                "新建故障机器人A0：第一回合暗球→冰球→电击+，集中药水后结束回合；第二回合扩容→混沌+→双重释放":"已取消故障机器人准备";});DefectText();
         var necro=Button(box,"CONTENT-005 亡灵契约师测试：关闭",()=>{});
         void NecroText()=>necro.Text=TestEncounter.Armed==TestPreparation.NecrobinderContent?"CONTENT-005 亡灵契约师测试：已启用":"CONTENT-005 亡灵契约师测试：关闭";
         necro.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.NecrobinderContent?TestPreparation.None:TestPreparation.NecrobinderContent;
