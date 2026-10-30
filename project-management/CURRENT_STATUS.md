@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-006进行中（D-134）**：005/r3已证早晚两片原生完整观看/Back/胜利/Stop，以及已完成房间实际写→读→Continue；GrandFinale在途Back等待/声效/花瓣缺陷另列，007已装待同片短测。未来第4场/强普通/D及未完room attempt仍待，本包未完成。
+更新：2026-10-30。**CONTENT-006进行中（D-134）**：已有六场录制/资源承接、005/r3早晚原生观看/Back/胜利/Stop与已完成房间写后Continue，007/r4的GrandFinale在途Back等待/声效/花瓣样本已通过，保留007不再换版。本包未完成：下一合并后续强普通/本局第4场、未完战斗跨进程newattempt，再接D召援。
 
 ## 玩家现在能用到什么
 
@@ -55,11 +55,13 @@ r14的14次原生结果/RNG包含Retiring6（5次被撤销EndTurn的自然收尾
 
 B的已完成房间写→读→Continue闭环有实证：005新进程21:06:48.396成功write→21:06:53.263 load→21:06:56.645后续Continue同键/canonical3fd匹配、FrozenLoad true、PreFinished true。PM核原摘要/时序，不用显式旧索引校正替自动关联证明；未完成房间newattempt、新强普通/D及未来第4场仍无样本。B该所测续接和C早晚原生观看/Back/胜利/Stop的数据逻辑闭环接受，完整产品/所有加载形态不外推。
 
-GrandFinale体验缺陷仍有效：五次真在途Back退役156.8–1397.6ms、总499.2–1752.1ms，四次较长约1.46–1.75秒；稳定Back不混入，非配对时点不算固定百分比。花瓣/已撤销声效不能靠数值匹配判过。007复用纯timer退役，绑定真实PlayCard根Pending/room/gen，派生自动动作继承有效owner，原牌效/伤害/Hook/RNG完整执行；仅已审共享pacing及GrandFinale唯一1.625秒演出Wait，未知业务等待保持。两种factory视觉登记到统一清理，ExitTree取消自身视觉CTS；音效仍原生Play（保留pitch RNG/池）并按撤销owner线性音量0/精确id退役，不StopAll/全局加速/重写牌动画。006未运行即补007，不记用户新FAIL。
+005/r3的GrandFinale等待/花瓣/声音缺陷保留为当时FAIL：五次真在途总499.2–1752.1ms，稳定点不混。007复用根操作Pending/room/gen归属与已审纯timer、原生factory视觉ExitTree清理及owner精确声效退役，牌效/伤害/Hook/RNG仍原生执行，未知业务等待不跳；006未运行即静态补强，不记用户新FAIL。
 
-007只有构建0警告/错误与既有4组纯timer合同；新caller/owner、节点尾迹/音效池与实际延迟均待实测。PM核关键源码和固定音量API、报告/摘要/安装收据，不重复构建/读取个人存档。D格式10与准备已装但原生召援/新目标/跨生成Back/再召/旧点恢复/清理仍Pending，通用文件冷恢复未实现。
+007/r4一次普通列表33a9…初态匹配，412事件/415数据文件已封存，[摘要](../evidence/content-006/runtime-verification-r4.json)。13原生结果/RNG=正常7/Retiring6，7Back=6真在途/1稳定点，状态/RNG/模式/清计划均匹配。六在途各Released1/Skipped1、精确停1 Debug声/静音API3调用，退役15.0–59.6ms/总351.5–474.2ms；稳定点36.458ms另列，新旧时点非严格配对不报固定百分比。43 caller绑定含8次GrandFinale anticipation，sharedAttack.before-hit未触发不补判。7次根/Impact清理，用户明确“都正常，符合预期”。
 
-下一只同片推进5/6，整项出GrandFinale演出中Back 2–3次，核真正caller/释放、遮罩/已撤销声效/花瓣清理及结果RNG；最后正常操作6胜利Stop退出。不重录两局六片、不重跑已答B/C或004菜单退出。然后自然停点继续强普通/未来第4场、D及未完room attempt范围；整局外壳不加码。
+8终局=正常2/退役6，是同一原片首次/重做，不是8场。最后正常胜利Stop6 AllMatched/Victory true、Error null、Outstanding false/Auto关/Pending0，原manager/所比较Continue及progress恢复，牌/Osty按日志清理，原片不变、正常Quit/shutdown。无observer/playback/late timer fault；原Invalid Task ID/shader/RID等引擎诊断保留，不声称全无错误。007按本片/此类真在途的体验/数据收束，不外推所有卡/VFX/音效或异常并发。D/强普通/未来第4场/未完room attempt仍待，通用文件冷恢复未实现。
+
+下一沿现有猎人局进入下一普通Monster（按实际路线，候选SeapunkNormal），打一张非致胜普通牌并等完整操作后正常存退/关游戏；新进程Continue，验证同场原生开场重进为本局第4场尝试2，正常获胜领奖存退。目标是保留尝试1中断前缀与尝试2独立胜利，不拼旧操作，不要求中间帧接续/观看Seek；正常SL/存盘不算观看隔离失败。先核文件/attempt/强普通/开场，再测新格式10片观看，D召援下个自然停点。007体验、已答B/C/菜单退出与旧六片不重跑，无新审批/整局加码。
 
 ## 整局外壳的时间安排（规划，未派发）
 
@@ -68,9 +70,9 @@ GrandFinale体验缺陷仍有效：五次真在途Back退役156.8–1397.6ms、�
 ## 工程、恢复点与协作
 
 - 当前安装CONTENT-006/build-007，SHA256 `9BCECE95FF90DE51CB3A06B3E9B5F8069838C1E10F139D0FA43602D22926F0FF`，[收据](../evidence/content-006/preparation/build-007-1ee95b73.json)核pair/仅ReplayMod/modded1/安装时game0；候选不等于体验PASS。006/005及此前pair/config/六原片/失败与CONTENT-005/011恢复pair保留，无restore。
-- 工程[src/ReplayMod](../src/ReplayMod/README.md)，当前代码/报告d298cd0；PM两份阶段性原文已单独提交6bd01e5。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常查源码，有歧义再查IL。
+- 工程[src/ReplayMod](../src/ReplayMod/README.md)，当前源码d298cd0、报告/README78bbd1a，007实际DLL保持；同包build编号勿与CONTENT-005混。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常查源码，有歧义再查IL。
 - 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续当前文件/安装pair补存见报告/收据，不称更新后的完整账号快照。未整包恢复，用户有新进度先补备份，另一账号不纳入。
-- Cloud沿本批用户确认关闭；r3后补已知51文件/3,966,529 bytes至原恢复点CONTENT006-post-r3-current-20261030-212652，逐hash读回，不称完整新账号快照/云端保证。PM不重复读个人存档，不扫描另一账号/恢复旧基线。
+- Cloud沿本批用户确认关闭；r4后已知51文件/3,966,529 bytes补存原恢复点CONTENT006-post-r4-current-20261030-221927，逐hash读回，不称完整新账号快照/云端保证。PM不重复读个人存档，不扫描另一账号/恢复旧基线。
 - [公开仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始录像/日志/备份、依赖和游戏反编译缓存仅留本地。Git仅一个index写入者，提交精确路径，不reset/clean/force。[协作规则](REPOSITORY.md)。
 - Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)接续CONTENT-006；PM提交工作包后移交Git index窗口，维护状态/规划/验收，不承担大规模源码实现；不新建用户对话或覆盖模型。
 - D-092备份后允许同包查源码/hook/普通修复/安装和请求人工短测；默认modded1，unmodded1不再是禁止读取复制的禁区。实验权限不降低成品Continue隔离目标，不恢复逐步审批。
