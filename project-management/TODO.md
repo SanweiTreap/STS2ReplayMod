@@ -1,6 +1,6 @@
 # 当前任务与后续方向
 
-更新：2026-10-30，CONTENT-005进行中，A段002/r1–r2所测闭环已验收，当前B/C候选004已安装；下一先机器人后Necrobinder实测，新角色尚无运行结论。PLAYBACK-003原验收和旧008保留；旧PLAYBACK-001/build-003仍Unknown，权限沿D-092。
+更新：2026-10-30，CONTENT-005进行中，A段已验收；当前004，B机器人r3录制/文件事实通过、原生回放与恢复待测，C尚未取样。PLAYBACK-003原验收和旧008保留；旧PLAYBACK-001/build-003仍Unknown，权限沿D-092。
 
 ## IN_PROGRESS — CONTENT-005 五角色基础战斗支持
 
@@ -9,6 +9,8 @@
 A段002/r1旧储君13项/两次胜利Back和新格式7片11项录制通过；r2补同片recent原生播放、丢药Back/再做、锻造恢复、胜利Stop/短重开，用户明确确认符合预期。PM读实际反馈/报告/封存[r2摘要](../evidence/content-005/runtime-verification-r2.json)：16结果/RNG、4匹配Back，Stop11/1及所比较退出状态通过。A按本样本完成，不追加测试。
 
 B/C首版源码/离线检查已接入；B提交ccbbcde、C提交1235aaa，随004安装发测，先机器人后Necrobinder。特别待证的是球原生HUD/订阅、Osty首次生成前回退与死亡重召、Doom/回合致死后循环续接，不以纯模型或旧手动击杀Back代替。003安装后未发测；004仅改准备提示，机制代码未另换。
+
+B的004/r3已录格式8/9项，真实充能/满槽激发/集中/暗球累计/扩槽/随机球及回合末电球致胜有文件事实，见[r3摘要](../evidence/content-005/runtime-verification-r3.json)。下一同片recent验证前进、相关Back再做、胜利Back8→EndTurn重复结算及Stop/短重开，实际检验回合循环续接，不重录。不将录制通过称角色闭环完成；花粉核心历史风险未在本片验证。
 
 开场体验讨论：横幅不额外挡已就绪业务、开场选择接>/>>；用户追问后，PM撤回仅能重开重看开场的建议，方向包含可回退的完整开场节点，选择页仍非独立Seek。Toolbox在第一回合抽牌前、ChoicesParadox在抽牌后，当前0在两者之后是现有实现边界。原生开场重入/异步及RNG恢复、延迟尚待验证，详见[修订候选](technical-notes/PLAYBACK-EXPERIENCE.md)；未派发，不阻塞004的B/C实测。
 
