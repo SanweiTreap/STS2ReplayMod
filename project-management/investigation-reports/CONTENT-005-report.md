@@ -162,6 +162,16 @@ D-133按本工具箱片所测可见流程/开场请求/整体Back/完整胜利�
 
 009保持，无需新DLL；接已有可选准备勾“Osty首次召唤”，在checkpoint前移除BoundPhylactery并增加第三Bodyguard，使战斗初始无宠物。首回合能量药水→Bodyguard首次创建→第二Bodyguard成长→Unleash→BoneShards死亡→第三Bodyguard重召→EndTurn，第二回合Deathbringer+→EndTurn取胜。随后同片跨首次创建Back/原生再创建，核存在性/原生ID未来计数/当前节点与订阅，必要普通相关bug同包修。当前已知51份文件另存逐hash备份（`evidence/content-005/pre-first-Osty-current-files.json`），原账号/game0及当前009核对，Cloud沿本批关闭，无restore/history/其他账号遍历。
 
+## r11：初始无Osty→首次原生创建的新片录成，跨不存在回退待测
+
+009/session `eaf5ab334cae4db894943dab9aba8652`最终44事件、无observer/mod失败。新片`45c3b2f4c3af4782973d0bb61ea6137c`，格式8/9项/0选择、589,556 bytes，SHA `E1CCDFC37BEE7A2BCF67E416C8EFD451BBC14BBBD1ED790B33EDFDB7BEBE96BA`，recordedMod为009。准备元数据明确no-BoundPhylactery/三Bodyguard/六机制牌先天保留；实际起始遗物BagOfPreparation与Neow获得的Kaleidoscope，不含起始遗物。Initial与操作1均只有玩家盟友、Pets[]、NextIdentity3，第一只Osty不被伪装成初始已存在。
+
+实际操作1能量药水；2Bodyguard首次生成Osty ID3/Owner0、HP5/5、Pets[3]/NextIdentity4；3第二Bodyguard成长10/10；4Unleash打第一敌27→11；5BoneShards后敌HP2/16、Osty死0/10；6第三Bodyguard同ID重召5/5。7EndTurn在敌方行动中又使Osty死亡，玩家66HP，次回合没有BoundPhylactery自动重召；8Deathbringer+给双方Doom26，9EndTurn在敌方阶段真实Doom胜利，玩家60HP、Osty死0/5、Pets清空、Next4，Defeated仍只两原敌ID1/2。死亡/复活与首次生成数据明确区分。
+
+真实VictoryTask成功、自动seal及生产ExactPayloadMatched，额外直接生产读回/兼容检查通过（`evidence/content-005/checks/first-osty-recording/production-read.json`）；仅证明新片事实/读取，不代替跨不存在Back、未来ID原生再分配或HUD订阅重建。用户确认录制中首次召唤/成长/死亡重召视觉正常，正常Quit/shutdown/game0已核。44事件+原片/Godot共46数据文件逐hash封存`runtime/content-005-r11-20261030-152120`，摘要`evidence/content-005/runtime-verification-r11.json`，原始引擎诊断保留。
+
+当前009不换版，播放前补存已知当前51文件/3,953,223 bytes，`CONTENT005-post-first-Osty-recording-current-20261030-152121`，收据`evidence/content-005/post-first-Osty-recording-current-files.json`，逐hash读回、原账号/game0核对，不遍历history/其他账号/不restore。下一同片第2步Back1让宠物/节点完全不存在，再原生创建（反复），核对应ID3/未来4、无幽灵节点/旧监听；合并成长与死亡/同对象重召，再Doom胜利Back8后结束回合、Stop与短重开到2生成后Stop。C首次创建恢复仍Pending，包未据录成关闭。
+
 ## B：球机制源码增量，所测闭环通过
 
 用户进行002人工测试期间继续开发，安装保持002。下一增量源码使用格式8：`Mechanics.OrbQueue`明确保存容量、有序球条目、每个原生实例的Replay逻辑ID、未来身份计数、所有者、移除标记、当前被动/激发值及各球派生模型的私有标量字段。暗球`_evokeVal`、玻璃球`_passiveVal`不会只靠模型名或当前画面推断。已有格式1–7不新增字段、不修改原片，精确兼容002录制build。
