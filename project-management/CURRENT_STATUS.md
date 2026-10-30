@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。PLAYBACK-003按当前单场范围 **DONE_WITH_LIMITATIONS**，保留已安装build-008。主运行证据来自007/r8；008仅片尾自动关Auto和文案小改，离线核对通过，未另跑整场。当前无追加测试或已派发的下一任务。
+更新：2026-10-30。**CONTENT-005已授权启动**：共用输入/已有资源短补漏，同包推进故障机器人与Necrobinder，目标为五角色基础首战回放；尚无本包新构建或运行结论。PLAYBACK-003按当前单场范围DONE_WITH_LIMITATIONS，当前仍保留build-008；主运行证据来自007/r8，008片尾小改仅离线核对。
 
 ## 玩家现在能用到什么
 
@@ -36,11 +36,11 @@ r6/r7的恢复后选牌失败保留：PM已核完整异常栈及固定源码，�
 - 原始/配置节奏播放、速度控制、回合/楼层导航、时间轴/路线图与录像库。时间戳已记录，不代表原始节奏模式已实现。
 - 发布性能、长战斗/整局容量；当前256操作/4MiB等原型上限和小pilot不算发布保证。用户报告的拖牌取消/凋萎互卡根因仍未复现。
 
-## 下一步建议（尚未派发）
+## 当前任务：CONTENT-005 五角色基础战斗支持
 
-下一批建议“五角色基础战斗支持”：用户希望剩余两角色一起做；开头短补共用输入/旧三角色实际缺证（初始选择、储君资源/可变牌、遗物药水、丢弃药水），随后同包推进故障机器人的球与Necrobinder的Osty/Doom。宠物必要单位身份/生命周期纳入，其他召援/多阶段Boss后续；仍沿当前单人首战范围，逐机制验证并同步考虑文件状态缺口，不逐牌重写或一次承诺全部组合。
+用户在两角色合批安排后明确要求开始，签发[CONTENT-005](handoffs/CONTENT-005.md)给现有Implementation。开头短补共用输入/旧三角色实际缺证（初始选择、储君资源/可变牌、遗物药水、丢弃药水），随后同包推进故障机器人的球与Necrobinder的Osty/Doom；旧片优先复用，不先做全面旧内容回归。宠物必要单位身份/生命周期与Doom致死后的恢复纳入，其他召援/多阶段Boss后续。
 
-本轮睡前仅安排/交流，不派Implementation、不创建新对话或测试。已确认两新角色合批的偏好，具体范围仍在交流，尚未签发；旧片和两角色少量代表录像优先。见[安排草案](technical-notes/BATTLE-COVERAGE-PLAN.md)。
+仍限当前单人A0首战，分段交付；两角色各少量代表录像走录制/普通入口/原生前进/关键Back续播/退出，权威文件恢复缺口如实区分。D-131控制保持，D-092允许同包修复、备份安装并直接请求用户人工测试；不另建前置调查或逐步审批。上一轮只讨论的限制已由本次“开始”指令解除，未创建新对话。
 
 材料已交[内容覆盖清单](technical-notes/CONTENT-COVERAGE.md)和[契约/候选批次](technical-notes/BATTLE-COVERAGE-PLAN.md)：固定源码索引只作检索，不当覆盖率。知识恶魔、三鼠召援、产卵虫/卵、千足虫、实验体已定位，尚非Replay运行PASS。多人为MVP后首要大型方向，跨版本亦在MVP后；接管游戏不纳入当前MVP。
 
@@ -50,7 +50,7 @@ r6/r7的恢复后选牌失败保留：PM已核完整异常栈及固定源码，�
 - 当前安装PLAYBACK-003/build-008，SHA256 `1E5FABDCB4177C4C9B07363BB960E6F1FCACF50B61BFBEA0B10187EDDCA73D73`，源码001ca8f，[收据](../evidence/playback-003/preparation/build-008-2ea13753.json)。004仅未安装D-130草稿，旧可用pair/原片/失败均保留。
 - [公开Git仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始证据、存档录像、备份、依赖及反编译缓存留本地，见[协作规则](REPOSITORY.md)。
 - 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续当前文件补存/候选pair见各报告，不冒充更新后的完整账号快照。未整包恢复；用户有新增进度时先备份，另一账号不纳入。
-- Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)，本包已完成；PM管状态/规划，不承担大规模源码实现。
+- Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)，当前CONTENT-005；PM管状态/规划，不承担大规模源码实现。
 - D-092有效：备份后允许较大胆的mod/hook与同包普通修复，不为每个失败退役代码或另开调查/审批。默认modded1；unmodded1不再禁止读取/复制，备份权限不降低成品Continue隔离目标。
 - 游戏由用户手动启动/操作，不用Computer Use、替代GUI自动化或自行启动headless；换DLL前退出，Cloud由用户现场确认，不自动改。保留可用安装，不自动卸载；见[WORKFLOW](WORKFLOW.md)/[TEST_PROTOCOL](TEST_PROTOCOL.md)。
 
