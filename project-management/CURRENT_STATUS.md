@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-006进行中（D-134）**：001/r1已录成六份猎人普通胜利片并观察到资源承接/新进程Continue后续录，但一次同进程Continue误拆组。修复版002已安装，含D格式10；分组修复、新片较早/较晚独立观看和召援原生均Pending，本包未完成。CONTENT-005所测范围DONE_WITH_LIMITATIONS，011可用pair与既有结果保留。
+更新：2026-10-30。**CONTENT-006进行中（D-134）**：001/r1六份猎人片/资源承接/新进程后续录有实证，但Continue误拆组，旧储君原生保存退出另有卡住缺陷。当前004已安装，含分组修订、暂停菜单退出修订及D格式10；修复效果、新片独立观看和召援原生均Pending。本包未完成；CONTENT-005所测范围及011恢复pair保留。
 
 ## 玩家现在能用到什么
 
@@ -49,13 +49,17 @@ r14的14次原生结果/RNG包含Retiring6（5次被撤销EndTurn的自然收尾
 
 001/r1三进程535事件、六份格式9猎人胜利片、95操作/10选择、六次生产精确读回及额外原片读取通过。第一局floor2/5/6同组1/2/3，牌组12→15→16及HP/金钱承接；第二局floor2/4/7也录成，新进程Continue后下一场实际续录。Preparation均null；具体战外变化不全归因为领奖。仅Weak样本。[报告](investigation-reports/CONTENT-006-report.md)/[r1摘要](../evidence/content-006/runtime-verification-r1.json)，535事件及原片/catalog/journal/Godot共549数据文件封存；原引擎诊断保留，mod错误计数0不替未测路径判过。
 
-已知缺陷：第二局第一次同进程Continue把原组拆成新RunId，第二场误标Battle1；其后新进程匹配新组不能抹掉首次失败。首次实际读写内容未捕获，确切变动字段根因Unknown。未取未完成普通房间新attempt；新格式9片没有playback-open，C仅列表生成。旧Osty Stop0原context恢复是旧片开场退出证明；更早旧储君列表打开后无Stop，Implementation已问手动关闭/崩溃，未答前Unknown。
+已知缺陷：第二局首次同进程Continue误拆RunId、第二场误标Battle1，后续新进程匹配新组不抹掉失败；首次读写未捕获，具体变动字段根因Unknown。未取未完成普通房间新attempt；新格式9无playback-open，C仅列表生成。旧Osty Stop0是旧片开场退出证明。
 
-002/6e9099d在正常LoadRunSave返回冻结DTO，Continue用该原始起点；正常SaveRun成功后从同manager实际store回读，按开始时捕获RunId登记，隔离观看排除、不写普通存档，不放松指纹为seed/坐标猜组。原生fault/cancel传播、observer Guard独立。7组journal/library与5组生成合同、六原片读取离线通过，实际Harmony/store修复仍待。PM核报告/摘要/关键改动/收据，不重建或重读私人存档；不预认唯一根因已证。
+旧储君退出已由用户澄清，PM直接读取原答：原生保存退出后按钮失效，随后手动关游戏。记有效观看退出缺陷/用户手动终止，非正常Stop/崩溃。源码与stop后无closed日志支持暂停capstone未关闭→CombatManager仍Paused→Drain等待未暂停Playable的定位，004实际修复仍待。r1派生摘要原pending漏改经PM指出后已补分类/用户说明，原15事件及549文件封存不改。
 
-002包含D格式10与默认关闭三鼠准备，身份/roster/AI-RNG/场景及监听恢复仅代码/离线通过；真正召援、意图血条、跨生成Back/新对象再召/旧点恢复/退出尚未测，冷文件任意点创建/恢复未实现。安装不算D PASS。
+002起在正常LoadRunSave返回冻结DTO，Continue用原始起点；原生SaveRun成功后从同manager实际store回读，按开始时捕获RunId登记，隔离观看排除、不写普通存档、不放松指纹为seed/坐标猜组。原生fault/cancel传播、observer Guard独立。7组journal/library与5组生成合同、六原片读取仅离线，实际Harmony/store修复待证。PM核报告/摘要/关键源码/收据，不重复构建或读私人存档。
 
-下一沿现有猎人局打一场普通战斗，合并核新候选实际成功保存→加载/Continue的Written/Loaded/Setup键与组延续，并取强普通样本；只从001已能匹配的旧存档启动不足以单独证明新写入路径修复。无需重录三场/六片。再从第一局列表看第1/第3场，合并Back/胜利/Stop/切片隔离；D自然未遇则自然停点用可选三鼠准备。普通错误同包修、不算operator协议FAIL，整局外壳不加码。
+004含D格式10及默认关闭三鼠准备，身份/roster/AI-RNG/场景与监听仅代码/离线通过；真正召援、血条/意图、跨生成Back/新对象再召/旧点恢复/退出仍未测，通用文件冷恢复未实现。
+
+004/5f4557f接管观看NPauseMenu.CloseToMenu，在原生禁用按钮前请求Stop、原生关闭capstone解除暂停及子菜单/热键状态。外部UI等本会话新完成信号到最外finally，业务Return fallback请求同一Stop后早返回以免反向等待，不强完真实动作/保存观看内容，普通游玩保持。003未运行，004是运行前静态修订，不记003用户失败。主工程0警告/错误，未造镜像UI假测试。统一日志WaitsForActualPlaybackTeardown字段对global fallback不准确，派生摘要已注明按Source/实际控制流区分，下一自然修订更正，不为日志单独换版。
+
+下一沿现有猎人局一场普通战斗领奖存退→再Continue到地图后存退，核004自身写→读→Continue键/组延续与强普通；仅从001旧存档首读匹配不证明新写入路径修复。早场Back/Step后原生保存退出验证本缺陷，晚场完整胜利/Back再做与Replay Stop，合并切片隔离；D自然未遇另用可选准备。无需重录三场/六片、旧五角色矩阵或新审批，普通问题同包修，整局外壳不加码。
 
 这比原“两场”候选更完整，但不等于整局地图/奖励语义回放、跨房间Seek、Boss/孵化/复活/跨幕、其他难度或通用冷恢复。Continue重进须有真实房间前起点并标newattempt，不能拼未完操作；至少验证下一受支持战斗续录。实际方案/覆盖待Implementation验证，任务细节以工作包为准。
 
@@ -65,8 +69,8 @@ r14的14次原生结果/RNG包含Retiring6（5次被撤销EndTurn的自然收尾
 
 ## 工程、恢复点与协作
 
-- 当前安装CONTENT-006/build-002，SHA256 `A99D1CAA46E374A141E415A90C194B41A2CA2833E009B3B3B13F460B0CB8AF57`，[收据](../evidence/content-006/preparation/build-002-1fc81a01.json)核pair/仅ReplayMod/modded1/安装时game0；非原生修复证明。001 pair/config、六原片/错组及CONTENT-005/011恢复pair保留，无restore。
-- 工程[src/ReplayMod](../src/ReplayMod/README.md)，CONTENT-006当前代码/报告6e9099d，D初始源码83a8e5e。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常直接查源码，有歧义再查IL。
+- 当前安装CONTENT-006/build-004，SHA256 `11B57F1F51A35B21D6B62A1303E06FB9D4360F0718671D54A143EF3FAC21D17C`，[收据](../evidence/content-006/preparation/build-004-323f7a3d.json)核pair/仅ReplayMod/modded1/安装时game0；非原生修复证明。003/002/001 pair/config、六原片/错组与CONTENT-005/011恢复pair保留，无restore。
+- 工程[src/ReplayMod](../src/ReplayMod/README.md)，CONTENT-006当前代码/报告5f4557f，分组6e9099d、D初始83a8e5e。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常直接查源码，有歧义再查IL。
 - 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续当前文件/安装pair补存见报告/收据，不称更新后的完整账号快照。未整包恢复，用户有新进度先补备份，另一账号不纳入。
 - Cloud沿本批用户确认关闭；r1后新进度已补存已知51文件/3,978,222 bytes，`evidence/content-006/post-r1-current-files.json`记录，不称新完整账号快照/云端保证。PM未为重复核验重读存档，未扫描另一账号或恢复旧基线。
 - [公开仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始录像/日志/备份、依赖和游戏反编译缓存仅留本地。Git仅一个index写入者，提交精确路径，不reset/clean/force。[协作规则](REPOSITORY.md)。
