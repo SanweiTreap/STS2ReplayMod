@@ -50,6 +50,7 @@ internal static class Patches
         Patch(typeof(DivineRight),"AfterRoomEntered",postfix:nameof(DivineAfter));
         Patch(typeof(NCombatCardPile),"OnRelease",postfix:nameof(PileBrowsed));
         NativeDisplayTrace.Install(h);
+        NativePhaseRetirement.Install(h);
         DisplayAssets.Install(h);
         var transform=typeof(CardCmd).GetMethods().Single(m=>m.Name=="Transform"&&m.ReturnType==typeof(Task<IEnumerable<CardPileAddResult>>));
         h.Patch(transform,postfix:new HarmonyMethod(typeof(Patches),nameof(TransformedAfter)));
@@ -63,6 +64,7 @@ internal static class Patches
         Patch(typeof(NCombatStartBanner),"_Ready",postfix:nameof(BannerReady),parameters:[]);
         Patch(typeof(NPlayerTurnBanner),"_Ready",postfix:nameof(BannerReady),parameters:[]);
         Patch(typeof(NPlayerTurnBanner),"Create",prefix:nameof(TurnBanner),parameters:[typeof(int)]);
+        Patch(typeof(NEnemyTurnBanner),"Create",prefix:nameof(EnemyBanner),parameters:[]);
         Patch(typeof(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom),"OnCombatSetUp",postfix:nameof(OpeningRoomVisible),parameters:[typeof(CombatState)]);
         Patch(typeof(NCreature),"StartReviveAnim",postfix:nameof(OstyReviveHud),parameters:[]);
         var turnState=AccessTools.TypeByName("MegaCrit.Sts2.Core.Combat.CombatTurnState")??throw new MissingMemberException("CombatTurnState");
@@ -183,6 +185,8 @@ internal static class Patches
     private static void TurnAfter(bool __state,Task __result){if(__state){ActionMonitor.StartTurnTask=__result;ActionMonitor.Generation++;}}
     private static void BannerReady(Godot.Control __instance)=>Runtime.Guard(()=>NativeOpening.BannerReady(__instance));
     private static bool TurnBanner(int __0,ref NPlayerTurnBanner? __result)=>NativeOpening.TurnBanner(__0,ref __result);
+    private static bool EnemyBanner(ref NEnemyTurnBanner? __result)
+    {if(!NativeSeek.Enabled||!NativePhaseRetirement.Active)return true;__result=null;return false;}
     private static void OpeningRoomVisible(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom __instance,CombatState __0)=>Runtime.Guard(()=>NativeSeek.OpeningRoomVisible(__instance,__0));
     private static void OstyReviveHud(NCreature __instance)=>Runtime.Guard(()=>CreaturePresentation.VerifyNativeOstyRevive(__instance));
     private static void EndBefore(){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(BattleEnd.EndStarted);}

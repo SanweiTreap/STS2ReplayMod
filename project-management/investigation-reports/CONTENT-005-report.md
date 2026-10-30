@@ -172,6 +172,20 @@ D-133按本工具箱片所测可见流程/开场请求/整体Back/完整胜利�
 
 当前009不换版，播放前补存已知当前51文件/3,953,223 bytes，`CONTENT005-post-first-Osty-recording-current-20261030-152121`，收据`evidence/content-005/post-first-Osty-recording-current-files.json`，逐hash读回、原账号/game0核对，不遍历history/其他账号/不restore。下一同片第2步Back1让宠物/节点完全不存在，再原生创建（反复），核对应ID3/未来4、无幽灵节点/旧监听；合并成长与死亡/同对象重召，再Doom胜利Back8后结束回合、Stop与短重开到2生成后Stop。C首次创建恢复仍Pending，包未据录成关闭。
 
+## r12：首次Osty跨不存在恢复通过；010在途回退等待优化候选
+
+009/session `decb20266c38486c8243deccbe79113d`最终978事件，2recent，36次原生结果/RNG匹配（含Retiring4）、28次Back状态/RNG匹配。5次回操作1，宠物完全不存在，随后原生创建对应ID3、Next4；反复生成累计6个观看Osty引用。成长、死亡/重召及HUD通过，用户确认无残留；2次真实Doom胜利与2次胜利Back循环续接，其中一次最后EndTurn再胜，另一次再退往更早点。本轮主回放之后专门反复试EndTurn Back，最终Stop位置6，不冒充Stop9；短重开到操作2生成后Stop2。两次Stop无Error/Outstanding、Running/Auto false/Pending0，原manager/所比较Continue进度恢复，牌监听均5→0；Osty回调Known6/1各余量0。原片SHA `E1CCDFC37BEE7A2BCF67E416C8EFD451BBC14BBBD1ED790B33EDFDB7BEBE96BA`不变，无observer/mod失败，正常Quit/shutdown/game0已核。
+
+978事件+原片/Godot共980数据文件逐hash封存`runtime/content-005-r12-20261030-153809`，摘要`evidence/content-005/runtime-verification-r12.json`。C首次创建的录制→生产读回→原生播放→不存在/未来ID/新实例/节点/回调恢复→Doom胜利Back→Stop/重开按该样本取得闭环；其他单位生成/变形/复活、任意文件点冷恢复及未测组合不因此开放。A/B/D/C代表性覆盖与下面新优化结论分开保留，不因优化重开旧矩阵。
+
+用户新反馈在EndTurn切入敌人回合时Back，像要等音效完成且遮罩很长。009实际4次in-flight EndTurn退役等待分别2524/2424/2649/1959ms，总到达2589/2464/2690/2002ms，数据恢复差值约40–65ms。ActionMonitor/Drain要求当前原生EndTurn、敌回合及下一玩家初始化到安全边界；NEnemyTurnBanner的音效Play返回ID、不被await，故不能把相关性当音频阻塞。稳定边界Back多为几十ms，不能当优化的在途证据。
+
+010实现有界加速：仅包装固定CombatManager.StartTurn直接调用CustomScaledWait(.5,.8)的纯阶段计时，不泛化跳过所有Cmd.Wait。AsyncLocal捕获真实StartTurn的combat state/SeekGeneration，核当前状态/代归属，再以最近native调用帧等于StartTurn async-state-machine限定直接调用，Hook/Card/VFX子调用和其他任务不匹配。Back/Seek Drain期间释放已归属的当前纯timer等待，并跳过后续同处阶段timer；原计时Task不取消、不恢复旧Task，正常fault/cancel保留，已退役纯timer的迟到异常另记诊断。纯timer内部只有await、无后续业务，并发调用方顺序是否仍等价尚待原生测试，不能由此宣称安全/性能已证明。
+
+退役仍等待原生业务全部完成并精确核对结果/RNG；不改FastMode/Engine.TimeScale、不提前标完成、不给卡牌写播放脚本。当前room的旧CombatStart/PlayerTurn/EnemyTurn横幅退役，精确停止NDebugAudioManager中player_turn.mp3/enemy_turn.mp3当前播放，其他声音不StopAll；退役期不新建已撤销的阶段横幅，保持必要遮罩/静默和“快速收束已撤销操作”提示，不以可见地快打敌人再倒回代替延迟优化。显示/实际apply标志与SilentRebuild分开管理。日志记录phase wait的绑定/代/阵营、released/skipped，既有退役/恢复/总耗时继续可比较。
+
+主工程/DirectContracts构建0警告0错误，4组纯async计时合同通过（正常等待/异常、释放当前不取消timer且业务续接一次、下一代正常等待隔离、取消与迟到timer异常观察）；另14组D-131、7组开场政策与原C片生产读取通过，输出`evidence/content-005/checks/phase-retirement/`。这些不执行原生方法/归属绑定，也不证明实际RNG/时序或提速。010 DLL `A6B6A9E231F9661BAAC172E2F06CABE7A46A8EE78F26E8BD326E3E8385D0AD1D`已安装，收据`evidence/content-005/preparation/build-010-3ac58595.json`；009可用pair/config及r12完整证据保留。51份当前文件/3,953,223 bytes补存`CONTENT005-post-first-Osty-playback-current-20261030-153906`逐hash读回，收据`evidence/content-005/post-first-Osty-playback-current-files.json`，原账号/固定本体/仅ReplayMod/modded1/game0核对、Cloud沿本批关闭，无restore/history/其他账号遍历。下一仅同片真正in-flight EndTurn Back/Seek，比较归属/释放/到达耗时、继续到原生胜利及Stop/重开；失败按实际等待缩窄修，不放松断言。010实际优化Pending。
+
 ## B：球机制源码增量，所测闭环通过
 
 用户进行002人工测试期间继续开发，安装保持002。下一增量源码使用格式8：`Mechanics.OrbQueue`明确保存容量、有序球条目、每个原生实例的Replay逻辑ID、未来身份计数、所有者、移除标记、当前被动/激发值及各球派生模型的私有标量字段。暗球`_evokeVal`、玻璃球`_passiveVal`不会只靠模型名或当前画面推断。已有格式1–7不新增字段、不修改原片，精确兼容002录制build。
