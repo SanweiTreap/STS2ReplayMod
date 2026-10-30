@@ -1,11 +1,11 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-006进行中（D-134）**：已有六场录制/资源承接、005/r3早晚原生观看/Back/胜利/Stop与已完成房间写后Continue，007/r4的GrandFinale在途Back等待/声效/花瓣样本已通过，保留007不再换版。本包未完成：下一合并后续强普通/本局第4场、未完战斗跨进程newattempt，再接D召援。
+更新：2026-10-31。**CONTENT-006进行中（D-134）**：007/r5已录第11层普通群怪、本局第4场的中断/胜利两个format10尝试，同进程重进/初态/分组通过；两片尚未观看，未完跨进程仍待。旧弱怪录播、已完成房间跨进程续接及GrandFinale体验结论保持，保留007。本包剩新片观看与D召援/未完跨进程，不重录本场。
 
 ## 玩家现在能用到什么
 
 固定STS2 public-beta v0.111.0、仅ReplayMod；五角色A0首幕首排普通战斗的代表机制已有自动录制→文件封存→独立原生回放→Back/续播→退出证据，还不能录制/观看整局。
-- CONTENT-006/001新增六份实际猎人录制（两局各三场、含首排后），95操作/10选择、胜利自动保存与生产读回通过；全部为Weak遭遇，不等于新片多场观看或所有普通强怪通过。
+- CONTENT-006猎人已录首排后Weak及第11层SeapunkNormal普通群怪，实际战外资源承接。第4场有1操作中断片、14操作胜利片，重进从开场Sequence1开始、不拼旧操作；r5仅同进程，format10片的原生观看还待。
 - 自动记录出牌、喝药、丢弃药水、结束回合和已接入的选择；胜利自动保存，从普通最近入口打开。
 - 前进与Back后再前进继续原生牌效、动画、选择和RNG；已访问完整操作点用观看内存恢复，开场另用房间前checkpoint干净重入。
 - 已测星星/锻造/可变牌、球队列/累计值、Osty成长/死亡重召/首次创建及Doom致胜。原生牌效复用不等于所有卡/遗物/药水组合都已验证。
@@ -37,7 +37,7 @@ r14的14次原生结果/RNG包含Retiring6（5次被撤销EndTurn的自然收尾
 
 ## 尚未完成
 
-- 后续普通战斗已有猎人录制样本，强普通/新片独立观看、Continue正确分组修复与未完成房间attempt仍待；更多难度、精英/Boss/事件战斗、奖励/商店/地图语义回放与整局，以及一般召唤/孵化/复活换形、玩家失败和全部内容组合未完成。
+- 后续普通群怪录制与同进程中断新attempt已有证，当前两份format10片观看/未完跨进程/D仍待；更多难度、精英/Boss/事件战斗、奖励/商店/地图语义回放与整局，以及一般召唤/孵化/复活换形、玩家失败/全部内容组合未完成。精英未录是既定范围，不判普通录制FAIL。
 - 通用文件权威恢复/纠偏、未访问位置直接Seek。当前主要是观看内存；STATE-001仅证明首回合首Defend后单点冷恢复/受控纠偏，不代表所有持久化状态点。
 - 原始/分类配置节奏、全局倍速、下一回合/楼层导航、时间轴/路线图、录像库与可移植导入。时间戳已落盘，原始节奏播放尚未完成。
 - 发布性能、长战斗/整局容量与异常恢复；256操作/4MiB等原型上限不是发布保证，原PERF小pilot不替代预算。用户拖牌取消/凋萎互卡根因未复现。
@@ -61,7 +61,11 @@ B的已完成房间写→读→Continue闭环有实证：005新进程21:06:48.39
 
 8终局=正常2/退役6，是同一原片首次/重做，不是8场。最后正常胜利Stop6 AllMatched/Victory true、Error null、Outstanding false/Auto关/Pending0，原manager/所比较Continue及progress恢复，牌/Osty按日志清理，原片不变、正常Quit/shutdown。无observer/playback/late timer fault；原Invalid Task ID/shader/RID等引擎诊断保留，不声称全无错误。007按本片/此类真在途的体验/数据收束，不外推所有卡/VFX/音效或异常并发。D/强普通/未来第4场/未完room attempt仍待，通用文件冷恢复未实现。
 
-下一沿现有猎人局进入下一普通Monster（按实际路线，候选SeapunkNormal），打一张非致胜普通牌并等完整操作后正常存退/关游戏；新进程Continue，验证同场原生开场重进为本局第4场尝试2，正常获胜领奖存退。目标是保留尝试1中断前缀与尝试2独立胜利，不拼旧操作，不要求中间帧接续/观看Seek；正常SL/存盘不算观看隔离失败。先核文件/attempt/强普通/开场，再测新格式10片观看，D召援下个自然停点。007体验、已答B/C/菜单退出与旧六片不重跑，无新审批/整局加码。
+007/r5实际第11层SeapunkNormal（CalcifiedCultist+Seapunk）沿canonical3fd记第4场，无Preparation，承接精英/休息点后的HP19/金币234/13牌。尝试1 2a9fa4fc为1个完整Expose/0选择的interrupted，未强补EndTurn；尝试2 a97044e6为14操作/0选择、末GrandFinale真实胜利。均format10/生产ExactPayloadMatched，Initial原始投影完全相等、checkpoint仅原生volatile字段不同，独立新开场Sequence1录制。实际write→load→Continue同组/FrozenLoad通过。95事件/两片等99文件封存，[r5摘要](../evidence/content-006/runtime-verification-r5.json)。
+
+本轮重进ProcessId均108208、同session/ProcessStartedUtc，故只验同进程未完房间newattempt；不拿r3已完成房间跨进程替代，不标协议失败或重录。两片无观看事件，额外生产读取/路线离线检查不等于format10原生观看。期间休息点/精英未录属于原Monster范围，正常进度及后续Continue同组；SeapunkNormal原为普通遭遇池预测，实际应按节点安排。
+
+下一直接列表看第4场尝试1唯一操作/片段终点Stop，再独立尝试2：第3项BladeOfInk生成小刀后Back2重做3，Auto真实胜利后Back13重做14/Stop退出。先补本样本format10观看/生成后恢复，不继续要求重录或推进地图。未完跨进程合并后续D三鼠，明确退出到桌面/重新启动并以新PID/ProcessStartedUtc为证；不是回放中间帧冷恢复/接续旧动作。007体验、旧六片/B/C/菜单退出不重跑，无新审批/整局加码。
 
 ## 整局外壳的时间安排（规划，未派发）
 
@@ -70,9 +74,9 @@ B的已完成房间写→读→Continue闭环有实证：005新进程21:06:48.39
 ## 工程、恢复点与协作
 
 - 当前安装CONTENT-006/build-007，SHA256 `9BCECE95FF90DE51CB3A06B3E9B5F8069838C1E10F139D0FA43602D22926F0FF`，[收据](../evidence/content-006/preparation/build-007-1ee95b73.json)核pair/仅ReplayMod/modded1/安装时game0；候选不等于体验PASS。006/005及此前pair/config/六原片/失败与CONTENT-005/011恢复pair保留，无restore。
-- 工程[src/ReplayMod](../src/ReplayMod/README.md)，当前源码d298cd0、报告/README78bbd1a，007实际DLL保持；同包build编号勿与CONTENT-005混。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常查源码，有歧义再查IL。
+- 工程[src/ReplayMod](../src/ReplayMod/README.md)，当前源码d298cd0、报告/README50edd22，007 DLL保持；同包build编号勿与CONTENT-005混。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常查源码，有歧义再查IL。
 - 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续当前文件/安装pair补存见报告/收据，不称更新后的完整账号快照。未整包恢复，用户有新进度先补备份，另一账号不纳入。
-- Cloud沿本批用户确认关闭；r4后已知51文件/3,966,529 bytes补存原恢复点CONTENT006-post-r4-current-20261030-221927，逐hash读回，不称完整新账号快照/云端保证。PM不重复读个人存档，不扫描另一账号/恢复旧基线。
+- Cloud沿本批用户确认关闭；r5后已知51文件/4,002,995 bytes补存原恢复点CONTENT006-post-r5-current-20261031-003209，逐hash读回，不称完整新账号快照/云端保证。PM不重复读个人存档，不扫描另一账号/恢复旧基线。
 - [公开仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始录像/日志/备份、依赖和游戏反编译缓存仅留本地。Git仅一个index写入者，提交精确路径，不reset/clean/force。[协作规则](REPOSITORY.md)。
 - Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)接续CONTENT-006；PM提交工作包后移交Git index窗口，维护状态/规划/验收，不承担大规模源码实现；不新建用户对话或覆盖模型。
 - D-092备份后允许同包查源码/hook/普通修复/安装和请求人工短测；默认modded1，unmodded1不再是禁止读取复制的禁区。实验权限不降低成品Continue隔离目标，不恢复逐步审批。
