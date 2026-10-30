@@ -52,6 +52,10 @@ Implementation已请求一段正常三场游玩：前两场领奖，第二场后
 
 这比原“两场”候选更完整，但不等于整局地图/奖励语义回放、跨房间Seek、Boss/孵化/复活/跨幕、其他难度或通用冷恢复。Continue重进须有真实房间前起点并标newattempt，不能拼未完操作；至少验证下一受支持战斗续录。实际方案/覆盖待Implementation验证，任务细节以工作包为准。
 
+## 整局外壳的时间安排（规划，未派发）
+
+用户提出路线/问号/营火/宝箱/跨层应由统一外壳承载。当前RunId/战斗列表仅是地基，后场checkpoint承接战外结果不等于已记录前面的决策。PM建议紧接CONTENT-006优先做整局/房间访问骨架与“领奖→选路→营火→下一战斗”原生闭环，再逐类接宝箱/商店/事件、跨幕与跨房间导航；不等所有战斗覆盖完成。001人工轮与本包四项目标保持，不擅自中途改版；[规划与未知项](technical-notes/RUN-REPLAY-PLAN.md)已记录，尚未签新实现工作包。
+
 ## 工程、恢复点与协作
 
 - 当前安装CONTENT-006/build-001，SHA256 `061EC2212B4E0A6B30D7153FA6FCBD8BC89E1D887935EE1823128BF46F572593`，[收据](../evidence/content-006/preparation/build-001-61568ba9.json)核pair/仅ReplayMod/modded1/game0；这不是原生运行证明。CONTENT-005/011可用pair及旧片/失败保留，任务间build编号勿混。
