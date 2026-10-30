@@ -1,6 +1,12 @@
 # ReplayMod 0.1.0 · 原生单场回放
 
-## 当前安装：CONTENT-006 / build-004，续录分组与暂停菜单退出修复候选，待实测
+## 当前安装：CONTENT-006 / build-005，旧分组索引校正；004保存退出实测通过
+
+004/r2用户确认原生“保存并退出”已正常：战斗0处原生关闭暂停capstone、解除暂停，约169ms回菜单，原manager/所比较进度恢复；三次新片列表开场/退出、1个完整原生操作匹配。没有完整胜利/Back或新战斗，实际成功写入后虽有load，仍缺该write后的Continue，D/强普通/未完房间attempt未验证。
+
+用户确认原录制是两局各三场，第二局SL被001拆组。005按该事实修Replay自有journal/显示映射并承接后续计数，六份原片/checksum和native存档不改，旧错组失败材料保留；实际索引读回已是两组各1/2/3，下次新战应第4场，不当作原自动分组修复已验收。10组直接合同及构建通过；005 DLL `07CE397A9450ACB0D15E4B4B0630B7343B07668448F5EB7CE9A914ECE57E3E3F`已在game0/已知当前文件及journal双份备份后安装，无restore/自行启动。下一先看两组列表，再用较短的第二局第1/3场取完整观看与相关Back/Stop，沿自然停点补write→load→Continue和下一普通战斗。详见[报告](../../project-management/investigation-reports/CONTENT-006-report.md)。
+
+## CONTENT-006 / build-004 退出修复历史
 
 004取代尚未运行的003：外部暂停菜单退出等待完整观看清理，全局原生业务ReturnToMainMenu fallback则请求Stop后允许业务先结束，避免与Stop收束形成等待环。均先原生关闭暂停capstone解除暂停，正常游戏保存退出不变。004 DLL `11B57F1F51A35B21D6B62A1303E06FB9D4360F0718671D54A143EF3FAC21D17C`已在game0安装，主工程构建通过，003/002/001 pair和当前进度保留；实际退出/分组/观看/D仍待测。
 

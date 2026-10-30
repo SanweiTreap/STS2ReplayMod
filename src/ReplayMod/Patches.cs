@@ -244,9 +244,9 @@ internal static class Patches
         if(!PlayerLoop.Active||PlayerLoop.TearingDown)return true;
         // A business task can await this fallback. Let it finish so Stop can drain it;
         // only the external pause-menu caller awaits the complete viewer teardown.
-        _=PlayerLoop.ExitFromMenu("return-to-main-menu");__result=Task.CompletedTask;return false;
+        _=PlayerLoop.ExitFromMenu("return-to-main-menu",callerWaitsForTeardown:false);__result=Task.CompletedTask;return false;
     }
     private static bool PauseMenuExit(ref Task __result)
-    {if(!PlayerLoop.Active||PlayerLoop.TearingDown)return true;__result=PlayerLoop.ExitFromMenu("pause-save-and-quit");return false;}
+    {if(!PlayerLoop.Active||PlayerLoop.TearingDown)return true;__result=PlayerLoop.ExitFromMenu("pause-save-and-quit",callerWaitsForTeardown:true);return false;}
     private static bool Hotkey()=>!PlayerLoop.Active||(DecisionRoute.Enabled?DecisionRoute.Ready:ChoiceTape.Controllable);
 }

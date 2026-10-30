@@ -12,7 +12,9 @@ public sealed record ClipListing(string Id,DateTimeOffset CreatedUtc,string Char
 public sealed class RecordingJournal(string path)
 {
     public sealed record RunEntry(string Id,Dictionary<string,int> Battles,Dictionary<string,int> Attempts);
-    public sealed record Data(Dictionary<string,string> Saves,Dictionary<string,RunEntry> Runs);
+    public sealed record RunCorrection(string CanonicalRun,int BattleOffset,string Evidence);
+    public sealed record Data(Dictionary<string,string> Saves,Dictionary<string,RunEntry> Runs,
+        [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] Dictionary<string,RunCorrection>? Corrections=null);
     private Data _data=Load(path);
     public string? CurrentRun {get;private set;}
     public bool ContinueMatched {get;private set;}
@@ -38,7 +40,7 @@ public sealed class RecordingJournal(string path)
     public void Continue(string actualSave)
     {
         ContinueMatched=_data.Saves.TryGetValue(SaveKey(actualSave),out var id)&&_data.Runs.ContainsKey(id);
-        if(ContinueMatched)CurrentRun=id;else NewRun();
+        if(ContinueMatched)CurrentRun=CanonicalRun(id!);else NewRun();
         Observe(actualSave); // Unknown old runs start an explicitly unmatched group.
     }
     public void Observe(string save)
@@ -49,9 +51,31 @@ public sealed class RecordingJournal(string path)
     public void ObserveFor(string runId,string save)
     {
         Codec.Require(_data.Runs.ContainsKey(runId),"recording-observed-save-run-missing");
+        runId=CanonicalRun(runId);
         var key=SaveKey(save);
         // Exact collisions between two separately observed new runs are ambiguous, never merged.
-        _data.Saves[key]=_data.Saves.TryGetValue(key,out var old)&&old!=runId?"ambiguous":runId;Save();
+        _data.Saves[key]=_data.Saves.TryGetValue(key,out var old)&&CanonicalRun(old)!=runId?"ambiguous":runId;Save();
+    }
+    private string CanonicalRun(string run)=>_data.Corrections?.GetValueOrDefault(run)?.CanonicalRun??run;
+    public BattleRecording Display(BattleRecording battle)=>_data.Corrections?.GetValueOrDefault(battle.RunId) is {} correction?
+        battle with{RunId=correction.CanonicalRun,Battle=battle.Battle+correction.BattleOffset}:battle;
+    // Explicit, evidence-backed correction of an old split after completed rooms.
+    // Never infer this link from a seed; the original clips and catalog stay immutable.
+    public void CorrectContinuation(string alias,string canonical,string evidence)
+    {
+        Codec.Require(alias!=canonical&&_data.Runs.ContainsKey(alias)&&_data.Runs.ContainsKey(canonical)&&evidence.Length>=20,"invalid-run-correction");
+        if(_data.Corrections?.GetValueOrDefault(alias) is {} existing)
+        {Codec.Require(existing.CanonicalRun==canonical,"conflicting-run-correction");return;}
+        Codec.Require(CanonicalRun(canonical)==canonical&&!(_data.Corrections?.Values.Any(c=>c.CanonicalRun==alias)??false),"nested-run-correction-unsupported");
+        var source=_data.Runs[alias];var target=_data.Runs[canonical];
+        Codec.Require(!source.Battles.Keys.Intersect(target.Battles.Keys).Any()&&
+            source.Battles.Values.Order().SequenceEqual(Enumerable.Range(1,source.Battles.Count))&&
+            target.Battles.Values.Order().SequenceEqual(Enumerable.Range(1,target.Battles.Count)),"run-correction-overlap-or-order");
+        var offset=target.Battles.Count;
+        foreach(var p in source.Battles)target.Battles.Add(p.Key,p.Value+offset);
+        foreach(var p in source.Attempts)target.Attempts.Add(p.Key,p.Value);
+        _data=_data with{Corrections=_data.Corrections??new()};_data.Corrections.Add(alias,new(canonical,offset,evidence));
+        if(CurrentRun==alias)CurrentRun=canonical;Save();
     }
     public BattleRecording Begin(int act,int row,int col,int floor,long start,string entry)
     {
@@ -67,7 +91,7 @@ public static class RecordingLibrary
 {
     // Read metadata once per menu attachment, never on the gameplay/frame path.
     // Each file is isolated: one damaged clip cannot hide the rest of the library.
-    public static ClipListing[] List(string root,Func<string,Clip> read)
+    public static ClipListing[] List(string root,Func<string,Clip> read,Func<BattleRecording,BattleRecording>? display=null)
     {
         if(!Directory.Exists(root))return [];
         var cache=Path.Combine(root,"catalog");Directory.CreateDirectory(cache);var rows=new List<ClipListing>();
@@ -90,7 +114,7 @@ public static class RecordingLibrary
             }
             catch(Exception ex){rows.Add(new(id,File.GetLastWriteTimeUtc(file),"未知","读取失败",0,0,false,null,ex is InvalidDataException?ex.Message:ex.GetType().Name));}
         }
-        return rows.OrderByDescending(r=>r.CreatedUtc).ToArray();
+        return rows.Select(r=>display is not null&&r.Battle is {} battle?r with{Battle=display(battle)}:r).OrderByDescending(r=>r.CreatedUtc).ToArray();
     }
     public static ClipListing Describe(Clip clip)=>new(clip.Id,clip.CreatedUtc,clip.Character,clip.Encounter,clip.Row,clip.Operations.Length,clip.Operations.LastOrDefault()?.Victory==true,clip.Battle,NativePlaybackSupport.Reason(clip));
 }

@@ -32,11 +32,12 @@ internal static class Ui
         {
             Runtime.CheckEnvironment();id=Runtime.Store.LatestId();
             clip=id is null?null:Runtime.ReadClip(id);
+            var shownBattle=clip?.Battle is {} recordedBattle?Runtime.Journal.Display(recordedBattle):null;
             info=clip is null?"暂无片段。五角色任一A0首幕普通战斗会逐场自动录制，支持Continue后续录。":
                 $"最近{(clip.Operations[^1].Victory?"完整胜利战斗":"片段")} {clip.Id[..8]} · {clip.CreatedUtc.ToLocalTime():MM-dd HH:mm}\n{clip.Operations.Length}个操作 · {(clip.Character=="CHARACTER.NECROBINDER"?"亡灵契约师":clip.Character=="CHARACTER.DEFECT"?"故障机器人":clip.Character=="CHARACTER.REGENT"?"储君":clip.Character=="CHARACTER.SILENT"?"猎人":"铁甲")} A0\nSeed {clip.Seed}\n本场 · 出牌／用药／丢弃药水／原生选择"+
                     (clip.Preparation is null?"":clip.Preparation.StartsWith("CONTENT004",StringComparison.Ordinal)?"\n定向测试：储君／星星／锻造与复制":clip.Preparation.StartsWith("CONTENT003",StringComparison.Ordinal)?"\n定向测试：猎人／连续弃牌／生成小刀":clip.Preparation.StartsWith("DEMO005",StringComparison.Ordinal)?"\n定向测试：升级牌＋能力＋小花＋能量药水":"\n定向测试样本：暗港双蛞蝓")+
                     (clip.Timing is null?"\n原始操作时间：未知（旧片）":"\n已记录操作接受／完成时间")+
-                    (clip.Battle is {} battle?$"\n第{battle.Floor}层 · 本局第{battle.Battle}场 · 尝试{battle.Attempt}":"\n旧片：局归属未知");
+                    (shownBattle is {} battle?$"\n第{battle.Floor}层 · 本局第{battle.Battle}场 · 尝试{battle.Attempt}":"\n旧片：局归属未知");
         }
         catch(Exception ex){info="片段暂不可打开："+(ex is InvalidDataException?ex.Message:ex.GetType().Name);}
         box.AddChild(Label(info));
@@ -46,7 +47,7 @@ internal static class Ui
         box.AddChild(Label("战斗列表 · 每场独立打开"));
         try
         {
-            var rows=RecordingLibrary.List(Path.Combine(Runtime.Root,"clips"),Runtime.ReadClip);
+            var rows=RecordingLibrary.List(Path.Combine(Runtime.Root,"clips"),Runtime.ReadClip,Runtime.Journal.Display);
             foreach(var group in rows.GroupBy(r=>r.Battle?.RunId))
             {
                 box.AddChild(Label(group.Key is {} run?$"对局 {run[..8]}":"旧片／未知归属"));

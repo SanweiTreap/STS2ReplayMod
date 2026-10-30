@@ -66,6 +66,37 @@ internal static class RecordingContracts
             var rows=RecordingLibrary.List(root,Read);Need(rows.Length==2&&rows.Count(r=>r.Problem is not null)==1&&rows.Single(r=>r.Id==clip.Id).Battle==clip.Battle,"bad-file-blocked-good-file");
             reads=0;rows=RecordingLibrary.List(root,Read);Need(reads==1&&rows.Length==2,"good-file-parsed-again-for-list");
         });
+        var repairPath=Path.Combine(dir,"corrected-journal.json");var corrected=new RecordingJournal(repairPath);
+        corrected.NewRun();var originalRun=corrected.CurrentRun!;corrected.Observe(save);corrected.Begin(0,1,0,2,100,"map");
+        corrected.NewRun();var splitRun=corrected.CurrentRun!;var splitSave=save.Replace("70","65");corrected.Observe(splitSave);
+        corrected.Begin(0,3,0,4,100,"map");var oldThird=corrected.Begin(0,5,0,6,100,"map");
+        Test("explicit-user-confirmed-old-split-displays-three-battles-and-continues-canonical-counter",()=>
+        {
+            corrected.CorrectContinuation(splitRun,originalRun,"user-confirmed-same-run-with-save-load-at-question-room");
+            Need(corrected.Display(oldThird).RunId==originalRun&&corrected.Display(oldThird).Battle==3,"old-split-display-not-corrected");
+            corrected=new(repairPath);corrected.Continue(splitSave);
+            Need(corrected.ContinueMatched&&corrected.CurrentRun==originalRun,"continue-did-not-resolve-explicit-correction");
+            Need(corrected.Begin(0,7,0,8,100,"map").Battle==4,"future-battle-counter-restarted-after-correction");
+            corrected.ObserveFor(splitRun,splitSave);corrected=new(repairPath);corrected.Continue(splitSave);
+            Need(corrected.ContinueMatched&&corrected.CurrentRun==originalRun,"alias-save-became-falsely-ambiguous");
+            corrected.CorrectContinuation(splitRun,originalRun,"repeat-same-user-confirmed-correction");
+            Need(corrected.Display(oldThird).Battle==3,"repeated-correction-shifted-old-battles-again");
+        });
+        Test("library-correction-never-rewrites-sealed-clip-or-its-original-recorded-group",()=>
+        {
+            var raw=clip with{Battle=oldThird with{Completion="interrupted"}};var folder=Path.Combine(dir,"corrected-clips");var immutable=new ClipStore(folder);immutable.Seal(raw);
+            var before=File.ReadAllBytes(Path.Combine(folder,raw.Id+".json"));
+            var view=RecordingLibrary.List(folder,id=>immutable.Read(id,"game","mod","scope"),corrected.Display).Single();
+            Need(view.Battle?.RunId==originalRun&&view.Battle.Battle==3&&
+                immutable.Read(raw.Id,"game","mod","scope").Battle==raw.Battle&&File.ReadAllBytes(Path.Combine(folder,raw.Id+".json")).SequenceEqual(before),"view-repair-rewrote-original-recording");
+        });
+        Test("correction-refuses-overlapping-room-attempts-and-keeps-distinct-new-runs",()=>
+        {
+            var j=new RecordingJournal(Path.Combine(dir,"overlapping-journal.json"));j.NewRun();var firstId=j.CurrentRun!;j.Begin(0,1,0,2,100,"map");
+            j.NewRun();var secondId=j.CurrentRun!;j.Begin(0,1,0,2,100,"map");var rejected=false;
+            try{j.CorrectContinuation(secondId,firstId,"explicit-but-unsupported-overlapping-attempt-correction");}catch(InvalidDataException){rejected=true;}
+            Need(rejected&&j.CurrentRun==secondId&&firstId!=secondId,"ambiguous-overlap-was-silently-merged");
+        });
         File.WriteAllBytes(output,Codec.Bytes(new{Result="CONTINUOUS_RECORDING_JOURNAL_FORMAT_LIBRARY_CONTRACTS_PASS_NOT_NATIVE_RUNTIME",Tests=tests}));
     }
 }

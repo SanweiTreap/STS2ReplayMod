@@ -71,7 +71,7 @@ internal static class PlayerLoop
             _=>cursor.Playing?"播放中":"暂停：在选择动作或完整操作边界停住"
         };
     }
-    internal static Task ExitFromMenu(string source)
+    internal static Task ExitFromMenu(string source,bool callerWaitsForTeardown)
     {
         if(!Active)return Task.CompletedTask;
         var closed=_exitSignal?.Task??Task.CompletedTask;
@@ -80,7 +80,7 @@ internal static class PlayerLoop
         Control("stop"); // Clear replay intent before native menu closure unpauses combat.
         Runtime.Guard(()=>{if(hadScreen)capstone!.Close();});
         Runtime.Log("playback-menu-exit-requested",new{Source=source,PausedBefore=paused,PausedAfter=CombatManager.Instance.IsPaused,
-            NativeCapstoneClosed=hadScreen&&capstone!.CurrentCapstoneScreen is null,NormalSaveRequested=false,WaitsForActualPlaybackTeardown=true});
+            NativeCapstoneClosed=hadScreen&&capstone!.CurrentCapstoneScreen is null,NormalSaveRequested=false,WaitsForActualPlaybackTeardown=callerWaitsForTeardown});
         return closed;
     }
 
