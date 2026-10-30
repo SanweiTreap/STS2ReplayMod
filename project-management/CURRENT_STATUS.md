@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-005进行中**：A/B/D验收保留；C的008/r9结果/恢复/Doom续播已有证据，但重召血条视觉失败，C未验收。**当前009血条修复已安装、待同片短测**；修复原生死亡显示不变量，诊断只读，不补召唤动画。首次创建Osty仍未覆盖。
+更新：2026-10-30。**CONTENT-005进行中**：A/B/D验收保留，**C默认起始Osty样本已按008/r9逻辑续播与009/r10视觉/退出边界收束**。当前009保持；下一用已有可选准备录“初始无Osty→首次创建”，再测Back到未生成后重新原生创建。该机制尚未覆盖，本包未关闭，旧失败保留。
 
 ## 玩家现在能用到什么
 
@@ -29,7 +29,7 @@ r6/r7的恢复后选牌失败保留：PM已核完整异常栈及固定源码，�
 
 ## 尚未完成的产品目标
 
-- 固定STS2 v0.111.0，仅ReplayMod；候选已接五角色A0首幕首排普通战斗、无额外run modifiers，Continue不录。三旧角色及机器人代表组合已验，Necrobinder仅录制通过、回放恢复待测，不能称五角色或全内容完成。
+- 固定STS2 v0.111.0，仅ReplayMod；候选已接五角色A0首幕首排普通战斗、无额外run modifiers，Continue不录。三旧角色、机器人和默认Osty代表组合已有录播/恢复证据；首次创建Osty及全部内容组合仍待覆盖，不认全内容完成。
 - 后续房间、精英/Boss、事件战斗、奖励/商店与整局；Necrobinder/Osty/Doom实际覆盖、更广球/宠物、新单位/一般复活换形、玩家失败等。
 - 全卡牌/遗物/药水覆盖。原生模型负责效果，但输入、身份、私有状态、订阅与恢复仍需按共用机制补齐；丢弃药水是已确认的输入漏项。
 - 通用文件强记录/纠偏及未访问位置的直接Seek。当前后退主要用观看内存；STATE-001只证明新进程读取首回合首张防御后的一个文件状态点及受控纠偏，不是每步完整文件恢复。
@@ -60,7 +60,9 @@ B/C基础源码B提交ccbbcde、C提交1235aaa，004准备3a7f711；B恢复/显�
 
 C的008/r8：PM核报告/[摘要](../evidence/content-005/runtime-verification-r8.json)，未重计49原事件。格式8片7393a0279941453297b75597dcea5446录成9项/0选择，胜利自动封存/生产精确读回。Osty ID3/Owner0，初始1/1→成长6/6→死0/6且Pets保留→同ID重召5/5→新回合6/6；Doom26在第9项EndTurn敌方结算致胜，终态死宠留Allies/Pets清空、FishingRod计数0→1已有文件事实，尚非Back证明。同session之前2条observer-error/1录制失败事件保留，未知具体错误条件，不称整session零失败；有效录制区间无失败。下一同片recent测成长/死亡重召/Doom恢复、胜利Back8再EndTurn和退出重开，首次创建另按可选准备取样；008不变。
 
-C的008/r9已核报告/[封存摘要](../evidence/content-005/runtime-verification-r9.json)，未重计1038原事件：2recent、43结果/RNG、29匹配Back、3Doom胜利；2次胜利Back新loop续接中仅第一次随后末步再胜，第二次回更早位置。Stop9/5状态/manager恢复，Osty回调Known1→Remaining0、牌监听0/5→0，原片不变。用户明确5→Back4→再5重召无血条，C视觉失败。PM读恢复差异/原生源码确认Visible与alpha不变量；009保留节点可见/死时alpha0和原生死亡交互，后续复活由原生淡入，postfix只读核对。下一同片4↔5及相关死亡/退出短测，未获修复运行确认，不关闭C或首次创建。
+C的008/r9已核报告/[封存摘要](../evidence/content-005/runtime-verification-r9.json)，未重计1038原事件：2recent、43结果/RNG、29匹配Back、3Doom胜利；2次胜利Back新loop续接中仅第一次随后末步再胜，第二次回更早位置。Stop9/5状态/manager恢复，Osty回调Known1→Remaining0、牌监听0/5→0，原片不变。用户重召无血条的失败保留；PM核到Visible/alpha不变量，009改恢复状态而非另播动画，后续r10补视觉验证，不把旧r9追判成功。
+
+C默认样本009/r10按范围收束：PM核[最终摘要](../evidence/content-005/runtime-verification-r10.json)的HUD/退出清理，未重计916原事件。2recent、35结果/RNG、25匹配Back；25恢复HUD均Visible、死时alpha0，9原生复活HUD均Visible且观察器未改显示，用户确认血条及死亡重召正常。1真实Doom胜利，Stop9/1无Error/Outstanding、清计划、原context恢复，3房间清理Osty回调零余量/牌监听5/0/5→0；含1次无选择开场重入Initial/0匹配。Doom胜利Back桥接仍属008/r9，009未重复该矩阵，不把两版本拼成单轮全覆盖。首次创建未测，下一009勾已有可选准备录真正新单位，再测跨不存在Back；默认样本与此新机制分开验收。
 
 B的004/r3–r4已按样本验收：r3格式8片dfa22d43c501492786b19cacee1411c7录成9项，含暗球12→20、槽3→5、随机球流0→2与玻璃/冰ID5/6。r4的[封存摘要](../evidence/content-005/runtime-verification-r4.json)/报告经PM复核，未重计697原事件：2次recent、28结果/RNG、18匹配恢复、4真实球胜利；三次胜利Back8后以新信号/原生阶段续播，未重跑开场/回合开始。18球显示恢复及20次退场监听零余量；Stop9/1无Error/Outstanding，原context恢复，原片不变。满槽激发第3项只有首次前进原日志，跨该项Back/重做仅用户反馈，保留边界而不补旧矩阵。此证明限玩家回合末电球致胜，不代替C的Doom敌方回合结算。花粉核心旧bug/全遗物及冷文件恢复未覆盖；报告已随b095f5a保存。
 
@@ -69,7 +71,7 @@ B的004/r3–r4已按样本验收：r3格式8片dfa22d43c501492786b19cacee1411c7
 ## 工程、恢复点与工作方式
 
 - 工程：[src/ReplayMod](../src/ReplayMod/README.md)；固定版本反编译C#留本地，日常直接查源码，IL仅在有歧义时核对。
-- 当前安装CONTENT-005/build-009，SHA256 `990FBAE08166BEA8E7C524A1A7375EE6AA6B745E2DD43B2779CE3184403A2F50`，[收据](../evidence/content-005/preparation/build-009-7c09473c.json)，C血条修复待测；显式兼容008原片、不改原文件。008/007/006等pair/日志保留，D验收仍属008/r7，不当009独立全回归。
+- 当前安装CONTENT-005/build-009，SHA256 `990FBAE08166BEA8E7C524A1A7375EE6AA6B745E2DD43B2779CE3184403A2F50`，[收据](../evidence/content-005/preparation/build-009-7c09473c.json)，默认Osty视觉/退出已测，首次创建待测；显式兼容008原片、不改原文件。旧pair/失败保留，D验收仍属008/r7，不当009独立全回归。
 - [公开Git仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始证据、存档录像、备份、依赖及反编译缓存留本地，见[协作规则](REPOSITORY.md)。
 - 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续已知当前文件/候选pair补存见本包报告与各收据（已含C录制后），不冒充更新后的完整账号快照。未整包恢复；用户有新增进度时先备份，另一账号不纳入。
 - Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)，当前CONTENT-005；PM管状态/规划，不承担大规模源码实现。
