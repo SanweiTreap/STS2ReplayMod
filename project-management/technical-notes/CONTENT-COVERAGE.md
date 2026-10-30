@@ -25,7 +25,7 @@
 
 ## 2026-10-30动态覆盖更新
 
-下表静态缺口以旧891e5ff为调查基线，不全部代表当前代码。CONTENT-005已按定向样本验证五角色基础首战录播/观看内存恢复：A共用输入/储君资源、B球状态/HUD与回合末致胜、D工具箱可见开场/整体Back、C默认Osty及首次创建跨不存在恢复（009/r12含5次Back无宠物后再创建、6观看引用退出零回调）。版本/失败/实际边界见本包报告和CURRENT_STATUS，不是全牌/遗物/药水或组合覆盖。其他怪物新增/孵化/复活换形不由Osty样本自动开放，强记录冷恢复/整局/发布性能仍待；新的在途Back计时优化另列待验证收尾。
+下表静态缺口以旧891e5ff为调查基线，不全部代表当前代码。CONTENT-005按定向样本DONE_WITH_LIMITATIONS：五角色基础首战录播/观看内存恢复，A共用输入/储君资源、B球状态/HUD与回合末致胜、D工具箱可见开场/整体Back、C默认Osty及首次创建跨不存在恢复（009/r12含5次Back无宠物后再创建、6观看引用退出零回调）。E的011/r14有5次在途EndTurn Back，总到达564–645ms并获用户体验通过，原生结果/RNG和退出清理匹配；011无独立Seek/短重开，不外推通用等待加速。版本/失败/边界见报告和CURRENT_STATUS，不是全牌/遗物/药水或组合覆盖。其他怪物新增/孵化/复活换形不由Osty样本自动开放，强记录冷恢复/整局/发布性能仍待。
 
 ## 当前覆盖与机制缺口
 
@@ -95,7 +95,7 @@ PLAYBACK-003/006的r7共308事件，PM已读取封存首个observer-error完整�
 
 ## 后续运行发现：死Osty状态栏恢复（2026-10-30）
 
-CONTENT-005/008/r9用户反馈5→Back4→再5后Osty血条不见；逻辑/回调匹配不能代替显示正确。PM核恢复差异及固定原生源码：`NCreature.ToggleIsInteractable(false)`同时令状态栏Visible=false，原生死亡流程主要以AnimDisableUi将alpha淡到0、DisableInteractionForDeath/StateDisplay.OnCreatureDied禁交互；StartReviveAnim只调用AnimEnableUi恢复alpha，不重设Visible。死宠恢复需保留符合debug-hide规则的可见节点、死时alpha0及死亡交互状态，让未来原生复活自然完成。009/r10已有25HUD恢复/9原生复活Visible与用户体验确认，postfix只读、不另写召唤动画；默认样本闭环，首次创建仍未测。恢复契约包括后续原生生命周期依赖的不变量，不能只核即时数值/截图；r9失败不追判成功，完整版本边界见本包报告。
+CONTENT-005/008/r9用户反馈5→Back4→再5后Osty血条不见；逻辑/回调匹配不能代替显示正确。PM核恢复差异及固定原生源码：`NCreature.ToggleIsInteractable(false)`同时令状态栏Visible=false，原生死亡流程主要以AnimDisableUi将alpha淡到0、DisableInteractionForDeath/StateDisplay.OnCreatureDied禁交互；StartReviveAnim只调用AnimEnableUi恢复alpha，不重设Visible。死宠恢复需保留符合debug-hide规则的可见节点、死时alpha0及死亡交互状态，让未来原生复活自然完成。009/r10已有25HUD恢复/9原生复活Visible与用户体验确认，postfix只读、不另写召唤动画；该轮只覆盖默认样本，随后009/r11–r12另取得首次创建/跨不存在Back/新对象清理证据。恢复契约包括后续原生生命周期依赖的不变量，不能只核即时数值/截图；r9失败不追判成功，完整版本边界见本包报告。
 
 ## 用户经验与可追加材料
 

@@ -1,10 +1,10 @@
 # CONTENT-005：五角色基础战斗支持
 
-2026-10-30，D-132。状态：AUTHORIZED / IN_PROGRESS。用户在两剩余角色合批的安排后明确要求“好。开始吧！”。交现有Implementation在同一工程内直接推进，共用补漏、Defect、Necrobinder分段交付；不另开前置INV、实验工程或用户对话。
+2026-10-30，D-132。状态：DONE_WITH_LIMITATIONS。A/B/C/D/E按各自版本与代表样本完成；保留已安装011，游戏已正常退出，无必需补测或已派发下一任务。用户最终确认r14“这次效果很不错。过了！”。五角色基础首战支持不等于全内容/整局完成。
 
-同日进展：A的002/r1–r2按所测样本闭环阶段完成，B的004/r3已录代表片、回放恢复待测，C尚未取样。D-133现授权当前人工测试轮结束后直接实施下文D段开场修订；当前轮不换版、不追加A矩阵。详见[报告](../investigation-reports/CONTENT-005-report.md)与CURRENT_STATUS。
+最终索引：A为002/r1–r2，B为004/r3–r4，C为008/r8–r9及009/r10–r12，D工具箱为008/r7，E为011/r14。详见[报告](../investigation-reports/CONTENT-005-report.md)与CURRENT_STATUS。下文保留实施契约及当时进度，不作为新运行清单；旧失败不追判成功。
 
-最新：A/B/C/D按各自版本/代表样本边界收束，C首次创建009/r12已验收；当前E候选010已装待真正in-flight优化短测，009基线保留，包仍在体验收尾。旧失败、D的ChoicesParadox等未测边界保留，不追加旧矩阵或泛用新怪/冷恢复承诺；旧进度不作当前待办。
+最终边界：011/r14实际为5次在途EndTurn Back，退役518–545ms、总到达564–645ms，状态/RNG/退出清理与用户体验通过；没有独立011 Seek/短重开或ChoicesParadox样本，不追加矩阵。009可用pair、010体感不足及更早失败/原片保持，不外推泛用新怪、冷恢复、任意等待加速或发布性能。
 
 ## 玩家能看到的目标
 
@@ -37,7 +37,7 @@
 
 ## D：当前人工测试轮后，修开场横幅、选择控制与整体Back
 
-本段008/r7工具箱样本DONE_WITH_LIMITATIONS，PM核报告/封存摘要和用户确认；不重跑下列历史实施清单，下一C沿既定授权继续。单样本不宣称所有初始选择/一般性能完成，旧失败保留。
+本段008/r7工具箱样本DONE_WITH_LIMITATIONS，PM核报告/封存摘要和用户确认；不重跑下列历史实施清单。后续C也已按相应样本完成；单样本不宣称所有初始选择/一般性能完成，旧失败保留。
 
 2026-10-30，D-133。用户已明确批准此顺序和方向；先收束正在进行的人工轮及必要问题修复，正常退出后按既有权限备份/换版，再接本段。不要求先完成尚未开始的全部B/C样本或另等PM批准；未完成角色任务仍留本包继续，不被取消。
 
@@ -57,6 +57,8 @@
 范围只限当前观看会话/当前旧代/旧room的Back或Seek退役，且只释放固定原生`CombatManager.StartTurn`直接调用`Cmd.CustomScaledWait(.5,.8)`的阶段计时（包含已等待和退役期间新到同一处的计时）；以实际async-state-machine/最近原生调用帧约束，不泛化所有Cmd.Wait、卡/Hook/VFX/Tween或业务Task，不改正常播放/录制/菜单、原游戏FastMode/TimeScale。已定位timer包装并不证明调用端并发顺序无影响；取消/fault、跨代与原生状态/RNG核对保持，假设由实际短测验证。
 
 r13修订范围：010的StartTurn计时释放有效但用户体感未达，允许同包继续已定位的共享pacing，不将单点试验变成永久约束。011仅把`NCreature.PerformIntent`、`MonsterModel.PerformMove`、`CreatureCmd.TriggerAnim`及`CreatureCmd.Damage`各自直接纯CustomScaledWait加入同owner/state/generation/最近native帧校验；Damage尾计时在完整HP/受伤/死亡Hook/Kill后，不跳这些业务，不改模型/AI/History，不按卡/怪逐项补，不泛化Hook/VFX/信号。`CardPileCmd.Add`约.54秒Tween仍负责AddFinished/AfterCardChangedPiles，保留，不强制完成Tween/TCS或绕回调。011已安装，实际caller绑定/效果/并发RNG待新原生短测，010效果不足/009可用证据保持。
+
+最终r14：5次真正in-flight Back均命中释放，5类通用caller实际绑定96次；14个结果/RNG含Retiring6（5次撤销EndTurn及Stop收束的最后操作9），5次恢复匹配。最后操作在Stop收束中完成Doom胜利，Stop9无Error/Outstanding，原context恢复、Osty/牌监听余量0；不把这次胜利另计为Stop前正常前进。未知等待及约半秒的原生抽牌准备保留，010/r13体感失败不改写；新旧请求时点未严格配对，不报固定提速百分比。本段按r14 Back样本完成，以下为历史验证约定，不再请求新测试。
 
 原生banner/audio是显示，不把声音结束当业务门槛。可按旧room/代退役已撤销阶段banner及对应临时音效，不StopAll；退役SilentRebuild与遮罩可拆，但不把快算敌回合当观众正常前进，也不靠提前撤罩冒充真正到达变快。允许必要短遮罩/明确忙提示，不另写动画。
 
