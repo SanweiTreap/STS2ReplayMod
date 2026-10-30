@@ -1,6 +1,6 @@
 # CONTENT-006：持续录制、Continue、战斗列表与召援
 
-2026-10-30。D-134同工程实施中。001/r1已取得六场录制、资源承接与新进程Continue续录证据，但发现一次真实分组错误；当前安装002，包含读取/保存边界修复及D召援候选，均尚待原生验证。新录像列表回看、一般召援恢复未验收，本包未完成。
+2026-10-30。D-134同工程实施中。001/r1已取得六场录制、资源承接与新进程Continue续录证据，但发现一次真实分组错误；用户另确认旧储君回放中“保存并退出”卡死后手动关游戏。当前安装004，包含002读取/保存边界修复、D召援候选及暂停菜单退出修复，均尚待原生验证。新录像列表回看、一般召援恢复未验收，本包未完成。
 
 ## build-001：A/B/C首个可测增量，尚未游戏实测
 
@@ -90,3 +90,27 @@ Preparation均null，无本mod测试注入；表中战外变化证明实际后�
 用户本批Cloud仍按明确关闭处理。原账号/game0核对，新游玩后已知51文件、3,978,222 bytes补存`CONTENT006-post-r1-current-20261030-202547`并逐hash读回，收据`evidence/content-006/post-r1-current-files.json`；是已知当前文件而非完整新账号快照，无history/其他账号遍历、无restore，当前游戏进度保留。002已安装，DLL SHA256 `A99D1CAA46E374A141E415A90C194B41A2CA2833E009B3B3B13F460B0CB8AF57`，manifest同前，收据`evidence/content-006/preparation/build-002-1fc81a01.json`。001 pair/config及六原片/原journal/重要失败保留，不自行启动游戏。
 
 下一无需重录三场：继续现有猎人局，下一普通战斗正常完成/领奖/存退，核002读取/写入边界日志与既有组延续、强普通遭遇；当前存档下一普通为SeapunkNormal，但不替用户消耗RNG/选路线。然后从第一局列表打开第1场与第3场，各自直接初态/原生结果匹配，合并Back/胜利/Stop及切换另一场隔离。D若自然未遇，沿自然停点另用默认关闭三鼠准备取真实召援/跨生成/再召/新目标/击杀证据，不让用户重roll既有三场或把范围内生成算操作者FAIL。整局外壳保持下一阶段规划。
+
+## 用户澄清旧储君退出 / 003：暂停菜单保存退出死等修复候选
+
+用户回答已问的19:45旧储君退出情况：在回放里试“保存并退出”后，所有可操作按钮失效，随后手动关游戏重启。第一进程记为**回放退出路径缺陷及用户手动终止**，不再是退出原因Unknown，不称游戏崩溃或成功Stop。r1摘要FirstOldPlaybackExit已补此说明；原15事件与原始证据不改。实际日志第一次stop Accepted true、第二次false，停在“正在结束当前整项操作”，没有driver/playback closed，符合尚未完成退出的事实。
+
+固定原生NPauseMenu.CloseToMenu会禁用各按钮后调用NGame.ReturnToMainMenu；暂停capstone打开时CombatManager.Pause，关闭capstone才Unpause并触发子菜单OnSubmenuClosed/清除热键阻塞。旧拦截仅把ReturnToMainMenu变成Stop并立即返回已完成Task，没有关闭暂停capstone。NativeSeek.Drain的Quiescent又依赖LiveState.Playable，而Playable要求CombatManager未暂停；开场0没有在途业务也会继续死等，原暂停按钮已被禁用，形成用户可见的卡住。源码调用链与用户/既有日志一致；没有用这项解释另一件Continue分组问题。
+
+003仅在观看Active且未TearingDown时，提前接管NPauseMenu.CloseToMenu，在原生禁用按钮/StopAll之前请求Replay Stop、清旧计划，再通过原生NCapstoneContainer.Close关闭菜单，解除CombatManager暂停及原生菜单/热键状态。fallback NGame.ReturnToMainMenu同走这条退出路径。选择/动作仍沿原生安全收束和既有观看隔离恢复，不把业务Task强制标完、不调用正常SaveRun保存观看内容，不改普通游玩CloseToMenu行为。
+
+每个Open另有自己的新完成信号，原菜单退出调用者拿到的是等待实际观看清理/原context恢复后的Task；不再立即返回假完成。该信号独立于游戏动作/旧TCS，最外finally总结束，旧会话完成不会误通知后开的会话。新增playback-menu-exit-requested记录关闭前后暂停状态、native capstone关闭、未请求普通保存及真实等待。003仍需要游戏中实际按钮/解除暂停/driver关闭/manager与Continue比较证据，构建不是运行PASS。
+
+主工程0警告0错误。仅改退出路径与显式002录制兼容，不重复未变的离线矩阵或造只镜像实现的UI假测试；人工检查合并既有早场录像Back/Step后在战斗中点原生保存退出，后场播胜利后Replay Stop。002未发现新进程/运行数据，不把002实际写→读→Continue验证拼成已过。为验证B，下一普通战斗领奖存退后再Continue进地图、再存退，必须核到本修复版本自身成功写入后的那次读取与Continue/组延续，不只看001原存档第一次能载入。
+
+安装前game0；与post-r1补存的51已知文件比较，仅settings.save因002准备配置变动，当前run/progress等其余50文件hash相同。`evidence/content-006/pre-003-known-current-check.json`记录这一点；003准备额外保留当前settings/selector及002 pair/config，未把配置变化称新游玩进度或整体回滚。003 DLL `F8758053902DA8793F259C6CC44192720873513346C3F77950821068A101DF50`，manifest同前，收据`evidence/content-006/preparation/build-003-95eec260.json`，仅ReplayMod/modded1，沿本批Cloud关闭，无restore/其他账号遍历/自行启动。002/001 pair、原片和旧失败保留。
+
+当前交用户步骤为：继续现有猎人局一场普通战斗、领奖存退→再Continue到地图后再存退；第一局de425acb第1场独立打开后做Back/Step并在战斗中用原生保存退出；第3场独立播放到胜利、相关Back重做及Replay Stop，然后正常关游戏。无需重录旧三场。D召援样本及未完房间attempt仍留待自然停点，CONTENT-006不关闭。
+
+### 004安装取代未运行003：全局fallback不与原生业务形成等待环
+
+003安装后、用户运行前源码复核进一步区分两类调用者：NPauseMenu.CloseToMenu是外部UI退出，可等待完整观看清理；全局NGame.ReturnToMainMenu也可能由当前原生业务Task调用。若后一类等待观看退出，而Stop又等待该业务收束，会形成反向等待。未见003实际运行/此类死等，不把源码发现当用户新失败。
+
+004保留提前接管PauseMenu、原生关闭capstone/解除暂停及该外部UI的真实清理完成Task；global fallback仍请求相同Stop/菜单关闭，但立即返回以允许原生业务自然结束，随后由观看循环完成退出。沿原有business fallback早返回合同，避免为了修菜单引入业务循环；不提前标记任何真实动作Task完成。普通游戏仍直接执行原函数。003完成信号最外finally/每会话归属保持。
+
+主工程0警告0错误、diff-check通过，不重复未变的旧矩阵；004实际菜单、边界读写/Continue、早晚片观看、D仍未跑。game0安装004，DLL `11B57F1F51A35B21D6B62A1303E06FB9D4360F0718671D54A143EF3FAC21D17C`，manifest同前，收据`evidence/content-006/preparation/build-004-323f7a3d.json`。003/002/001 pair/config保留；本次没有新游戏进程/正常游玩进度、无restore/自行启动。用户下一步骤保持上述合并短测，当前版本以004为准。

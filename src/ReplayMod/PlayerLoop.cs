@@ -6,6 +6,8 @@ using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Audio;
+using MegaCrit.Sts2.Core.Nodes.Screens.Capstones;
+using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
@@ -24,6 +26,7 @@ internal static class PlayerLoop
     internal static bool VictoryReached;
     internal static bool ChoiceAbort;
     private static int _opens;
+    private static TaskCompletionSource? _exitSignal;
     private static readonly Dictionary<int,DirectCheckpoint> Checkpoints=[];
     private static CombatRoster? _roster;
     internal static CombatRoster EnsureRoster()=>_roster??=new(((CombatRoom)LiveState.Run.CurrentRoom!).CombatState);
@@ -68,11 +71,24 @@ internal static class PlayerLoop
             _=>cursor.Playing?"播放中":"暂停：在选择动作或完整操作边界停住"
         };
     }
+    internal static Task ExitFromMenu(string source)
+    {
+        if(!Active)return Task.CompletedTask;
+        var closed=_exitSignal?.Task??Task.CompletedTask;
+        var paused=CombatManager.Instance.IsPaused;var capstone=NCapstoneContainer.Instance;
+        var hadScreen=capstone?.CurrentCapstoneScreen is not null;
+        Control("stop"); // Clear replay intent before native menu closure unpauses combat.
+        Runtime.Guard(()=>{if(hadScreen)capstone!.Close();});
+        Runtime.Log("playback-menu-exit-requested",new{Source=source,PausedBefore=paused,PausedAfter=CombatManager.Instance.IsPaused,
+            NativeCapstoneClosed=hadScreen&&capstone!.CurrentCapstoneScreen is null,NormalSaveRequested=false,WaitsForActualPlaybackTeardown=true});
+        return closed;
+    }
 
     internal static async Task Open(string id,bool fromFile=false,bool nativeSeek=true,string entry="recent")
     {
         if(Active)return;
         if(fromFile){nativeSeek=false;entry="state-file";}
+        var exited=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);_exitSignal=exited;
         Active=true;TearingDown=false;Loading=true;VictoryReached=false;ChoiceAbort=false;IsolatedManager=null;Error=null;Cursor=null;Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;Prequeued.Clear();Committed.Clear();
         MemorySession? memory=null;var checks=new List<string>();var restored=false;var complete=false;var started=Stopwatch.GetTimestamp();
         try
@@ -153,6 +169,8 @@ internal static class PlayerLoop
         }
         finally
         {
+            try
+            {
             if(DecisionRoute.Enabled)
             {
                 if(!Cursor!.StopRequested)DecisionRoute.Control("stop");
@@ -177,6 +195,8 @@ internal static class PlayerLoop
                 Active=false;TearingDown=false;ChoiceAbort=false;Prequeuing=false;DispatchIndex=-1;_playingClip=null;Prequeued.Clear();Committed.Clear();IsolatedManager=null;Ui.ClosePlayback();ActionMonitor.Reset();ChoiceTape.Clear();NativeSeek.Clear();DecisionRoute.Clear();Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;
                 OrbState.Reset();await Runtime.FlushLog();
             }
+            }
+            finally{exited.TrySetResult();}
         }
     }
 

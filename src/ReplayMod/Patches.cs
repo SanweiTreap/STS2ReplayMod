@@ -82,6 +82,7 @@ internal static class Patches
         Patch(typeof(GameAction),"Execute",prefix:nameof(ActionStarted),parameters:[]);
         Patch(typeof(RunManager),"CleanUp",prefix:nameof(Cleanup));
         Patch(typeof(NGame),"ReturnToMainMenu",prefix:nameof(Return),parameters:[]);
+        Patch(typeof(MegaCrit.Sts2.Core.Nodes.Screens.PauseMenu.NPauseMenu),"CloseToMenu",prefix:nameof(PauseMenuExit),parameters:[]);
         Patch(typeof(NHotkeyManager),"_UnhandledInput",prefix:nameof(Hotkey));
         CombatManager.Instance.CombatWon+=room=>Runtime.Guard(()=>BattleEnd.Won(room));
     }
@@ -240,7 +241,12 @@ internal static class Patches
     }
     private static bool Return(ref Task __result)
     {
-        if(!PlayerLoop.Active||PlayerLoop.TearingDown)return true;PlayerLoop.Control("stop");__result=Task.CompletedTask;return false;
+        if(!PlayerLoop.Active||PlayerLoop.TearingDown)return true;
+        // A business task can await this fallback. Let it finish so Stop can drain it;
+        // only the external pause-menu caller awaits the complete viewer teardown.
+        _=PlayerLoop.ExitFromMenu("return-to-main-menu");__result=Task.CompletedTask;return false;
     }
+    private static bool PauseMenuExit(ref Task __result)
+    {if(!PlayerLoop.Active||PlayerLoop.TearingDown)return true;__result=PlayerLoop.ExitFromMenu("pause-save-and-quit");return false;}
     private static bool Hotkey()=>!PlayerLoop.Active||(DecisionRoute.Enabled?DecisionRoute.Ready:ChoiceTape.Controllable);
 }
