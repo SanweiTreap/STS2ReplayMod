@@ -1,96 +1,62 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-005收尾进行中**：A/B/C/D样本验收保留，010/r13释放机制有效但用户提速体感未过，E不验收。**当前011已安装、原生顺序/提速待测**，扩4个通用攻击pacing直接计时；抽牌含业务回调的Tween保留，009可用基线与010数据保留。
+更新：2026-10-30。**CONTENT-005按所测范围DONE_WITH_LIMITATIONS**，保留已安装build-011。用户确认r14“这次效果很不错。过了！”，游戏已正常退出；本包不再追加候选或矩阵，当前无已派发的下一任务。
 
 ## 玩家现在能用到什么
 
-已有受支持首战的自动录制→普通最近入口→原生完整播放→后退续播→退出重开闭环，还不能录制/观看整局。
+固定STS2 public-beta v0.111.0、仅ReplayMod；五角色A0首幕首排普通战斗的代表机制已有自动录制→文件封存→独立原生回放→Back/续播→退出证据，还不能录制/观看整局。
+- 自动记录出牌、喝药、丢弃药水、结束回合和已接入的选择；胜利自动保存，从普通最近入口打开。
+- 前进与Back后再前进继续原生牌效、动画、选择和RNG；已访问完整操作点用观看内存恢复，开场另用房间前checkpoint干净重入。
+- 已测星星/锻造/可变牌、球队列/累计值、Osty成长/死亡重召/首次创建及Doom致胜。原生牌效复用不等于所有卡/遗物/药水组合都已验证。
+- 观看退出后的原manager及所比较Continue/进度恢复，订阅按所测路径清理；不是所有异常/崩溃/Cloud环境的普遍安全证明。
 
-- 自动记录出牌、用药、结束回合及已接入的选择，胜利自动保存；普通入口不再固定HunterClip或前22项。
-- 原生牌效、选择界面、动画和RNG继续执行；直接恢复已访问的完整操作边界后可原生续播，不播放可见的从头追赶。
-- 手动等待/Auto自动推进两模式，公开原生播放器没有独立Play/Pause。选择阶段可细进/浏览，但不是直接Seek目标。
-- 所测胜利Back、重复恢复后生成并使用小刀、Stop及短重开通过；退出后原manager及所比较Continue/进度恢复。此结论限于已测路径。
+## 本轮验收与实际边界
 
-## 本轮验收与版本边界
+PM读取真实用户最终反馈、各轮报告/封存摘要与关键源码；未重复构建或重跑已回答矩阵。详见[CONTENT-005报告](investigation-reports/CONTENT-005-report.md)。
 
-PM核报告、真实用户确认及r8封存732原事件：3次recent打开，50次原生结果/RNG匹配（含1次导航退役中的自然收尾），3次真实胜利，7次恢复状态/意图匹配。修复后2次补5个登记监听、5次附加0；最终恢复后生成小刀ID18/19，generation10的操作10/11各匹配一次并实际用牌。Stop在21/11/1，均无Error/Outstanding，监听清理0/5/5→0。见[r8摘要](../evidence/playback-003/runtime-verification-r8.json)。
+| 部分 | 已测机制与证据 |
+| --- | --- |
+| A 共用输入/旧资源 | 002/r1–r2：旧储君及新格式7片，丢药、初始选择、星星/锻造/复制费用、原生回放与恢复退出 |
+| B 故障机器人 | 004/r3–r4：球容量/顺序/累计值/随机流、HUD/订阅恢复及玩家回合末球致胜Back续播；满槽跨步Back原日志缺口保留 |
+| C Necrobinder | 008/r8–r9与009/r10：默认Osty/Doom逻辑、死亡重召血条；009/r11–r12：初始无宠物、5次跨不存在回退再原生创建、未来ID/新对象/显示订阅、胜利Back与退出重开 |
+| D 开场 | 008/r7工具箱：可见原生入房间/开窗、精细/整段推进、开场整体Back、完整胜利Stop；ChoicesParadox未取实际样本 |
+| E 在途Back | 011/r14：5次真正in-flight EndTurn Back，退役518–545ms、总到达564–645ms，用户体验通过 |
 
-r6/r7的恢复后选牌失败保留：PM已核完整异常栈及固定源码，确认胜利解绑NetCombatCardDb登记监听，旧memento恢复ID表但未重挂监听。007补缺失原生回调/退出纯退订，不重编号、不跳过核对；实际修复已由r8验证。它不代表所有可变状态/事件订阅都已覆盖。
+r14的14次原生结果/RNG包含Retiring6（5次被撤销EndTurn的自然收尾及Stop收束的最后9），5次恢复匹配；最后9在Stop收束中完成Doom胜利，Stop9无Error/Outstanding、Auto关/计划清空，原context恢复、Osty/牌监听余量0，无mod/late timer fault。不把最后一次计为Stop前普通前进。[r14摘要](../evidence/content-005/runtime-verification-r14.json)。
+原生5类通用caller已实际绑定，退役只释放已审、当前会话/代/room的纯pacing计时；业务/Hook/抽牌完成回调及未知等待保持，正常播放/录制与原游戏速度不改。约半秒玩家准备仍保留；不是任意时刻瞬时取消。
+011/r14没有独立Seek/短重开，010/r13相应证据仅属旧版；新旧触发时点未严格配对，不报固定提速百分比。006空场景、007隐藏入场、008/r9血条及010/r13体感失败均保留，未追判成功；引擎原始诊断不抹除。
 
-008按用户要求在播放末端清Auto及待播余量，显示“播放结束”；PM读代码差异和更新后的4组终点合同。运行证明仍来自007，不称008另有真人矩阵；低影响结束状态小改无需重复整场。既有引擎启动/退出诊断不抹除。
+## 当前控制（D-131/D-133）
 
-## 当前控制规则（D-131）
+- 默认Auto关、手动等待，没有独立Play/Pause。`>`仅手动等待时推进下一精细阶段，到点再等；选择页宿主Task未完仍可等待/浏览。
+- `>>`立即请求完整操作，连点累计FIFO；选择中补完当前宿主，不自动追加下一张牌。Auto开连续；关Auto后已开始整动/显式队列自然收尾。
+- Back清旧计划并关Auto，撤当前/最近完整操作；Seek清旧计划、按请求时Auto继续或等待。片尾关Auto，Stop清理退出。
+- 首次可出牌0之前另有完整开场目标；Back开场以checkpoint重入，先显露新room、可见地自然走到初始选择后等待，无选择则到0。`>`细进，单次`>>`补完开场止0不出操作1。
+- 选择页面不是直接Seek点/独立memento；普通选牌Back撤宿主，初始选牌Back撤整段开场。[体验规格](technical-notes/PLAYBACK-EXPERIENCE.md)为准。
 
-- 打开默认Auto关、手动等待；`>`仅手动等待时推进下一细阶段，到点再等。选择页虽宿主Task未完也可等待；忙/Auto开时不新增Fine。
-- `>>`点击即请求完整操作，连点累计FIFO；选择页补完当前宿主的剩余选择/牌效，不自动追加下一张牌。
-- Auto开连续推进；关Auto停止自动追加，已开始整动和显式队列自然收尾，不另保留执行中Pause功能。无需Play或隐式WholeContinuation。
-- Back清旧计划、按完整操作恢复后转手动/Auto关；Seek清旧计划，按请求时Auto继续或等待。片尾自动关Auto，Stop退出清理。
-- D-130及更早冲突规则留作历史，当前以[体验规格](technical-notes/PLAYBACK-EXPERIENCE.md)和D-131为准。
+## 尚未完成
 
-## 尚未完成的产品目标
+- 后续房间/Continue/更多难度、精英/Boss/事件战斗、奖励/商店/地图与整局；一般敌方召唤/孵化/复活换形、玩家失败及全部内容组合。
+- 通用文件权威恢复/纠偏、未访问位置直接Seek。当前主要是观看内存；STATE-001仅证明首回合首Defend后单点冷恢复/受控纠偏，不代表所有持久化状态点。
+- 原始/分类配置节奏、全局倍速、下一回合/楼层导航、时间轴/路线图、录像库与可移植导入。时间戳已落盘，原始节奏播放尚未完成。
+- 发布性能、长战斗/整局容量与异常恢复；256操作/4MiB等原型上限不是发布保证，原PERF小pilot不替代预算。用户拖牌取消/凋萎互卡根因未复现。
+- 多人为MVP后第一大型方向、跨版本第二；不可逆接管不纳入当前MVP。
 
-- 固定STS2 v0.111.0，仅ReplayMod；五角色A0首幕首排普通战斗代表组合已有录播/恢复证据，含球、Osty首次创建/死亡重召；无额外run modifiers，Continue不录。不认全部牌/遗物/药水、组合/难度或全场景完成。
-- 后续房间、精英/Boss、事件战斗、奖励/商店与整局；Necrobinder/Osty/Doom实际覆盖、更广球/宠物、新单位/一般复活换形、玩家失败等。
-- 全卡牌/遗物/药水覆盖。原生模型负责效果，但输入、身份、私有状态、订阅与恢复仍需按共用机制补齐；丢弃药水是已确认的输入漏项。
-- 通用文件强记录/纠偏及未访问位置的直接Seek。当前后退主要用观看内存；STATE-001只证明新进程读取首回合首张防御后的一个文件状态点及受控纠偏，不是每步完整文件恢复。
-- 原始/配置节奏播放、速度控制、回合/楼层导航、时间轴/路线图与录像库。时间戳已记录，不代表原始节奏模式已实现。
-- 发布性能、长战斗/整局容量；当前256操作/4MiB等原型上限和小pilot不算发布保证。用户报告的拖牌取消/凋萎互卡根因仍未复现。
+## 下一项建议（未派发）
 
-## 当前任务：CONTENT-005 五角色基础战斗支持
+优先讨论把“只录首战”扩到同一真实对局连续两场普通战斗：各房间真实起点/奖励后状态承接、自动封存与独立回看，先形成日常游玩可用增量。它不等于整局语义回放；敌方召援（三鼠等）仍是另一重要机制候选。先后/范围待讨论，不创建新对话或自动启动新实现/测试。
 
-用户在两角色合批安排后明确要求开始，签发[CONTENT-005](handoffs/CONTENT-005.md)给现有Implementation。开头短补共用输入/旧三角色实际缺证（初始选择、储君资源/可变牌、遗物药水、丢弃药水），随后同包推进故障机器人的球与Necrobinder的Osty/Doom；旧片优先复用，不先做全面旧内容回归。宠物必要单位身份/生命周期与Doom致死后的恢复纳入，其他召援/多阶段Boss后续。
+## 工程、恢复点与协作
 
-用户现确认当前这轮测试结束就改开场，D-133排为下一项：横幅尾不额外阻断就绪控制、开场选择接>/>>、增加可Back到的完整战斗开场。现有人工轮先收束，不把尚未开始的全部角色矩阵作为前置；同包D段已发给Implementation，无需再批。选择页仍非独立Seek，重入原生开场的恢复方式/耗时待实测，具体见体验规格。
+- 当前安装CONTENT-005/build-011，SHA256 `E222994401F1B3BD89465E540645031BF7214C531EE05F5A81F9D40FD7F321A9`，[安装收据](../evidence/content-005/preparation/build-011-ef2b7c26.json)；009可用pair、010及更早失败/原片保留，任务间build编号勿混。
+- 工程[src/ReplayMod](../src/ReplayMod/README.md)，本包报告提交2618324。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常直接查源码，有歧义再查IL。
+- 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续当前文件/安装pair补存见报告/收据，不称更新后的完整账号快照。未整包恢复，用户有新进度先补备份，另一账号不纳入。
+- [公开仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始录像/日志/备份、依赖和游戏反编译缓存仅留本地。Git仅一个index写入者，提交精确路径，不reset/clean/force。[协作规则](REPOSITORY.md)。
+- Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)本包已结束写入/测试，等待下一目标。PM管状态/规划/验收，不承担大规模源码实现；新建用户对话须明确要求。
+- D-092备份后允许同包查源码/hook/普通修复/安装和请求人工短测；默认modded1，unmodded1不再是禁止读取复制的禁区。实验权限不降低成品Continue隔离目标，不恢复逐步审批。
+- 用户手动启动/操作游戏，不Computer Use、替代GUI自动化或自行启动headless；换DLL前正常退出。Cloud按实际确认，不自动更改；保留可用安装，不自动卸载。[WORKFLOW](WORKFLOW.md)/[TEST_PROTOCOL](TEST_PROTOCOL.md)。
 
-D的007/46e1121准备历史：移除初始化前gate，干净重入后到选择Ready才揭罩；保留新manager/旧loop退休及精确核对。离线合同通过后进行了r6，逻辑与视觉结果见下，不能继续把“待首轮”当当前状态。
+## 长期记忆
 
-007/r6已核[最终摘要](../evidence/content-005/runtime-verification-r6.json)：92事件/94数据文件封存，2次重入含选择中Back，其中一次原生再选后Initial/0匹配；1次结果/普通Back和Stop0比较状态恢复，Godot正常退出。无全胜利/短重开，视觉被用户拒绝。PM核遮罩链与原生room Setup顺序，确认真实入场被罩住且OneShot/Shake静默至ChoiceReady；规格已补“房间进入→原生选牌入场→等待”的可见过程。选择中Back仍撤宿主/整开场，不新增选择Seek。
-
-D的008/r7按工具箱片DONE_WITH_LIMITATIONS：PM核报告/[封存摘要](../evidence/content-005/runtime-verification-r7.json)，未重计204原事件。3次重入先显露room（ChoiceReady=false/原生效果允许/未加请求），后选择Ready；用户确认可见入房间/原生开窗和选择中Back。3次Initial匹配且未带op1，随后11原生结果/RNG及真实胜利；Stop11无Error/Outstanding、Auto关/清计划、原context恢复，4旧loop退休、牌监听5/5/5/0→0。显露事件约287–345ms、选择Ready约1627–1696ms只是本轮观测，不作发布保证。无独立短重开/ChoicesParadox/Osty样本；原片不变，报告fea9ca6，008保持，接回C。
-
-D的006/r5已核[摘要](../evidence/content-005/runtime-verification-r5.json)：131事件、3工具箱/1Defect打开；首开Fine/Whole完成初始选择核对且未带操作1，首项丢药/普通Back0有1次结果匹配。两次开场Back均停在StartCombatInternal前裸场景，用户拒绝；重入后没有新请求/再选择/Initial重新核对，不追判通过，327/295ms也不是正确落点的成功耗时。4次Stop比较状态恢复、134数据文件封存。预载Invalid Task ID诊断保留，未认与空场景同因。007修复仍待实测，不因无异常验收D。
-
-仍限当前单人A0首战，分段交付；两角色各少量代表录像走录制/普通入口/原生前进/关键Back续播/退出，权威文件恢复缺口如实区分。D-131控制保持，D-092允许同包修复、备份安装并直接请求用户人工测试；不另建前置调查或逐步审批。上一轮只讨论的限制已由本次“开始”指令解除，未创建新对话。
-
-A的002/r1：PM核[报告](investigation-reports/CONTENT-005-report.md)与[运行摘要](../evidence/content-005/runtime-verification-r1.json)，未重复构建/重计278原事件。旧储君参考入口完整13项、两次胜利Back12再做，15结果/RNG、3胜利、2匹配恢复；Stop13无Error/Outstanding、原context恢复、监听Remaining0。新格式7片76f55fed77ab448b9ff318b9d50eff98录成11项/2选择并胜利封存/生产读回；首项Slot2丢药仅令两处药水槽位置空，工具箱初始选择及星星/王剑复制/跨牌堆锻造事实已有文件证据。r1未打开新片，后续r2补此闭环，不将旧参考入口冒充新recent证明。r1摘要/报告提交1b7b31b。
-
-A的r2已按所测范围验收：PM读真实用户“测试完毕，符合预期”、报告和[封存摘要](../evidence/content-005/runtime-verification-r2.json)，未重计276原事件。两次recent、16结果/RNG、4匹配Back（0/0/9/8）、1真实胜利，丢药与锻造恢复后原生再做通过；Stop11/1无Error/Outstanding、计划清空、原context恢复，牌堆监听0/5→0。两次开场原生选择自动完成后初态匹配。开场横幅/选择控制及整体回退现按D-133排队，具体见[体验规格](technical-notes/PLAYBACK-EXPERIENCE.md)；恢复方式/延迟待验证，不追判本次A失败。
-
-B/C基础源码B提交ccbbcde、C提交1235aaa，004准备3a7f711；B恢复/显示/订阅已有r4证明，C已录默认Osty样本、播放恢复待测。球/单位权威冷文件恢复未实现。003曾安装未发测，004仅改准备提示，不与后续D-133候选混用。
-
-C的008/r8：PM核报告/[摘要](../evidence/content-005/runtime-verification-r8.json)，未重计49原事件。格式8片7393a0279941453297b75597dcea5446录成9项/0选择，胜利自动封存/生产精确读回。Osty ID3/Owner0，初始1/1→成长6/6→死0/6且Pets保留→同ID重召5/5→新回合6/6；Doom26在第9项EndTurn敌方结算致胜，终态死宠留Allies/Pets清空、FishingRod计数0→1已有文件事实，尚非Back证明。同session之前2条observer-error/1录制失败事件保留，未知具体错误条件，不称整session零失败；有效录制区间无失败。下一同片recent测成长/死亡重召/Doom恢复、胜利Back8再EndTurn和退出重开，首次创建另按可选准备取样；008不变。
-
-C的008/r9已核报告/[封存摘要](../evidence/content-005/runtime-verification-r9.json)，未重计1038原事件：2recent、43结果/RNG、29匹配Back、3Doom胜利；2次胜利Back新loop续接中仅第一次随后末步再胜，第二次回更早位置。Stop9/5状态/manager恢复，Osty回调Known1→Remaining0、牌监听0/5→0，原片不变。用户重召无血条的失败保留；PM核到Visible/alpha不变量，009改恢复状态而非另播动画，后续r10补视觉验证，不把旧r9追判成功。
-
-C默认样本009/r10按范围收束：PM核[最终摘要](../evidence/content-005/runtime-verification-r10.json)的HUD/退出清理，未重计916原事件。2recent、35结果/RNG、25匹配Back；25恢复HUD均Visible、死时alpha0，9原生复活HUD均Visible且观察器未改显示，用户确认血条及死亡重召正常。1真实Doom胜利，Stop9/1无Error/Outstanding、清计划、原context恢复，3房间清理Osty回调零余量/牌监听5/0/5→0；含1次无选择开场重入Initial/0匹配。Doom胜利Back桥接仍属008/r9，009未重复该矩阵，不把两版本拼成单轮全覆盖。首次创建未测，下一009勾已有可选准备录真正新单位，再测跨不存在Back；默认样本与此新机制分开验收。
-
-C首次创建009/r11：PM核报告/[摘要](../evidence/content-005/runtime-verification-r11.json)，未重计44原事件。格式8片45c3b2f4c3af4782973d0bb61ea6137c录9项/无选择，真实Doom胜利封存/生产精确读回；准备无BoundPhylactery，初始Pets[]/Next3，操作2原生创建Osty ID3/Owner0、HP5/Next4，之后成长/死亡/同ID重召已有文件事实。无起始遗物时不会下一回合自动召回，实际额外遗物Kaleidoscope照原基线记录。当前只证录制，Back到生成前/新对象与未来ID再分配/节点订阅仍Pending；下一同片2→Back1→原生再创建、相关成长/死亡/复活、Doom胜利Back8再做与Stop/短重开到2，不换009、不重录。
-
-C首次创建009/r12按样本验收：PM核报告/[最终摘要](../evidence/content-005/runtime-verification-r12.json)，未重计978原事件。2recent、36结果/RNG（Retiring4）、28匹配Back，5次Back1无宠物后原生创建ID3/Next4、累计6观看引用；2真实胜利/2新loop续接，不将后者都称再次末步再胜。最终Stop6/2无Error/Outstanding、原context恢复，Known6/1回调余量0、牌监听5/5→0，用户确认生命周期/显示。胜利后又测在途Back才停6，不重跑到9；不外推其他单位或冷文件恢复。
-
-E候选010：PM核收据/报告，4组纯async合同等离线通过，未执行原生绑定/提速。r12正式基线为4次（非前期5次）在途EndTurn Back：Drain1959/2424/2524/2649ms、恢复约40–65ms。仅当前观看旧代/旧room Back或Seek退役，释放StartTurn直接CustomScaledWait(.5,.8)阶段计时（真实state/generation/最近native帧限界）；其余卡/Hook/等待/业务与正常播放/录制/原游戏FastMode/TimeScale不动。并发等价待实际状态/RNG验证，保留必要遮罩/退役静默，不暴露快算敌回合。下一同片真正in-flight Back/Seek、续播与Stop，稳定点不冒充提速。
-
-010/r13已核报告/[最终摘要](../evidence/content-005/runtime-verification-r13.json)，未重计346原事件：17结果/RNG（Retiring5）、6匹配恢复、1胜利，Stop9/2及原context/监听清理通过，无late timer fault。5真在途Back/Seek6退役1782–2120ms/总1879–2176ms，2次release+skip、3次仅skip；另1稳定点52ms排除。用户体感未达，机制生效不等于优化通过；请求时点非严格配对，不按均值报固定增益。
-
-011已增NCreature.PerformIntent、MonsterModel.PerformMove、CreatureCmd.TriggerAnim、CreatureCmd.Damage各自直接纯CustomScaledWait，同原生owner/state/代/最近native帧限界；Damage尾等待在完整HP/受伤/死亡Hook/Kill后，不跳这些业务。CardPileCmd.Add的约.54秒Tween及AddFinished/AfterCardChangedPiles保留，不按牌怪补、不泛化Hook/未知等待。PM核安装收据/报告，构建及纯async/生产读取通过不代替实际新增caller绑定、顺序/RNG与提速；下一同片在途Back/Seek、正常续播/胜利和Stop重开，保留必要遮罩静默。
-
-B的004/r3–r4已按样本验收：r3格式8片dfa22d43c501492786b19cacee1411c7录成9项，含暗球12→20、槽3→5、随机球流0→2与玻璃/冰ID5/6。r4的[封存摘要](../evidence/content-005/runtime-verification-r4.json)/报告经PM复核，未重计697原事件：2次recent、28结果/RNG、18匹配恢复、4真实球胜利；三次胜利Back8后以新信号/原生阶段续播，未重跑开场/回合开始。18球显示恢复及20次退场监听零余量；Stop9/1无Error/Outstanding，原context恢复，原片不变。满槽激发第3项只有首次前进原日志，跨该项Back/重做仅用户反馈，保留边界而不补旧矩阵。此证明限玩家回合末电球致胜，不代替C的Doom敌方回合结算。花粉核心旧bug/全遗物及冷文件恢复未覆盖；报告已随b095f5a保存。
-
-材料已交[内容覆盖清单](technical-notes/CONTENT-COVERAGE.md)和[契约/候选批次](technical-notes/BATTLE-COVERAGE-PLAN.md)：固定源码索引只作检索，不当覆盖率。知识恶魔、三鼠召援、产卵虫/卵、千足虫、实验体已定位，尚非Replay运行PASS。多人为MVP后首要大型方向，跨版本亦在MVP后；接管游戏不纳入当前MVP。
-
-## 工程、恢复点与工作方式
-
-- 工程：[src/ReplayMod](../src/ReplayMod/README.md)；固定版本反编译C#留本地，日常直接查源码，IL仅在有歧义时核对。
-- 当前安装CONTENT-005/build-011，SHA256 `E222994401F1B3BD89465E540645031BF7214C531EE05F5A81F9D40FD7F321A9`，[收据](../evidence/content-005/preparation/build-011-ef2b7c26.json)，E原生优化待测；010效果不足/009可用pair和证据保留，旧片不改，不当新候选全回归。
-- [公开Git仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始证据、存档录像、备份、依赖及反编译缓存留本地，见[协作规则](REPOSITORY.md)。
-- 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续已知当前文件/候选pair补存见本包报告与各收据（已含C录制后），不冒充更新后的完整账号快照。未整包恢复；用户有新增进度时先备份，另一账号不纳入。
-- Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)，当前CONTENT-005；PM管状态/规划，不承担大规模源码实现。
-- D-092有效：备份后允许较大胆的mod/hook与同包普通修复，不为每个失败退役代码或另开调查/审批。默认modded1；unmodded1不再禁止读取/复制，备份权限不降低成品Continue隔离目标。
-- 游戏由用户手动启动/操作，不用Computer Use、替代GUI自动化或自行启动headless；换DLL前退出，Cloud由用户现场确认，不自动改。保留可用安装，不自动卸载；见[WORKFLOW](WORKFLOW.md)/[TEST_PROTOCOL](TEST_PROTOCOL.md)。
-
-## 证据与长期记忆入口
-
-- [PLAYBACK-003报告](investigation-reports/PLAYBACK-003-report.md)与[工作包](handoffs/PLAYBACK-003.md)记录逐版本/逐轮边界；r1–r7失败/未知不追认成功，不续跑旧probe。
-- 历史PLAYBACK-001/build-003仍Unknown，未读其结果补判；PLAYBACK-002/build-003按D-127前22项验收保留。它们与当前PLAYBACK-003任务编号不同。
-- 旧内容/状态结论见CONTENT-001至004、DEMO-004/005、STATE-001报告；逐轮细节查报告、DECISIONS及Git历史，不把旧控件待办当当前执行清单。
-- [TODO](TODO.md)、[MVP](MVP.md)、[Roadmap](ROADMAP.md)、[决策](DECISIONS.md)、[调查台账](INVESTIGATIONS.md)保存长期规划。
+- [TODO](TODO.md)、[Roadmap](ROADMAP.md)、[MVP](MVP.md)、[决策](DECISIONS.md)、[覆盖材料](technical-notes/CONTENT-COVERAGE.md)与[调查台账](INVESTIGATIONS.md)保存目标/计划；逐轮细节在报告和Git，不把历史Pending当当前待办。
+- PLAYBACK-003按其样本收束，恢复后新卡登记监听已修；旧PLAYBACK-001/build-003仍Unknown，未补判。PLAYBACK-002固定前22、旧CONTENT/STATE/DEMO的版本/单点限制均保持，不能拼成当前版本全矩阵。
