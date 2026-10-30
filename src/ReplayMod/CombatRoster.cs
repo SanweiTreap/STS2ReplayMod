@@ -9,43 +9,69 @@ using MegaCrit.Sts2.Core.Nodes.Vfx;
 
 namespace ReplayMod;
 
-// Playback-only anchors. A removed enemy is restored as the SAME combat object, never spawned again.
+// Visited points retain their own objects. A new native branch may create a new
+// object with the same logical ID; its retired predecessor stays only an anchor.
 internal sealed class CombatRoster
 {
     internal readonly Creature[] Initial;
+    internal readonly CombatState State;
+    internal readonly CombatIdentityRegistry<Creature> Identities;
     private readonly Dictionary<Creature,NCreature> _knownNodes;
     private readonly Dictionary<Creature,(NCreatureVisuals Visuals,Node2D Body)> _knownBodies;
     private readonly Dictionary<Creature,uint?> _ids;
+    private readonly Dictionary<Creature,string> _models;
     private readonly uint _nextId;
-    internal IEnumerable<Creature> Anchors=>_knownNodes.Keys;
+    internal IEnumerable<Creature> Anchors=>_ids.Keys;
     internal CombatRoster(CombatState state)
     {
-        Initial=state.Creatures.ToArray();
+        State=state;Initial=state.Creatures.ToArray();
         _nextId=(uint)AccessTools.Field(typeof(CombatState),"_nextCreatureId").GetValue(state)!;
         _ids=Initial.ToDictionary(c=>c,c=>c.CombatId);
+        _models=Initial.ToDictionary(c=>c,c=>c.ModelId.ToString());
+        Identities=new(_nextId,Initial,c=>c.CombatId??throw new InvalidDataException("initial-unit-without-identity"));
         _knownNodes=Initial.ToDictionary(c=>c,c=>NCombatRoom.Instance!.GetCreatureNode(c)??throw new InvalidDataException("direct-roster-node-missing"));
         _knownBodies=_knownNodes.ToDictionary(pair=>pair.Key,pair=>(pair.Value.Visuals,pair.Value.Body));
         Codec.Require(Reason(state) is null,"direct-roster-initial-unsupported");
-        Runtime.Log("playback-roster",new{Creatures=Summary(Initial),SameObjectsRequired=true});
+        Runtime.Log("playback-roster",new{Creatures=Summary(Initial),SameObjectsRequiredWithinVisitedPoint=true,NewBranchMayUseNewObjects=true});
+    }
+    internal void Created(Creature creature)
+    {
+        Codec.Require(ReferenceEquals(creature.CombatState,State)&&creature.CombatId.HasValue&&
+            creature.Monster is {} monster&&CombatUnits.CanGenerate(monster,creature.Side),"generated-unit-context-or-kind");
+        Identities.Admit(creature,creature.CombatId!.Value);_ids.Add(creature,creature.CombatId);_models.Add(creature,creature.ModelId.ToString());
+        Runtime.Log("combat-unit-native-created",new{creature.CombatId,Model=creature.ModelId.ToString(),Side=creature.Side.ToString(),creature.SlotName,
+            NextIdentity=Identities.NextIdentity,OriginalObjectReused=false,SpawnBusinessRepeatedByReplay=false});
+    }
+    internal void SceneAdded(Creature creature)
+    {
+        Codec.Require(Identities.Contains(creature,creature.CombatId),"unregistered-unit-scene-added");
+        var node=NCombatRoom.Instance!.GetCreatureNode(creature)??throw new InvalidDataException("registered-unit-scene-missing");
+        if(_knownNodes.TryGetValue(creature,out var previous)&&!ReferenceEquals(previous,node))
+            Codec.Require(!GodotObject.IsInstanceValid(previous)||previous.IsQueuedForDeletion()||!previous.IsInsideTree(),"duplicate-live-unit-scene");
+        _knownNodes[creature]=node;_knownBodies[creature]=(node.Visuals,node.Body);
     }
     internal string? Reason(CombatState state)
     {
         var current=state.Creatures.ToArray();
         var added=current.Except(Initial).ToArray();
-        if(added.Any(c=>!CombatUnits.IsOsty(c))||added.Length>1||current.Count(CombatUnits.IsOsty)>1||
-            added.Length>0&&Initial.Any(CombatUnits.IsOsty))return "不支持的单位生成或宠物类型";
-        if((uint)AccessTools.Field(typeof(CombatState),"_nextCreatureId").GetValue(state)! !=_nextId+(uint)added.Length||
-            added.Any(c=>c.CombatId!=_nextId))return "单位分配计数与身份不一致";
-        if(!current.Where(c=>c.IsEnemy).SequenceEqual(Initial.Where(c=>c.IsEnemy&&current.Contains(c)))||
-            !state.Allies.Where(c=>c.IsPlayer).SequenceEqual(Initial.Where(c=>c.IsPlayer)))return "生成或成员重排暂不能后退";
+        if(LiveState.Format<10)
+        {
+            if(added.Any(c=>!CombatUnits.IsOsty(c))||added.Length>1||current.Count(CombatUnits.IsOsty)>1||
+                added.Length>0&&Initial.Any(CombatUnits.IsOsty))return "不支持的单位生成或宠物类型";
+            if((uint)AccessTools.Field(typeof(CombatState),"_nextCreatureId").GetValue(state)! !=_nextId+(uint)added.Length||
+                added.Any(c=>c.CombatId!=_nextId))return "单位分配计数与身份不一致";
+            if(!current.Where(c=>c.IsEnemy).SequenceEqual(Initial.Where(c=>c.IsEnemy&&current.Contains(c))))return "生成或成员重排暂不能后退";
+        }
+        else if(!Identities.Matches((uint)AccessTools.Field(typeof(CombatState),"_nextCreatureId").GetValue(state)!,current,c=>c.CombatId,c=>c.IsAlive))return "单位登记、成员或未来分配计数不一致";
+        if(!state.Allies.Where(c=>c.IsPlayer).SequenceEqual(Initial.Where(c=>c.IsPlayer)))return "玩家成员变化暂不能后退";
         if(current.Any(c=>c.PetOwner is not null&&!CombatUnits.IsOsty(c))||current.Any(c=>!CombatUnits.Restorable(c))||
             Initial.Where(c=>c.IsPlayer).Any(c=>!current.Contains(c)))return "玩家死亡、其他宠物或未完成死亡边界暂不能后退";
         foreach(var creature in added.Where(c=>!_knownNodes.ContainsKey(c)))
         {
-            var node=NCombatRoom.Instance?.GetCreatureNode(creature);if(node is null)return "新Osty场景尚未就绪";
-            _ids.Add(creature,creature.CombatId);_knownNodes.Add(creature,node);_knownBodies.Add(creature,(node.Visuals,node.Body));
+            var node=NCombatRoom.Instance?.GetCreatureNode(creature);if(node is null)return "新单位场景尚未就绪";
+            _ids.TryAdd(creature,creature.CombatId);_models.TryAdd(creature,creature.ModelId.ToString());_knownNodes.Add(creature,node);_knownBodies.Add(creature,(node.Visuals,node.Body));
         }
-        if(current.Any(c=>c.CombatId!=_ids[c])||Initial.Except(current).Any(c=>c.IsAlive))return "敌人身份或成员关系变化暂不能后退";
+        if(current.Any(c=>c.CombatId!=_ids[c]||c.ModelId.ToString()!=_models[c])||Initial.Except(current).Any(c=>c.IsAlive))return "敌人身份或成员关系变化暂不能后退";
         foreach(var creature in current)
         {
             // History can show the native death tail while its real data still describes the
@@ -58,9 +84,9 @@ internal sealed class CombatRoster
         return null;
     }
     internal sealed record RemovedDisplays(int Creatures,int Fades,int ContinuedDeaths=0);
-    internal RemovedDisplays RemoveEnemyDisplays()=>RemoveDisplays(Initial.Where(c=>c.IsEnemy).ToHashSet());
-    internal RemovedDisplays RemoveForForwardTarget(IEnumerable<Creature> target)=>RemoveDisplays(Initial.Where(c=>c.IsEnemy&&!target.Contains(c)).ToHashSet());
-    internal RemovedDisplays RemoveRetiredEnemyDisplays(CombatState state)=>RemoveDisplays(Initial.Where(c=>c.IsEnemy&&!state.ContainsCreature(c)).ToHashSet());
+    internal RemovedDisplays RemoveEnemyDisplays()=>RemoveDisplays(Anchors.Where(c=>c.IsEnemy).ToHashSet());
+    internal RemovedDisplays RemoveForForwardTarget(IEnumerable<Creature> target)=>RemoveDisplays(Anchors.Where(c=>c.IsEnemy&&!target.Contains(c)).ToHashSet());
+    internal RemovedDisplays RemoveRetiredEnemyDisplays(CombatState state)=>RemoveDisplays(Anchors.Where(c=>c.IsEnemy&&!state.ContainsCreature(c)).ToHashSet());
     internal RemovedDisplays RemovePetDisplays()=>RemoveDisplays(Anchors.Where(CombatUnits.IsOsty).ToHashSet());
     private RemovedDisplays RemoveDisplays(HashSet<Creature> retired)
     {
@@ -73,7 +99,7 @@ internal sealed class CombatRoster
             yield return root;foreach(var child in root.GetChildren())foreach(var node in Nodes(child))yield return node;
         }
         // A fade may already have reparented an old body into its viewport. Remove only fades tied
-        // to this original roster; leaving them alive would show a second corpse over the revived enemy.
+        // to these known bodies; leaving them alive would show a second corpse over the restored enemy.
         var visuals=_knownBodies.Where(pair=>retired.Contains(pair.Key)).Select(pair=>pair.Value.Visuals).ToHashSet(ReferenceEqualityComparer.Instance);
         foreach(var doom in Nodes(room).OfType<NDoomVfx>().ToArray())
             if(AccessTools.Field(typeof(NDoomVfx),"_creatureVisuals").GetValue(doom) is NCreatureVisuals owner&&visuals.Contains(owner))

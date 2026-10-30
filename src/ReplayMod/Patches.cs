@@ -44,6 +44,8 @@ internal static class Patches
         Patch(typeof(PotionModel),"EnqueueManualUse",prefix:nameof(ManualPotion));
         Patch(typeof(PlayerChoiceSynchronizer),"ReserveChoiceId",prefix:nameof(Choice));
         Patch(typeof(CombatState),"CreateCreature",prefix:nameof(Spawn));
+        Patch(typeof(CombatState),"AttachCreature",postfix:nameof(Spawned));
+        Patch(typeof(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom),"AddCreature",postfix:nameof(UnitSceneAdded));
         Patch(typeof(OrbQueue),"TryEnqueue",prefix:nameof(OrbAdmitted));
         Patch(typeof(CardPileCmd),"AddGeneratedCardsToCombat",prefix:nameof(GeneratedCards),postfix:nameof(GeneratedAfter));
         Patch(typeof(ForgeCmd),"Forge",postfix:nameof(ForgedAfter));
@@ -122,9 +124,13 @@ internal static class Patches
     private static void Choice(){if(Observing&&LiveState.Format<4)Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-player-choice"));}
     private static void Spawn(CombatState __instance,MonsterModel __0,CombatSide __1)
     {
-        if(Observing)Runtime.Guard(()=>Codec.Require(LiveState.Format>=8&&__0 is MegaCrit.Sts2.Core.Models.Monsters.Osty&&
-            __1==CombatSide.Player&&ReferenceEquals(__instance,LiveState.Player.Creature.CombatState),"incomplete-unsupported-creature-generation"));
+        if(Observing)Runtime.Guard(()=>Codec.Require(CombatUnits.CanGenerate(__0,__1)&&
+            ReferenceEquals(__instance,LiveState.Player.Creature.CombatState),"incomplete-unsupported-creature-generation"));
     }
+    private static void Spawned(MegaCrit.Sts2.Core.Entities.Creatures.Creature __0)
+    {if(Observing&&PlayerLoop.Active)Runtime.Guard(()=>PlayerLoop.UnitCreated(__0));}
+    private static void UnitSceneAdded(MegaCrit.Sts2.Core.Entities.Creatures.Creature __0)
+    {if(Observing&&PlayerLoop.Active&&LiveState.Format>=10)Runtime.Guard(()=>PlayerLoop.UnitSceneAdded(__0));}
     private static void OrbAdmitted(OrbQueue __instance,OrbModel __0)=>Runtime.Guard(()=>OrbState.Admit(__instance,__0));
     private static void GeneratedCards(){if(Observing&&LiveState.Format<4)Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-card-generation"));}
     private static void PileBrowsed(NCombatCardPile __instance)=>Runtime.Guard(()=>RoutePresentation.Browsed(__instance));

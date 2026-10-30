@@ -1,6 +1,6 @@
 # CONTENT-006：持续录制、Continue、战斗列表与召援
 
-2026-10-30。D-134同工程实施中。当前只交付A/B/C首个候选，不把构建/纯合同称为原生运行通过；D三鼠召援仍待实现。本包未完成。
+2026-10-30。D-134同工程实施中。当前安装只交付A/B/C首个候选；D三鼠召援源码候选已接通但未安装/未实测。不把构建/纯合同称为原生运行通过，本包未完成。
 
 ## build-001：A/B/C首个可测增量，尚未游戏实测
 
@@ -35,3 +35,23 @@ CONTENT-006/build-001已安装，DLL SHA256 `061EC2212B4E0A6B30D7153FA6FCBD8BC89
 D已定位固定原生`TwoTailedRatsNormal`：三只TwoTailedRat、五个位置，原生CALL_FOR_BACKUP及等待/数量/空slot约束。尚未修改其业务、spawn白名单或一般敌方roster恢复；当前build-001遇到敌方新生仍明确拒绝该段，不称完整支持。后续同包扩稳定CombatId/未来分配器、有序roster、同模型目标、场景/订阅和已访问点恢复，再取真实召援/跨生成Back/原生再召援/新怪目标及击杀证据。文件事实、运行比较、观看memento和任意文件冷恢复将分别报告。
 
 当前仅源码/文件/纯合同和安装证明，A/B/C原生实测与D均Pending；CONTINUE新attempt、选择中退出及目录坏片均未实际游戏验证。精英/Boss/事件战斗、跨幕/难度、失败局、孵化/复活/多阶段、跨房间Seek/奖励语义播放/整局路线图、通用文件权威恢复仍非本包承诺。
+
+## D源码候选：一般敌方生成登记/恢复已接通，未安装
+
+用户进行001三场测试期间继续实现，安装保持001；以下不是001的功能或运行证明。没有中途换DLL、启动游戏或新增用户测试要求。D未验收，本包不关闭。
+
+原生TwoTailedRat的CallForBackup执行Summon动画及原生等待，按空slot调用CreatureCmd.Add<TwoTailedRat>，然后同步队友CallForBackupCount；CanSummon另核回合冷却、最多三次、空位置及其他同伴意图。原生CombatManager.AddCreature会初始化AI并按Encounter.Slots重排敌人。这些业务完整复用，不按怪名手写召援、动画或结算；恢复节点时不重跑此业务入口。
+
+新源码采用格式10，保留001格式9兼容并明确允许其精确录制hash。Mechanics.CombatUnits新增有序Enemies：稳定CombatId/Model、slot、存活/HP/上限/格挡、Power、独立RNG、NextMove、AI当前状态/是否执行首招/招式日志和模型派生类标量字段。三鼠的起始招式索引、召援冷却/次数因此成为显式文件事实；原8/9省略该字段，旧片字节不补写。格式10校验敌我ID全局唯一、成员在未来分配器以内及基础内容。原始State的Enemies仍含意图类型/伤害/次数，完整字符串参与原生结果与恢复比较。模型非标量引用图不是通用文件恢复数据。
+
+观看增加纯数据CombatIdentityRegistry，初始化已有成员/未来ID，在原生AttachCreature完成分配后、Encounter spawn回调前登记每个新实际引用，避免同名怪或嵌套生成分配顺序混淆。registry作为memento根与原生CombatState allocator一起恢复；历史节点锚点单独保留，当前分支登记可退回到新单位不存在前。重新前进仍原生创建新引用、获得对应逻辑ID；已访问的召援后点恢复其自己的对象/成员/顺序/AI/私有计数/RNG。死亡移除新单位不会提前倒退allocator。目标在格式10按稳定ID和Model从当前敌人解析，Index保留作录制事实，不把排序后同名其他单位当作目标。
+
+Roster移除/重建扩至全部已知敌方引用；场景AddCreature后登记真实节点/身体，即使该单位同操作内又死也可清理其旧尾迹。跨生成恢复先退役旧场景/订阅，再恢复数据与登记表，对未来分支对象detach，最后只调用NCombatRoom.AddCreature重建当前显示并恢复血条/意图/模型及导航，不调用CombatManager.AddCreature/AfterCreatureAdded，不重新roll AI/HP或触发召援Hook。新场景是否在固定引擎中完整初始化、血条/意图与层级是否正确，仍需要实际运行确认。
+
+格式10恢复前后及Stop对所有已知单位的CombatStateTracker八类原生监听按当前成员清理/恰好绑定一次，并核对旧分支余量零；显示节点自身的Power/死亡/战斗事件沿原ExitTree退订，Osty PCS死亡订阅另沿既有修复。数据memento继续排除delegate/旧Task/TCS/场景；旧格式不新增这套全单位监听重整路径。具体原生字段/方法和回调数量仅经源码/编译核对，未取得运行通过。
+
+默认关闭的开发准备可在下一新铁甲A0选择暗港三鼠首战；保留原牌组/遗物，将原三张防御升级并增加两张全身撞击+，五张机制牌先天保留。变更在checkpoint前进入原生可达存档且写明Preparation；正常新局/Continue/播放不自动注入。拟先防御等真实召援，再对新怪出牌并获胜，短取跨生成Back/新引用再召/召后已访问点恢复与目标/击杀。当前001尚无该入口，不要求用户重roll正在测的三场；若自然遇召援按001真实边界保留素材，非operator/protocol FAIL。
+
+主工程与DirectContracts均0警告0错误。`evidence/content-006/checks/enemy-draft/enemies.json`5组直接合同使用实际registry/IdentityMemento/Codec/ClipStore：同模型排序后稳定目标；反复跨生成恢复成员/AI/RNG/allocator、新引用对应ID及召后旧点的原引用；新怪死亡移除后未来计数不回退；格式10有序敌人/slot/AI计数/RNG生产精确读回；重复/敌我冲突ID和未来计数回退拒绝。既有journal/library 5组、球4组、单位4组同目录通过。它们没有调用原生AttachCreature、召援、Godot节点、订阅方法或任意点冷恢复，不代替原生证明。
+
+D文件事实、原生比较入口、观看内存恢复/新对象分支源码均已接通；任意文件点创建敌人并权威恢复仍未实现。当前安装及人工要求仍为A/B/C的001三场样本，D候选不封存为可用安装/不报通过。自然停点先查001实际运行，再决定同片观看和D后续候选，相关普通bug同包修。

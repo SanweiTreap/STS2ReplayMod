@@ -27,6 +27,13 @@ internal static class PlayerLoop
     private static readonly Dictionary<int,DirectCheckpoint> Checkpoints=[];
     private static CombatRoster? _roster;
     internal static CombatRoster EnsureRoster()=>_roster??=new(((CombatRoom)LiveState.Run.CurrentRoom!).CombatState);
+    internal static void UnitCreated(MegaCrit.Sts2.Core.Entities.Creatures.Creature creature)=>_roster?.Created(creature);
+    internal static void UnitSceneAdded(MegaCrit.Sts2.Core.Entities.Creatures.Creature creature)=>_roster?.SceneAdded(creature);
+    internal static MegaCrit.Sts2.Core.Entities.Creatures.Creature ResolveEnemy(TargetKey key)
+    {
+        var roster=EnsureRoster();var enemy=roster.Identities.Resolve(roster.State.Enemies,key.CombatId,c=>c.ModelId.ToString(),key.Model);
+        Codec.Require(enemy.IsAlive,"target-enemy-not-alive");return enemy;
+    }
     private static StateGraph? _fileBindings;
     internal static bool InjectOnContinue;
     internal static bool CanInject=>Active&&!Loading&&!TearingDown&&Cursor is {Position:1,Busy:false,Playing:false,StopRequested:false}&&_fileBindings is not null;
@@ -207,6 +214,8 @@ internal static class PlayerLoop
             var room=RunManager.Instance.DebugOnlyGetState()?.CurrentRoom as CombatRoom;
             if(room is not null)oldTurnLoop=AccessTools.Field(typeof(MegaCrit.Sts2.Core.Combat.CombatManager),"_turnLoopTask").GetValue(MegaCrit.Sts2.Core.Combat.CombatManager.Instance) as Task;
             var pcs=room is null?null:LiveState.Player.PlayerCombatState;
+            var unitTracker=MegaCrit.Sts2.Core.Combat.CombatManager.Instance.StateTracker;
+            var knownUnits=(_roster?.Anchors??room?.CombatState.Creatures??[]).ToArray();
             var pets=room is null?[]:(_roster?.Anchors??room.CombatState.Allies).Where(c=>c.Monster is MegaCrit.Sts2.Core.Models.Monsters.Osty).ToArray();
             if(room is not null&&MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom.Instance is {} display&&
                 GodotObject.IsInstanceValid(display)&&display.GetCreatureNode(LiveState.Player.Creature)?.OrbManager is not null)OrbPresentation.Retire();
@@ -216,6 +225,7 @@ internal static class PlayerLoop
             if(ChoiceTape.Scope is {} choice)NativeChoice.Cancel(choice);
             if(room is not null)CombatCardTracking.Cleanup(room);
             if(pcs is not null&&LiveState.Format>=8)OstySubscriptions.Cleanup(pcs,pets);
+            if(room is not null&&LiveState.Format>=10)CombatUnitSubscriptions.Cleanup(unitTracker,knownUnits);
             // Remove the old NRun before yielding: its _Process uses RunManager's current net service.
             Runtime.Game.RootSceneContainer.SetCurrentScene(new Control{Name="ReplayModRebuilding"});
         }
