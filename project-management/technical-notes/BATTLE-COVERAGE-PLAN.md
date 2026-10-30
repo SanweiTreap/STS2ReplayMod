@@ -4,9 +4,9 @@
 
 ## 2026-10-30当前结论与下一项候选
 
-CONTENT-005按五角色代表性首战样本DONE_WITH_LIMITATIONS，当前安装011；共用输入/储君资源、球、默认与首次Osty/Doom、工具箱开场及在途Back分别按报告版本验收，不等于全内容/整局。没有必需补测或已派发下一任务。详情见[当前状态](../CURRENT_STATUS.md)与[报告](../investigation-reports/CONTENT-005-report.md)。
+CONTENT-005按五角色代表性首战样本DONE_WITH_LIMITATIONS，011可用pair保留；共用输入/储君资源、球、默认与首次Osty/Doom、工具箱开场及在途Back分别按报告版本验收，不等于全内容/整局，无旧包必需补测。现已推进CONTENT-006，当前安装/源码/运行边界见[当前状态](../CURRENT_STATUS.md)，既有验收见[报告](../investigation-reports/CONTENT-005-report.md)。
 
-同日用户要求下一批可以多做一点，D-134现签发[CONTENT-006](../handoffs/CONTENT-006.md)：将原连续两场建议扩为首幕A0普通战斗持续录制、奖励后状态承接、Continue、最小战斗列表与三鼠敌方召援的原生前进/跨生成Back。交现有Implementation同工程分段推进，不新建用户对话或独立INV。代码/运行尚未验证，不预称整局语义回放；卵孵化/留场复活/Boss/跨幕等仍为后续。
+同日用户要求下一批可以多做一点，D-134现签发[CONTENT-006](../handoffs/CONTENT-006.md)：将原连续两场建议扩为首幕A0普通战斗持续录制、奖励后状态承接、Continue、最小战斗列表与三鼠敌方召援的原生前进/跨生成Back。交现有Implementation同工程分段推进，不新建用户对话或独立INV。源码/安装与原生实测分开，不预称整局语义回放；卵孵化/留场复活/Boss/跨幕等仍为后续。统一整局外壳与非战斗链为随后优先建议，见[规划](RUN-REPLAY-PLAN.md)，未派新增实现。
 
 以下保留五角色合批启动时的规划依据/静态基线；旧“待测”“最新”等表述属于当时状态，不作为本包后的重测清单。
 

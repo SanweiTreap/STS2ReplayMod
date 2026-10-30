@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-006进行中（D-134）**：A/B/C首个候选build-001已实现、离线检查通过并安装，三场连续录制/Continue/列表的原生实测Pending；D三鼠召援尚未接通。本包未完成。CONTENT-005按所测范围DONE_WITH_LIMITATIONS，011可用pair与既有结果保留，不追加旧矩阵。
+更新：2026-10-30。**CONTENT-006进行中（D-134）**：A/B/C首个候选build-001已实现、离线检查通过并安装，三场连续录制/Continue/列表的原生实测Pending；D召援格式10/身份恢复源码及离线合同已交，未安装/未原生验证。本包未完成。CONTENT-005按所测范围DONE_WITH_LIMITATIONS，011可用pair与既有结果保留，不追加旧矩阵。
 
 ## 玩家现在能用到什么
 
@@ -48,7 +48,9 @@ r14的14次原生结果/RNG包含Retiring6（5次被撤销EndTurn的自然收尾
 
 001实现格式9的逐场/attempt元数据、Replay自有存档指纹journal分组、独立checkpoint及轻量战斗列表；正常旅行与Continue的saveGame:false入口均已接入。5组真实journal/Codec/library合同、7组开场政策及旧Osty生产读回通过，未运行游戏生命周期/节点，不能据此称多场/Continue/隔离通过。PM核源码、报告与安装收据，未重复构建/未读私人存档。[本包报告](investigation-reports/CONTENT-006-report.md)。
 
-Implementation已请求一段正常三场游玩：前两场领奖，第二场后回地图存退并退出进程，新启动Continue完成第三场后退出；先核实际文件/奖励承接/分组，再安排较早/较晚列表回看。无需PM另批或重复一轮。D目前只定位TwoTailedRatsNormal/TwoTailedRat，未扩一般敌方roster；如本轮遇召援按未完成机制同包处理、保留素材，不把用户正常游玩算协议错误或偷偷排除此目标。
+Implementation已请求一段正常三场游玩：前两场领奖，第二场后回地图存退并退出进程，新启动Continue完成第三场后退出；先核实际文件/奖励承接/分组，再安排较早/较晚列表回看。无需PM另批或重复一轮。安装仍001，尚不支持一般敌方新增；如本轮遇召援按未完成机制同包处理、保留素材，不把用户正常游玩算协议错误或偷偷排除此目标。
+
+D源码83a8e5e已交：格式10敌方有序身份/slot/HP/Power/AI-RNG/派生标量，原生分配后登记、registry/allocator的memento恢复、稳定ID目标解析与所有已知敌方显示/监听清理；复用原生召援，不重跑spawn业务重建显示。5组实际registry/memento/Codec合同及既有journal/球/单位与旧Osty读取离线通过，没有调用原生召援/节点/监听。PM读报告、关键registry/恢复根/hook改动与输出，不重复构建；节点初始化/意图血条、跨生成再做/已访问点恢复/退出仍Unknown。三鼠准备仅未安装源码中可选入口，当前不要求用户额外操作；冷文件任意点创建/恢复未实现。
 
 这比原“两场”候选更完整，但不等于整局地图/奖励语义回放、跨房间Seek、Boss/孵化/复活/跨幕、其他难度或通用冷恢复。Continue重进须有真实房间前起点并标newattempt，不能拼未完操作；至少验证下一受支持战斗续录。实际方案/覆盖待Implementation验证，任务细节以工作包为准。
 
@@ -59,7 +61,7 @@ Implementation已请求一段正常三场游玩：前两场领奖，第二场后
 ## 工程、恢复点与协作
 
 - 当前安装CONTENT-006/build-001，SHA256 `061EC2212B4E0A6B30D7153FA6FCBD8BC89E1D887935EE1823128BF46F572593`，[收据](../evidence/content-006/preparation/build-001-61568ba9.json)核pair/仅ReplayMod/modded1/game0；这不是原生运行证明。CONTENT-005/011可用pair及旧片/失败保留，任务间build编号勿混。
-- 工程[src/ReplayMod](../src/ReplayMod/README.md)，CONTENT-006代码/首报0990558。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常直接查源码，有歧义再查IL。
+- 工程[src/ReplayMod](../src/ReplayMod/README.md)，CONTENT-006的001代码0990558，D未安装源码83a8e5e；[源码/安装区分记录](../evidence/content-006/checks/enemy-draft/source-status.json)称001 pair未变/未启动游戏，不是游戏实测。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常直接查源码，有歧义再查IL。
 - 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续当前文件/安装pair补存见报告/收据，不称更新后的完整账号快照。未整包恢复，用户有新进度先补备份，另一账号不纳入。
 - 本批用户向Implementation确认Cloud关闭、无新进度；001前沿原恢复点补存已知51文件/3,953,223 bytes，报告及`evidence/content-006/pre-abc-current-files.json`记录。PM未为重复核验重读存档；不称新增完整账号快照或云端保证。
 - [公开仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始录像/日志/备份、依赖和游戏反编译缓存仅留本地。Git仅一个index写入者，提交精确路径，不reset/clean/force。[协作规则](REPOSITORY.md)。
