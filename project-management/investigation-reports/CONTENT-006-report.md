@@ -1,6 +1,6 @@
 # CONTENT-006：持续录制、Continue、战斗列表与召援
 
-2026-10-30。D-134同工程实施中。001/r1六场录制/资源与新进程后续录有证据但曾误拆组；004/r2原生暂停菜单保存退出及隔离恢复已通过。用户确认两局各三场，第二局在问号/战后SL；005现已安装，按此证据修Replay索引及后续计数，六原片不改。完整早晚片观看、写后再Continue、强普通/召援与未完房间attempt仍未验收，本包未完成。
+2026-10-30。D-134同工程实施中。001/r1六场录制/资源与新进程后续录、004/r2原生菜单退出、005/r3早晚独立完整原生播放/Back及已完成房间write→load→Continue均有各自实证。原误拆组六片不改，005已按用户两局各三场校正索引。当前安装007（006预运行补强）修GrandFinale在途Back的长等待/攻击声/花瓣尾迹，效果待测；强普通/召援及未完房间attempt仍未验收，本包未完成。
 
 ## build-001：A/B/C首个可测增量，尚未游戏实测
 
@@ -140,3 +140,41 @@ Canonical的已知房间/attempt计数承接两段，实际SaveKey若原来指al
 005已安装，DLL `07CE397A9450ACB0D15E4B4B0630B7343B07668448F5EB7CE9A914ECE57E3E3F`，manifest同前，收据`evidence/content-006/preparation/build-005-f239a8aa.json`。004/003/002/001 pair及失败素材保留，原账号/game0/本批Cloud关闭，无restore/其他账号history遍历/自行启动。原生SaveQuit已按004/r2通过，005只改索引/显示/计数及日志参数，后续索引在实际菜单、写后Continue和第4场仍待看运行；本包不关闭。
 
 下一不重录六片：先确认菜单确为两局各三场，可用第二局3fd0f55b第1/3场（均6操作）合并早晚独立完整回放、相关Back与胜利/Stop；沿现有Continue进地图→存退→再Continue取实际write后的匹配，再在自然停点正常游玩下一普通强怪及D。未完成的原生路径不由本次用户身份澄清替代。
+
+## r3 / 006：早晚完整回放和已完成房间写后Continue通过；GrandFinale在途体验待修版
+
+用户按原步骤测试，报告华丽收场长动画中Back：遮罩长，攻击声后才揭开，仍见花瓣尾迹。其余测试完成。005回放session `af0477bb15db42f3b8726882bee5333a`649事件，后续新进程Continue session `0320da5cabe14971916bc047d7f22e23`13事件，共662；无新录制/强普通或D样本。两份原片不改。
+
+第二局第1场33a9bbfe（floor2，HP58/99金/初始牌组）与第3场8515d8e3（floor7，HP52/118金/牌组已变化）均通过普通battle-list从自己的checkpoint独立加载、Initial匹配，没有先播前场。22次原生结果/RNG匹配中正常17、Retiring5；13次Back到已访问完整点，状态/RNG/模式及清计划匹配。九次真实终局投影/原生VictoryTask匹配均是Host6 GrandFinale：正常终局到达4、被撤销动作退役收束5，是两片的首次及重做，不写成九场独立完整录像。已观察每份整片从开场到原生胜利，也反复跨胜利Back再执行。
+
+最后分别继续Back后Stop4/5，而不是Stop6；两次closed Error null、原manager/所比较Continue与progress恢复，driver闭合Outstanding false、Auto false、Pending0，牌及Osty清理按原日志保存。最终AllOperationsMatched/VictoryReached false是停在回退后位置，不否认之前记录的完整终局，也不把最终退出虚报为胜利终点。用户未报此次普通前进/早晚初态异常；数据闭环与下述在途体验缺陷分开。
+
+新进程005在21:06:48.396原生SaveRun成功并读回canonical3fd0f55b的实际键；21:06:53.263重新load同键；21:06:56.645后续Continue匹配该canonical/LoadedSnapshot true，随后再次成功写入。实际write→load→Continue这一对完整发生，已超过此前只读001旧存档的证据；loaded/setup键相同，ChangedBeforeSetup false。此样本PreFinished true，是已完成房间继续/地图的关联，不等于未完成普通战斗newattempt或第一轮误拆的具体字段根因已复现修好。没有回到额外错误组。
+
+原始662事件+两原片+三个相邻Godot日志+当前journal共668数据文件逐hash封存，位置/逐结果归属/13条耗时及实际写读Continue时间见`evidence/content-006/runtime-verification-r3.json`。正常Quit/shutdown与game0核对，无observer/playback/retired-timer故障。原始引擎诊断保留。B所测完成房间关联及C早晚单场独立原生观看/Back/终局/Stop按005/r3取得运行证明，不外推冷恢复/强普通/召援/未完房间。
+
+### GrandFinale在途Back：同包体验缺陷，006已装待测
+
+五次Retiring GrandFinale均按原生业务收束后再退，退役约156.8–1397.6ms、总到达499.2–1752.1ms；四次较长在约1.46–1.75秒总范围。稳定终局Back另有几十ms，不混入在途优化对照，也不以非配对请求时点算固定百分比。用户观察的花瓣/声效是有效可见缺陷，不用数据匹配代替体验通过。
+
+源码确认当前退役等待只绑StartTurn/EndTurn作用域；GrandFinale.OnPlay原生先Create/AddChild视觉，再唯一一次Cmd.Wait(totalAnticipationDuration=1.625)，随后走正常AttackCommand伤害。该纯演出等待完全未进入旧broker。NGrandFinaleVfx与Impact的Create是直接factory，不经VfxCmd，旧SourceVisuals未登记；它们视觉自己的PlaySequence仍会继续，后者约2秒，导致回退后尾迹。两种视觉ExitTree只取消自己的视觉CTS，不是牌效/伤害Task。
+
+006给真实PlayCardAction.ExecuteAction加入AsyncLocal根操作归属，绑定当前Pending引用/CombatState引用/NativeSeek代；StartTurn同样要求真实EndTurn根。复用RetiringPhaseWait，只在Back/Seek退役释放当前/后续已审纯计时，不取消原生timer，不结束游戏业务Task。共有TriggerAnim/Damage等既审调用可在Card根内归属，补共享AttackCommand.Execute的纯before-hit等待；GrandFinale仅审其固定OnPlay唯一1.625秒演出Wait，不泛化为所有卡Cmd.Wait，不按卡名写效果/动画，选择/Hook/未知等待仍原样。原OnPlay及AttackCommand/伤害/AI/Hook/RNG继续完整原生执行并核对。
+
+两类纯视觉Create的底层重载登记到现有SourceVisuals（同一节点HashSet去重），DirectCheckpoint恢复前沿既有统一清理退出整棵节点、让各自ExitTree取消视觉CTS；不恢复旧视觉协程、不人工播放花瓣终帧。新增retired日志列出SourceEffects类型/数量，便于核实际登记/清理；实际GPU节点退出/尾迹是否消失仍待人工观察和原生日志。
+
+撤销根操作的音效只按真实owner退役。Debug音效以manager引用+native id归属，正常Play仍执行以保留pitch RNG/池行为；退役时精确停止该owner已在播或随后新播的id，已过期条目清掉，不StopAll/不波及菜单其他声音。新FMOD one-shot仍执行原函数但该owner退役阶段volume为0；普通录制/播放音量不变。其他owner/room/代不匹配均不改，统计stopped/muted进入retirement日志。这是复用原生声效生命周期，不自写攻击声音时序；停止池行为与跨代隔离仍待实际运行确认。
+
+主工程0警告0错误、既有4组纯timer async合同（正常异常/取消、释放当前但原timer不取消、后续代隔离、迟到fault观察）通过，见`checks/card-retirement/phase-wait.json`。它们未运行新的Harmony根归属/直接caller绑定/音效池或Godot视觉退出，不能作为优化PASS。无需重复005已过的两片全场/Continue或004菜单退出矩阵。
+
+原账号/game0及当前已知51文件3,966,529 bytes另存`CONTENT006-post-r3-current-20261030-212652`逐hash读回，收据`evidence/content-006/post-r3-current-files.json`，非新完整账号快照，无restore/history/其他账号遍历。006已安装，DLL `055C85CB7DDEF560086EE7DF039066981C9CB62E6068318B5385A34BD930FEE6`，manifest同前，收据`evidence/content-006/preparation/build-006-554a8ed2.json`；005及此前pair/原片/失败证据保留，Cloud沿本批确认关闭，无自行启动。006在途体验修复Pending。
+
+下一只同片短测：第二局第1或第3场推进到5/6，`>>`打华丽收场后在聚光/花瓣演出未完时Back，反复2–3次，观察遮罩耗时、是否仍冒出已撤销攻击声/花瓣；核root/caller/released及VFX清理、原生结果/RNG和回到5/6。然后正常再打完6至胜利并Stop、正常关游戏。无需重录或重跑两片完整前缀。强普通、D召援和未完room attempt在此自然停点之后继续本包，不以视觉小修关闭或替代任务。
+
+### 007：006运行前补强根归属继承及声卡播放前静音
+
+006尚无游戏运行时继续源码复核：派生/自动PlayCardAction若不等于手动Pending.Action，应保留现有有效父owner，而不是置空，避免丢掉EndTurn或组合牌根中的已有归属。007仅为真实手动Card根建立新owner，派生动作继承父；CurrentOwner仍逐项核Pending引用、room引用和代，旧上下文不能误绑定下一步。没有新增玩法/重写自动牌，不把预运行修订记用户失败。
+
+Debug音效除按owner精确Stop外，007在原生Play前把撤销owner音量设0，然后让Play仍完整执行pitch RNG/音源池并按其实际ID停止，避免Play与postfix之间的音频线程间隙漏出开头；普通声音参数不变。Muted统计按API调用次数命名OwnedAudioCallsMuted，不当作唯一FMOD事件数量。原等待/VFX方案及全部数据校验保持。构建0警告0错误，实际线程/作用域与体验仍待同片短测。
+
+007已在game0安装，DLL `9BCECE95FF90DE51CB3A06B3E9B5F8069838C1E10F139D0FA43602D22926F0FF`，manifest同前，收据`evidence/content-006/preparation/build-007-1ee95b73.json`。006/005及此前pair/config保留，本轮没有新游戏进程、无restore/自行启动；当前测试以007为准，不重复要求005已经答过的B/C或004退出矩阵。

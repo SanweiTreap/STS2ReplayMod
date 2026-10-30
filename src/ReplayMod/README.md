@@ -1,6 +1,16 @@
 # ReplayMod 0.1.0 · 原生单场回放
 
-## 当前安装：CONTENT-006 / build-005，旧分组索引校正；004保存退出实测通过
+## 当前安装：CONTENT-006 / build-007，华丽收场在途Back等待/尾迹修复候选
+
+007在006实际运行前补强派生动作继承有效父owner，以及撤销owner的Debug音效在原生Play前静音、Play/pitch RNG仍执行后再按实际ID停止；不改普通播放，未新增玩法或原生PASS。007 DLL `9BCECE95FF90DE51CB3A06B3E9B5F8069838C1E10F139D0FA43602D22926F0FF`已在game0安装，006/005及此前pair保留。下一仅同片华丽收场真正in-flight Back、声音/花瓣/耗时及后继胜利/Stop短测，当前以007为准。
+
+## CONTENT-006 / build-006 退役机制实现历史
+
+005/r3早晚两片已各自从真实checkpoint完整原生播至胜利，22次结果/RNG（正常17/退役5）、13次Back匹配，Stop4/5清理/原context恢复；九次终局是两片的首次/重做，含退役5，不是九份独立录像。新进程中实际成功write→load→后续Continue同canonical已闭环，限已完成房间状态。用户另报GrandFinale在途Back遮罩长/攻击声后才揭罩/花瓣尾迹，数据通过与体验缺陷分开。
+
+006把现有已审纯pacing退役扩到真实Card根作用域，接固定GrandFinale原生唯一1.625秒演出等待及共享攻击before-hit，伤害/Hook/RNG照常；两类直接factory视觉接统一清理，音效保留原生Play/pitch RNG、仅撤销owner精确退役/静音。没有按卡重写动画或跳未知任务。主工程及4组纯timer合同通过，实际归属/尾迹/音效/提速待测。006 DLL `055C85CB7DDEF560086EE7DF039066981C9CB62E6068318B5385A34BD930FEE6`已在game0/当前文件补存后安装，005pair及失败保留，无restore/自行启动。下一只同片5/6→华丽收场在途Back短测，再正常胜利/Stop；不重录或重跑已回答矩阵。强普通/D/未完room attempt仍Pending，详见[报告](../../project-management/investigation-reports/CONTENT-006-report.md)。
+
+## CONTENT-006 / build-005 索引校正历史
 
 004/r2用户确认原生“保存并退出”已正常：战斗0处原生关闭暂停capstone、解除暂停，约169ms回菜单，原manager/所比较进度恢复；三次新片列表开场/退出、1个完整原生操作匹配。没有完整胜利/Back或新战斗，实际成功写入后虽有load，仍缺该write后的Continue，D/强普通/未完房间attempt未验证。
 
