@@ -18,11 +18,11 @@
 
 006/r5用户现场反馈修正可见落点：Back后停在初始化前的空场景，没有手牌也没打开工具箱，不符合预期。实现者汇报两次确在StartCombatInternal前门控停住且无异常，不能据此认开场Back通过。后续保持房间前checkpoint作为内部重建起点，**向用户展示的落点自然前行至首个原生开场选择窗口并手动等待**；无开场选择则到首次可出牌0。无需在空场景再按一次>才能看到开场。Toolbox原本先于起手抽牌，不为凑可见手牌而提前抽牌；ChoicesParadox位于抽牌后，按原生流程展示。整体开场仍是Back/Seek目标，未开放选择页独立Seek或半态存档。
 
-007测试中用户进一步明确可见过程：Back应展示刚进入战斗房间，随后自动看见工具箱原生入场；当前观感像直接切到选牌页，用户询问是否又在重写动画、选择时能Back是否正常。PM已核源码：真实重建与原生开场确在执行，但`_rebuildingOpening`经Covered维持遮罩，直到`PrepareChoiceCore`等待NativeChoice.WaitReady后才解除，房间/窗口入场被遮住。实现问题是显示交接时机，PM此前只写停点、未明确可见重入过程的规格也需补齐。007本轮尚在运行，接报时92事件仅临时观察，不能当最终验收统计。
+007测试中用户进一步明确可见过程：Back应展示刚进入战斗房间，随后自动看见工具箱原生入场；当前像直接切选牌页，用户询问是否又在重写动画、选择时能Back是否正常。PM已核源码：真实原生开场在执行，但Covered遮罩和OneShot/Shake静默直到NativeChoice.WaitReady后才解除。问题是显示交接时机，PM此前只写停点的规格也需补齐可见过程。随后r6最终92事件封存：重入再选Initial匹配有局部运行证明，Stop/正常退出通过，视觉被拒，无全胜利证明，不验收D。
 
 **可见流程：必要拆旧/载入时遮罩 → 新战斗房间已可展示即揭开 → 原生开场与选牌窗口可见地自然出现 → 选择Ready后手动等请求。** 原生`NCombatRoom.OnCombatSetUp`激活战斗UI并设置背景，`CombatRoom.StartCombat`在其后才AfterRoomEntered/AfterCombatRoomLoaded；当前代/当前room的该postfix可作显露边界，运行有效性仍随修复验证。显露与“选择可接请求/Initial已核对”分开，不额外插人工Step、不给选择页开独立恢复、不手写入场动画/改变原生顺序。Covered/SilentRebuild共用关系及其视觉抑制消费者需一起对齐，避免只撤罩仍抑制原生效果。
 
-修复进展（原生待测）：Implementation已拆分openingReentryPending与仅管必要遮罩的rebuildingOpening，在当前新NCombatRoom.OnCombatSetUp之后自动揭幕/刷新，后续原生动画自然可见、选择Ready仍管请求。构建已通过，准备008，尚未安装/实测；007本轮已退出，最终统计另封存。这里只记录实现方向，不认其展示/退出或耗时已通过。
+修复进展（原生待测）：Implementation拆分openingReentryPending与仅管必要遮罩的rebuildingOpening，在当前新NCombatRoom.OnCombatSetUp之后自动显露/刷新，遮罩及OneShot/Shake静默一起解除，选择Ready仍管请求。修复候选已构建安装，现行身份见CURRENT_STATUS；尚无本次视觉/重入/完成播放/退出实测结论。
 
 用户明确了两个问题：此前修bug后第一回合显示很长且阻塞；工具箱开场选择期望受`>`/`>>`控制，询问与现有模型是否契合。A段002/r2的数据闭环验收保持，当前004新角色测试继续，不因本讨论换版或重测A。
 
