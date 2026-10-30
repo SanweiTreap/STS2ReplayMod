@@ -1,5 +1,6 @@
 using System.Reflection;
 using ReplayMod;
+if(args.Length>1&&args[1]=="units"){CombatUnitContracts.Run(args[0]);return;}
 if(args.Length>1&&args[1]=="orbs"){OrbContracts.Run(args[0]);return;}
 if(args.Length>2&&args[1]=="discard-potion"){DiscardPotionContracts.Run(args[0],args[2]);return;}
 if(args.Length>1&&args[1]=="card-tracking"){CardTrackingContracts.Run(args[0]);return;}

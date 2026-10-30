@@ -50,7 +50,7 @@ internal sealed class DirectCheckpoint
         if(!route)RequireReady();LiveState.Supported();
         _creatures=_combat.Creatures.ToArray();
         Codec.Require(roster.Reason(_combat) is null,"direct-back-roster-unsupported");
-        Codec.Require(_creatures.All(c=>c.IsAlive)&&LiveState.Player.PlayerCombatState!.Pets.Count==0,"direct-back-no-death-or-pets");
+        Codec.Require(_creatures.All(CombatUnits.Restorable)&&LiveState.Player.PlayerCombatState!.Pets.All(CombatUnits.IsOsty),"direct-back-unsupported-death-or-pet");
         _presentation=_creatures.Select(c=>new CreaturePresentation(c)).ToArray();
         // Include removed original enemies too, so a checkpoint also describes their detached dead state.
         if(captureData)_data=new(Roots(roster).Concat(extraRoots??[]),v=>Data(v)||route&&v is AbstractRoom,
@@ -61,7 +61,7 @@ internal sealed class DirectCheckpoint
     {
         var run=LiveState.Run;
         return new object?[]{((CombatRoom)run.CurrentRoom!).CombatState,LiveState.Player,CombatManager.Instance,NetCombatCardDb.Instance,run.Rng,run.Odds,run.ExtraFields,run.CurrentMapPointHistoryEntry,
-            LiveState.Format>=8?OrbState.Identities:null}.Concat(roster.Initial).Where(v=>v is not null).Cast<object>();
+            LiveState.Format>=8?OrbState.Identities:null}.Concat(roster.Anchors).Where(v=>v is not null).Cast<object>();
     }
     internal static bool Data(object value)
     {
@@ -130,6 +130,7 @@ internal sealed class DirectCheckpoint
         var removedDisplays=rebuildEnemies?(forwardHandoff?_roster.RemoveForForwardTarget(_creatures):_roster.RemoveEnemyDisplays()):_roster.RemoveRetiredEnemyDisplays(_combat);
         Runtime.Log("checkpoint-display-cleanup",new{Position,RebuildLiveEnemies=rebuildEnemies,Removed=removedDisplays,WaitedForDeathAnimations=false});
         var keptPotions=_route&&ContentPresentation.CanKeepPotions(_potions);
+        _roster.RemovePetDisplays();
         if(LiveState.Format>=3&&!keptPotions)ContentPresentation.RetirePotions();
         OrbPresentation.Retire();
         var cards=((Dictionary<uint,CardModel>)Get(NetCombatCardDb.Instance,"_idToCard")!).Values.ToArray();
@@ -143,7 +144,8 @@ internal sealed class DirectCheckpoint
         foreach(var creature in before)CombatManager.Instance.StateTracker.Unsubscribe(creature);
         if(fileData is not null)fileData();else (_data??throw new InvalidDataException("checkpoint-data-missing")).Restore();
         var restored=Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-        Codec.Require(_creatures.SequenceEqual(_combat.Creatures)&&_creatures.All(c=>c.IsAlive),"direct-back-restored-membership-mismatch");
+        foreach(var removedPet in before.Except(_creatures).Where(CombatUnits.IsOsty))removedPet.CombatState=null;
+        Codec.Require(_creatures.SequenceEqual(_combat.Creatures)&&_creatures.All(CombatUnits.Restorable),"direct-back-restored-membership-mismatch");
         Codec.Require(_creatures.All(c=>ReferenceEquals(c.CombatState,_combat)&&ReferenceEquals(_combat.GetCreature(c.CombatId),c)),"direct-back-restored-target-identity-mismatch");
         foreach(var creature in _creatures)CombatManager.Instance.StateTracker.Subscribe(creature);
         foreach(var card in LiveState.Player.PlayerCombatState!.AllCards.Distinct())CombatManager.Instance.StateTracker.Subscribe(card);
@@ -153,9 +155,11 @@ internal sealed class DirectCheckpoint
             foreach(var pile in LiveState.Player.PlayerCombatState.AllPiles)CombatManager.Instance.StateTracker.Subscribe(pile);
         }
         CombatCardTracking.RestoreSubscriptions();
+        OstySubscriptions.Restore(_roster.Anchors);
         if(LiveState.Format>=3)ContentPresentation.Restore(keptPotions,refreshRelics:!_route);
         OrbPresentation.Restore();
         if(rebuildEnemies)_roster.AddEnemyDisplays(_combat,onlyMissing:forwardHandoff);
+        _roster.AddPetDisplays(_combat);
         for(var i=0;i<_creatures.Length;i++)if(!_creatures[i].IsPlayer)_presentation[i].BindEnemyDisplay();
         foreach(var presentation in _presentation)presentation.Restore(_route&&NativeDisplayTrace.Replaying);
         _regent.Restore(_route&&NativeDisplayTrace.Replaying);
@@ -254,7 +258,7 @@ internal sealed class DirectCheckpoint
             }
             else if(node is NCreature creature)
             {
-                if(!rebuiltEnemies||creature.Entity.IsPlayer||previousNodes.TryGetValue(creature.Entity,out var previousNode)&&ReferenceEquals(previousNode,creature))
+                if(previousNodes.TryGetValue(creature.Entity,out var previousNode)&&ReferenceEquals(previousNode,creature))
                 {
                     Codec.Require(previousPowers.TryGetValue(creature.Entity,out var previous),"direct-back-active-creature-power-anchor-missing");
                     foreach(var old in previous!.Except(creature.Entity.Powers))Invoke(creature,"UnsubscribeFromPower",old);

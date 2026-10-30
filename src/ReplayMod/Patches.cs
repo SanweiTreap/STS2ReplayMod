@@ -112,7 +112,11 @@ internal static class Patches
     private static void PotionTask(PotionModel __instance,Task __result){if(Observing)Runtime.Guard(()=>ActionMonitor.PotionTask(__instance,__result));}
     private static bool ManualPotion()=>!PlayerLoop.Active||PlayerLoop.Dispatching;
     private static void Choice(){if(Observing&&LiveState.Format<4)Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-player-choice"));}
-    private static void Spawn(){if(Observing)Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-creature-generation"));}
+    private static void Spawn(CombatState __instance,MonsterModel __0,CombatSide __1)
+    {
+        if(Observing)Runtime.Guard(()=>Codec.Require(LiveState.Format>=8&&__0 is MegaCrit.Sts2.Core.Models.Monsters.Osty&&
+            __1==CombatSide.Player&&ReferenceEquals(__instance,LiveState.Player.Creature.CombatState),"incomplete-unsupported-creature-generation"));
+    }
     private static void OrbAdmitted(OrbQueue __instance,OrbModel __0)=>Runtime.Guard(()=>OrbState.Admit(__instance,__0));
     private static void GeneratedCards(){if(Observing&&LiveState.Format<4)Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-card-generation"));}
     private static void PileBrowsed(NCombatCardPile __instance)=>Runtime.Guard(()=>RoutePresentation.Browsed(__instance));

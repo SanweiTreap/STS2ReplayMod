@@ -25,7 +25,7 @@ internal static class BattleEnd
         Reset();Room=(CombatRoom)LiveState.Run.CurrentRoom!;
         // A native replay can restore a point after an earlier kill. The victory projection
         // still describes every original enemy, including those already dead at that point.
-        _enemies=NativeSeek.Enabled?PlayerLoop.EnsureRoster().Initial.Where(c=>!c.IsPlayer).ToArray():Room.CombatState.Enemies.ToArray();
+        _enemies=NativeSeek.Enabled?PlayerLoop.EnsureRoster().Initial.Where(c=>c.IsEnemy).ToArray():Room.CombatState.Enemies.ToArray();
     }
     internal static void EndStarted()
     {

@@ -47,10 +47,10 @@ internal static class LiveState
     {
         var r=Run;var p=Player;
         Codec.Require(RunManager.Instance.NetService.Type.ToString()=="Singleplayer"&&r.CurrentActIndex==0&&r.AscensionLevel==0&&r.Modifiers.Count==0&&r.CurrentMapCoord?.row==1&&
-            (p.Character.Id.ToString()=="CHARACTER.IRONCLAD"||Format>=4&&p.Character.Id.ToString()=="CHARACTER.SILENT"||Format>=5&&p.Character.Id.ToString()=="CHARACTER.REGENT"||Format>=8&&p.Character.Id.ToString()=="CHARACTER.DEFECT")&&p.Deck.Cards.Count is >0 and <=128&&
-            p.Deck.Cards.All(c=>IsCard(c)),"only-first-monster-Ironclad-Silent-Regent-Defect-A0-supported-format");
+            (p.Character.Id.ToString()=="CHARACTER.IRONCLAD"||Format>=4&&p.Character.Id.ToString()=="CHARACTER.SILENT"||Format>=5&&p.Character.Id.ToString()=="CHARACTER.REGENT"||Format>=8&&p.Character.Id.ToString() is "CHARACTER.DEFECT" or "CHARACTER.NECROBINDER")&&p.Deck.Cards.Count is >0 and <=128&&
+            p.Deck.Cards.All(c=>IsCard(c)),"only-first-monster-five-characters-A0-supported-format");
     }
-    internal static bool SimpleTarget(TargetType type)=>type is TargetType.None or TargetType.Self or TargetType.AnyEnemy or TargetType.AllEnemies or TargetType.RandomEnemy or TargetType.AnyPlayer or TargetType.AllAllies;
+    internal static bool SimpleTarget(TargetType type)=>type is TargetType.None or TargetType.Self or TargetType.AnyEnemy or TargetType.AllEnemies or TargetType.RandomEnemy or TargetType.AnyPlayer or TargetType.AllAllies||Format>=8&&type==TargetType.Osty;
     internal static bool IsCard(CardModel c)=>c.IsMutable&&c.GetType().Assembly==typeof(CardModel).Assembly&&SimpleTarget(c.TargetType)&&c.CurrentUpgradeLevel is >=0 and <=20;
     private static object Vars(DynamicVarSet vars)=>vars.OrderBy(v=>v.Key,StringComparer.Ordinal).Select(v=>new{v.Key,v.Value.BaseValue,v.Value.EnchantedValue}).ToArray();
     internal static object CardDetails(CardModel card)
@@ -80,7 +80,8 @@ internal static class LiveState
         Potions=Player.PotionSlots.Select((p,i)=>p is null?null:PotionDetails(p,i)).ToArray(),
         CombatCards=Player.PlayerCombatState!.AllPiles.Select(p=>new{Pile=p.Type.ToString(),Cards=p.Cards.Select(CardStateEntry).ToArray()}).ToArray()};
         if(Format<8)return basic;
-        var node=JsonSerializer.SerializeToNode(basic,Values)!.AsObject();node["OrbQueue"]=JsonSerializer.SerializeToNode(OrbState.Capture(),Values);return node;
+        var node=JsonSerializer.SerializeToNode(basic,Values)!.AsObject();node["OrbQueue"]=JsonSerializer.SerializeToNode(OrbState.Capture(),Values);
+        node["CombatUnits"]=JsonSerializer.SerializeToNode(CombatUnits.Capture(),Values);return node;
     }
     private static object CardStateEntry(CardModel card)
     {
@@ -104,6 +105,7 @@ internal static class LiveState
     internal static TargetKey? Target(Creature? creature)
     {
         if(creature is null)return null;
+        if(CombatUnits.IsOsty(creature))return new(0,creature.ModelId.ToString(),creature.CombatId!.Value,TargetRole.Pet);
         if(creature.IsPlayer)
         {
             Codec.Require(ReferenceEquals(creature,Player.Creature)&&creature.CombatId.HasValue,"only-local-player-target-supported");
@@ -116,6 +118,11 @@ internal static class LiveState
     internal static Creature? Resolve(TargetKey? key)
     {
         if(key is null)return null;
+        if(key.Role==TargetRole.Pet)
+        {
+            var pet=((CombatRoom)Run.CurrentRoom!).CombatState.Allies.SingleOrDefault(CombatUnits.IsOsty);
+            Codec.Require(key.Index==0&&pet is {IsAlive:true}&&pet.CombatId==key.CombatId&&pet.ModelId.ToString()==key.Model,"pet-target-content-or-identity");return pet;
+        }
         if(key.Role==TargetRole.Player)
         {
             var creature=Player.Creature;Codec.Require(key.Index==0&&creature.IsAlive&&creature.CombatId==key.CombatId&&creature.ModelId.ToString()==key.Model,"player-target-content-or-identity");return creature;

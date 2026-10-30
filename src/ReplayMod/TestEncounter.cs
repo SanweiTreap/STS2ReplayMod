@@ -10,15 +10,20 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace ReplayMod;
 
-internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent }
+internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent, NecrobinderContent }
 // Explicit opt-in, consumed by ONE new supported run. Never applied to Continue or playback.
 internal static class TestEncounter
 {
     internal static TestPreparation Armed;
+    internal static bool FirstOstySummonArmed;
+    private static bool _firstOstySummon;
     private static TestPreparation _mode;
     private static RunState? _run;
     internal static string? Preparation=>_run is not null&&ReferenceEquals(_run,RunManager.Instance.DebugOnlyGetState())?
-        (_mode==TestPreparation.DefectContent?"CONTENT005-B-Defect-starter10-CrackedCore-Darkness-ColdSnap-Capacitor-ChaosPlus-6-innate-retain-BagOfPreparation-FocusPotion":
+        (_mode==TestPreparation.NecrobinderContent?(_firstOstySummon?
+            "CONTENT005-C-Necrobinder-first-Osty-summon-no-BoundPhylactery-3-Bodyguard-BoneShards-DeathbringerPlus-6-innate-retain-BagOfPreparation-EnergyPotion":
+            "CONTENT005-C-Necrobinder-starter10-BoundPhylactery-Bodyguard-BoneShards-DeathbringerPlus-5-innate-retain-BagOfPreparation-EnergyPotion"):
+         _mode==TestPreparation.DefectContent?"CONTENT005-B-Defect-starter10-CrackedCore-Darkness-ColdSnap-Capacitor-ChaosPlus-6-innate-retain-BagOfPreparation-FocusPotion":
          _mode==TestPreparation.SharedContent?"CONTENT005-A-Regent-Toolbox-StarPotion-KingsCourage-discard-EnergyPotion":
          _mode==TestPreparation.QueuedCards?"PLAYBACK001-Ironclad-starters-three-native-Defend-innate-retain-CorpseSlugsWeak":
          _mode==TestPreparation.RegentContent?"CONTENT004-Regent-starter10-DivineRight-RefineBlade-DualWield-Enlightenment-4-innate-retain-StarPotion-KingsCourage":
@@ -28,10 +33,11 @@ internal static class TestEncounter
             _mode==TestPreparation.Content?"DEMO005-directed-CorpseSlugs-ShrugPlus-Inflame-HappyFlower-EnergyPotion":"DEMO004-directed-Underdocks-CorpseSlugsWeak"):null;
     internal static void BeforeNew(RunState state)
     {
-        _run=null;_mode=Armed;if(_mode==TestPreparation.None||PlayerLoop.Active)return;Armed=TestPreparation.None;
+        _run=null;_mode=Armed;_firstOstySummon=_mode==TestPreparation.NecrobinderContent&&FirstOstySummonArmed;FirstOstySummonArmed=false;
+        if(_mode==TestPreparation.None||PlayerLoop.Active)return;Armed=TestPreparation.None;
         Runtime.CheckEnvironment();
         Codec.Require(state.CurrentActIndex==0&&state.AscensionLevel==0&&state.Players.Count==1&&
-            state.Players[0].Character.Id.ToString()==(_mode==TestPreparation.DefectContent?"CHARACTER.DEFECT":_mode is TestPreparation.RegentContent or TestPreparation.SharedContent?"CHARACTER.REGENT":_mode==TestPreparation.SilentContent?"CHARACTER.SILENT":"CHARACTER.IRONCLAD")&&state.Modifiers.Count==0,"test-entry-character-or-A0-mismatch");
+            state.Players[0].Character.Id.ToString()==(_mode==TestPreparation.NecrobinderContent?"CHARACTER.NECROBINDER":_mode==TestPreparation.DefectContent?"CHARACTER.DEFECT":_mode is TestPreparation.RegentContent or TestPreparation.SharedContent?"CHARACTER.REGENT":_mode==TestPreparation.SilentContent?"CHARACTER.SILENT":"CHARACTER.IRONCLAD")&&state.Modifiers.Count==0,"test-entry-character-or-A0-mismatch");
         state.SetActDebug(ModelDb.Act<Underdocks>().ToMutable());_run=state;
     }
     internal static void AfterNew()
@@ -40,6 +46,28 @@ internal static class TestEncounter
         var rooms=(RoomSet)AccessTools.Field(typeof(ActModel),"_rooms").GetValue(_run!.Act)!;
         Codec.Require(rooms.normalEncountersVisited==0&&rooms.normalEncounters.Count>0,"test-entry-room-list-not-ready");
         var previous=rooms.normalEncounters[0].Id.ToString();rooms.normalEncounters[0]=ModelDb.Encounter<CorpseSlugsWeak>();
+        if(_mode==TestPreparation.NecrobinderContent)
+        {
+            var player=_run.Players[0];
+            Codec.Require(player.Deck.Cards.Count==10&&player.Relics.Any(r=>r is BoundPhylactery),"necrobinder-starter-preparation-shape");
+            var guard=player.Deck.Cards.Single(c=>c is Bodyguard);var unleash=player.Deck.Cards.Single(c=>c is Unleash);
+            var extraGuard=_run.CreateCard<Bodyguard>(player);var shards=_run.CreateCard<BoneShards>(player);var doom=_run.CreateCard<Deathbringer>(player);
+            doom.UpgradeInternal();doom.FinalizeUpgradeInternal();
+            foreach(var card in new CardModel[]{extraGuard,shards,doom})player.Deck.AddInternal(card,silent:true);
+            var guaranteed=new List<CardModel>{guard,unleash,extraGuard,shards,doom};
+            if(_firstOstySummon)
+            {
+                player.RemoveRelicInternal(player.Relics.Single(r=>r is BoundPhylactery),silent:true);
+                var third=_run.CreateCard<Bodyguard>(player);player.Deck.AddInternal(third,silent:true);guaranteed.Add(third);
+            }
+            foreach(var card in guaranteed)
+            {
+                var enchantment=ModelDb.Enchantment<MegaCrit.Sts2.Core.Models.Enchantments.RoyallyApproved>().ToMutable();
+                card.EnchantInternal(enchantment,1);enchantment.ModifyCard();
+            }
+            player.AddRelicInternal(ModelDb.Relic<BagOfPreparation>().ToMutable(),silent:true);
+            Codec.Require(player.AddPotionInternal(ModelDb.Potion<EnergyPotion>().ToMutable(),0,silent:true).success,"necrobinder-test-energy-potion");
+        }
         if(_mode==TestPreparation.DefectContent)
         {
             var player=_run.Players[0];
@@ -161,7 +189,8 @@ internal static class TestEncounter
             SerializedBeforeCheckpoint=true,NormalEntryUnchangedWhenUnarmed=true,Character=_run.Players[0].Character.Id.ToString(),
             Deck=_run.Players[0].Deck.Cards.Select(c=>new{Model=c.Id.ToString(),c.CurrentUpgradeLevel,Saved=c.ToSerializable()}).ToArray(),
             Relics=_run.Players[0].Relics.Select(r=>r.Id.ToString()).ToArray(),Potions=_run.Players[0].PotionSlots.Select(p=>p?.Id.ToString()).ToArray()});
-        Runtime.Status=_mode==TestPreparation.DefectContent?"故障机器人已准备：保留原10张／破损核心；六张先天保留；暗球／冰球／扩槽／随机球／集中药水，首战双蛞蝓":
+        Runtime.Status=_mode==TestPreparation.NecrobinderContent?"亡灵契约师已准备：保留原10张／原遗物；两张保镖／释放／碎骨／死亡使者+先天保留；能量药水，首战双蛞蝓":
+            _mode==TestPreparation.DefectContent?"故障机器人已准备：保留原10张／破损核心；六张先天保留；暗球／冰球／扩槽／随机球／集中药水，首战双蛞蝓":
             _mode==TestPreparation.SharedContent?"共用测试已准备：储君／工具箱初始选择／星星与锻造／第3槽能量药水供丢弃；首战双蛞蝓":
             _mode==TestPreparation.QueuedCards?"排队测试已准备：铁甲原牌组，三张防御先天保留，首战双蛞蝓；快速连续打两张防御":
             _mode==TestPreparation.RegentContent?"储君测试已准备：原10张起始牌／王权；精炼／双持／启蒙／陨落之星先天保留；星星与锻造药水；双蛞蝓":

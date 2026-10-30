@@ -312,17 +312,19 @@ internal static class NativeSeek
     private static async Task Restore(Navigation navigation)
     {
         var target=navigation.Host;
-        var at=Stopwatch.GetTimestamp();var point=Points[target];_restoring=true;var fromVictory=PlayerLoop.VictoryReached;
+        var at=Stopwatch.GetTimestamp();var point=Points[target];_restoring=true;var fromVictory=false;
         try
         {
-            await Drain();var drained=Stopwatch.GetTimestamp();_generation++;
+            await Drain();var drained=Stopwatch.GetTimestamp();_generation++;fromVictory=PlayerLoop.VictoryReached;
             _phase="正在恢复操作边界";Ui.Refresh();
-            if(fromVictory){await BattleEnd.WaitForUiCleanup();RequireVictoryTurnWaiters();}
+            var continueTurnLoop=false;
+            if(fromVictory){await BattleEnd.WaitForUiCleanup();continueTurnLoop=await NativeTurnContinuation.PrepareVictoryRestore();}
             await point.Restore();
             if(fromVictory)
             {
                 RunManager.Instance.ActionQueueSynchronizer.SetCombatState(ActionSynchronizerCombatState.PlayPhase);
                 RunManager.Instance.ActionExecutor.Unpause();
+                if(continueTurnLoop)NativeTurnContinuation.Resume();
             }
             PlayerLoop.VictoryReached=false;ActionMonitor.RebaseNativeSeek();
             _completed=target;Host=target;_requests.Restore(target,navigation.Intent);Attempts.Clear();CancelledAhead.Clear();_choice=null;_choiceReady=false;_choiceOwner=0;
@@ -335,15 +337,5 @@ internal static class NativeSeek
                 TotalMilliseconds=Stopwatch.GetElapsedTime(at).TotalMilliseconds});
         }
         finally{_restoring=false;_phase="";Ui.Refresh();}
-    }
-    private static void RequireVictoryTurnWaiters()
-    {
-        var manager=CombatManager.Instance;var state=AccessTools.Field(typeof(CombatManager),"_turnState").GetValue(manager)!;
-        var loop=AccessTools.Field(typeof(CombatManager),"_turnLoopTask").GetValue(manager) as Task;
-        Task? Signal(string name)=>AccessTools.Property(state.GetType(),name).GetValue(state) is {} source?
-            AccessTools.Property(source.GetType(),"Task").GetValue(source) as Task:null;
-        Codec.Require(loop is {IsCompleted:false}&&Signal("EndTurnSignalSource") is {IsCompleted:false}&&
-            Signal("BeginEnemyTurnSignalSource") is {IsCompleted:false},"victory-turn-waiters-not-resumable");
-        Runtime.Log("native-victory-turn-waiters-preserved",new{OldTasksRestored=false,CurrentWaitingLoopRetained=true});
     }
 }

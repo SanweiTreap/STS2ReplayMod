@@ -186,9 +186,12 @@ internal static class PlayerLoop
         try
         {
             var room=RunManager.Instance.DebugOnlyGetState()?.CurrentRoom as CombatRoom;
+            var pcs=room is null?null:LiveState.Player.PlayerCombatState;
+            var pets=room is null?[]:(_roster?.Anchors??room.CombatState.Allies).Where(c=>c.Monster is MegaCrit.Sts2.Core.Models.Monsters.Osty).ToArray();
             if(room is not null)OrbPresentation.Retire();
             if(RunManager.Instance.DebugOnlyGetState() is not null)RunManager.Instance.CleanUp(true);
             if(room is not null)CombatCardTracking.Cleanup(room);
+            if(pcs is not null&&LiveState.Format>=8)OstySubscriptions.Cleanup(pcs,pets);
             // Remove the old NRun before yielding: its _Process uses RunManager's current net service.
             Runtime.Game.RootSceneContainer.SetCurrentScene(new Control{Name="ReplayModRebuilding"});
         }
@@ -201,7 +204,7 @@ internal static class PlayerLoop
         // Drain the normal deferred state/UI notification before taking the data memento.
         await Runtime.NextFrame();await WaitReady();Check("checkpoint-"+position,expected,LiveState.Capture());
         var unavailable=_roster!.Reason(((CombatRoom)LiveState.Run.CurrentRoom!).CombatState);
-        if(unavailable is not null||LiveState.Player.PlayerCombatState!.Pets.Count>0)
+        if(unavailable is not null||LiveState.Player.PlayerCombatState!.Pets.Any(c=>!CombatUnits.IsOsty(c)))
         {
             Checkpoints.Remove(position);Runtime.Log("checkpoint-unavailable",new{Position=position,Reason=unavailable??"pet-not-restorable",ForwardPlaybackContinues=true});return;
         }
