@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-005进行中**：A/B/D验收保留，**C默认起始Osty样本已按008/r9逻辑续播与009/r10视觉/退出边界收束**。当前009保持；下一用已有可选准备录“初始无Osty→首次创建”，再测Back到未生成后重新原生创建。该机制尚未覆盖，本包未关闭，旧失败保留。
+更新：2026-10-30。**CONTENT-005进行中**：A/B/D和C默认Osty样本按各自边界收束；当前009，**C首次创建的r11新片已录成/生产读回，下一跨不存在Back与原生再创建**。初态无宠物/Next3→操作2创建ID3/Next4已有文件事实，恢复/新对象/显示尚未验证，包未关闭，旧失败保留。
 
 ## 玩家现在能用到什么
 
@@ -63,6 +63,8 @@ C的008/r8：PM核报告/[摘要](../evidence/content-005/runtime-verification-r
 C的008/r9已核报告/[封存摘要](../evidence/content-005/runtime-verification-r9.json)，未重计1038原事件：2recent、43结果/RNG、29匹配Back、3Doom胜利；2次胜利Back新loop续接中仅第一次随后末步再胜，第二次回更早位置。Stop9/5状态/manager恢复，Osty回调Known1→Remaining0、牌监听0/5→0，原片不变。用户重召无血条的失败保留；PM核到Visible/alpha不变量，009改恢复状态而非另播动画，后续r10补视觉验证，不把旧r9追判成功。
 
 C默认样本009/r10按范围收束：PM核[最终摘要](../evidence/content-005/runtime-verification-r10.json)的HUD/退出清理，未重计916原事件。2recent、35结果/RNG、25匹配Back；25恢复HUD均Visible、死时alpha0，9原生复活HUD均Visible且观察器未改显示，用户确认血条及死亡重召正常。1真实Doom胜利，Stop9/1无Error/Outstanding、清计划、原context恢复，3房间清理Osty回调零余量/牌监听5/0/5→0；含1次无选择开场重入Initial/0匹配。Doom胜利Back桥接仍属008/r9，009未重复该矩阵，不把两版本拼成单轮全覆盖。首次创建未测，下一009勾已有可选准备录真正新单位，再测跨不存在Back；默认样本与此新机制分开验收。
+
+C首次创建009/r11：PM核报告/[摘要](../evidence/content-005/runtime-verification-r11.json)，未重计44原事件。格式8片45c3b2f4c3af4782973d0bb61ea6137c录9项/无选择，真实Doom胜利封存/生产精确读回；准备无BoundPhylactery，初始Pets[]/Next3，操作2原生创建Osty ID3/Owner0、HP5/Next4，之后成长/死亡/同ID重召已有文件事实。无起始遗物时不会下一回合自动召回，实际额外遗物Kaleidoscope照原基线记录。当前只证录制，Back到生成前/新对象与未来ID再分配/节点订阅仍Pending；下一同片2→Back1→原生再创建、相关成长/死亡/复活、Doom胜利Back8再做与Stop/短重开到2，不换009、不重录。
 
 B的004/r3–r4已按样本验收：r3格式8片dfa22d43c501492786b19cacee1411c7录成9项，含暗球12→20、槽3→5、随机球流0→2与玻璃/冰ID5/6。r4的[封存摘要](../evidence/content-005/runtime-verification-r4.json)/报告经PM复核，未重计697原事件：2次recent、28结果/RNG、18匹配恢复、4真实球胜利；三次胜利Back8后以新信号/原生阶段续播，未重跑开场/回合开始。18球显示恢复及20次退场监听零余量；Stop9/1无Error/Outstanding，原context恢复，原片不变。满槽激发第3项只有首次前进原日志，跨该项Back/重做仅用户反馈，保留边界而不补旧矩阵。此证明限玩家回合末电球致胜，不代替C的Doom敌方回合结算。花粉核心旧bug/全遗物及冷文件恢复未覆盖；报告已随b095f5a保存。
 
