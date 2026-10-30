@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-005已授权启动**：共用输入/已有资源短补漏，同包推进故障机器人与Necrobinder，目标为五角色基础首战回放；尚无本包新构建或运行结论。PLAYBACK-003按当前单场范围DONE_WITH_LIMITATIONS，当前仍保留build-008；主运行证据来自007/r8，008片尾小改仅离线核对。
+更新：2026-10-30。**CONTENT-005进行中**：A段共用补漏候选build-002已安装，丢弃药水格式7/原生动作及默认关闭的组合测试准备已接入，尚无本包游戏运行结论。故障机器人与Necrobinder继续同包推进。PLAYBACK-003按所测范围DONE_WITH_LIMITATIONS，旧008可用pair保留；核心运行证据007/r8、008片尾小改仅离线核对的边界不变。
 
 ## 玩家现在能用到什么
 
@@ -42,12 +42,14 @@ r6/r7的恢复后选牌失败保留：PM已核完整异常栈及固定源码，�
 
 仍限当前单人A0首战，分段交付；两角色各少量代表录像走录制/普通入口/原生前进/关键Back续播/退出，权威文件恢复缺口如实区分。D-131控制保持，D-092允许同包修复、备份安装并直接请求用户人工测试；不另建前置调查或逐步审批。上一轮只讨论的限制已由本次“开始”指令解除，未创建新对话。
 
+A首个增量：源码/报告ea092cb已推送，见[本包报告](investigation-reports/CONTENT-005-report.md)。PM核安装收据及丢药/输入身份/完成边界相关源码差异；旧储君生产读取、丢药格式/路线与现有控制合同的离线结果由Implementation汇报，未重复构建。002在未发用户的001基础上修正丢药没有独立OnUseWrapper effect Task的边界；不把001离线检查称为002实际运行。下一是Implementation给有界旧片/新丢药测试步骤，B/C无需等A全面矩阵。
+
 材料已交[内容覆盖清单](technical-notes/CONTENT-COVERAGE.md)和[契约/候选批次](technical-notes/BATTLE-COVERAGE-PLAN.md)：固定源码索引只作检索，不当覆盖率。知识恶魔、三鼠召援、产卵虫/卵、千足虫、实验体已定位，尚非Replay运行PASS。多人为MVP后首要大型方向，跨版本亦在MVP后；接管游戏不纳入当前MVP。
 
 ## 工程、恢复点与工作方式
 
 - 工程：[src/ReplayMod](../src/ReplayMod/README.md)；固定版本反编译C#留本地，日常直接查源码，IL仅在有歧义时核对。
-- 当前安装PLAYBACK-003/build-008，SHA256 `1E5FABDCB4177C4C9B07363BB960E6F1FCACF50B61BFBEA0B10187EDDCA73D73`，源码001ca8f，[收据](../evidence/playback-003/preparation/build-008-2ea13753.json)。004仅未安装D-130草稿，旧可用pair/原片/失败均保留。
+- 当前安装CONTENT-005/build-002，SHA256 `CEBCF009567E850B9C51974E66046413B80C21E0A97B6A460E3BEEF16FB07C2D`，[收据](../evidence/content-005/preparation/build-002-ccc8da9a.json)，待人工实测。旧PLAYBACK-003/008与本包未发用户001 pair保留；PLAYBACK-003/004仍只是未安装D-130草稿，勿混用build编号。
 - [公开Git仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始证据、存档录像、备份、依赖及反编译缓存留本地，见[协作规则](REPOSITORY.md)。
 - 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续当前文件补存/候选pair见各报告，不冒充更新后的完整账号快照。未整包恢复；用户有新增进度时先备份，另一账号不纳入。
 - Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)，当前CONTENT-005；PM管状态/规划，不承担大规模源码实现。
