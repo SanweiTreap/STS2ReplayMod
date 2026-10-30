@@ -218,3 +218,17 @@ Debug音效除按owner精确Stop外，007在原生Play前把撤销owner音量设
 前一session178a7f2976a04dfb998b8d23213d82d2的9事件与本次86事件、两原片/Godot/journal合计99数据文件逐hash封存`runtime/content-006-r5-20261031-003209`；摘要`evidence/content-006/runtime-verification-r5.json`。未见observer-error，本次无播放事件；引擎退出shader/RID/resource诊断原样保留，不声称引擎零错误。既有DirectContracts对真实尝试2做生产ClipStore完整读取/兼容和路线终点检查通过，见`checks/r5/victory-production-read.json`；该检查不运行Godot或原生观看，尝试1实际生产封存读回由原生事件提供。
 
 当前原账号已知51文件4,002,995 bytes补存`CONTENT006-post-r5-current-20261031-003209`并逐hash读回，收据`post-r5-current-files.json`；未遍历其他账号或新建全账号快照，无restore/新候选/自行运行。007保持，下一最短人工观看：列表第4场尝试1播放唯一操作到片段终点并Stop；独立打开第4场尝试2，完成第3项BladeOfInk生成小刀后Back至2、重做第3项，再Auto至真实胜利、Back13重做14，Stop并正常退出。无需重录、继续推进地图或重跑旧片矩阵。CONTENT-006保持未完成。
+
+## r6：格式10中断片段与后续群怪完整片原生观看通过
+
+用户报告“测试完毕，一切正常”。007/session `1c6187afff6a47c79160820328a9a431`（2026-10-31 00:37:59–00:40:25）599事件，普通battle-list依次独立打开第4场尝试1 `2a9fa4fc…`及尝试2 `a97044e6…`，均InitialMatched true，未要求先播前一场。两片原始文件SHA与r5一致。
+
+一步interrupted片段实际2次原生结果/RNG、2次Back到0均匹配；过程中也退到pre-room重开，再正常进入初态，没有把无胜利的一步片强行补成完整战斗。完整片20次结果/RNG、7次Back均匹配，覆盖第3项生成小刀后回2重做、使用小刀后回3/回2、3次胜利后回13（前两次重做至胜利，最后一次Stop）；该片三次真实终局为同一片首次/重做，不是三份新录像。总22次结果均NormalNativeBusiness/Retiring false、9次恢复均StateAndRngMatched，模式/Auto/清计划匹配；开场重建另有2次，不混算9次已访问点恢复。用户实际画面通过与数据核对分别记证。
+
+最终玩家额外Back后Stop位置分别0、13，因此playback-closed的AllOperationsMatched/VictoryReached为false；这是当前停止位置的真实值，不改写为Stop在终点。完整片此前实际已播放到14并核胜利三次。两次Error null、OriginalManagerRestored及NormalContinueAndOriginalProgressUnchanged true；driver关闭均Outstanding false、Running/Auto false、Pending0，卡/单位相关监听日志完成清理。正常Quit confirmed/NGame.Quit/Steamworks shutdown，game0；没有要求为了Stop终点字段再跑已完成样本。
+
+599事件+两原片/Godot/journal共603数据文件逐hash封存`runtime/content-006-r6-20261031-004235`，摘要`evidence/content-006/runtime-verification-r6.json`；mod observer-error 0，原始引擎诊断保留，不据此声称引擎零错。逐hash比较r5已知51文件，current_run.save及主progress.save未变，仅progress.save.backup变化；不得把51项全未变作为结论。当前51文件4,003,071 bytes补存`CONTENT006-post-r6-current-20261031-004235`全部读回，收据`post-r6-current-files.json`，保留变化后backup且不restore。无其他账号遍历/整账号新快照/新DLL/自行启动。
+
+A/C本次格式10后续普通群怪和短片独立观看、相关Back、Stop隔离在此样本通过；未完房间跨进程与D一般敌方召援仍Pending。下一沿既有默认关闭的三鼠准备，不新增构建：主菜单展开开发准备、启用CONTENT-006三鼠召援，开铁甲A0新局进入首普通。明确它会替换当前猎人的Continue，猎人当前进度已有独立恢复点；测试准备只在新局创建时改暗港首普通遭遇为TwoTailedRatsNormal、升级原三Defend/添加两BodySlam+，五牌加原生RoyalApproved先天/保留。准备发生在真实checkpoint前，正常Continue不再注入、观看不注入expected。
+
+合并未完跨进程最短动作：首战打一张Defend+并等结算，原生保存退出到菜单后再正常退出到桌面；重新手动启动后Continue。以不同ProcessId/ProcessStartedUtc和真实写盘→load→Continue核同run/同battle/newattempt，不能只看菜单重新出现。重进先使用可用防御拖回合，暂不攻击直到原生出现援军；再用全身撞击等优先攻击/击杀新来的老鼠并正常获胜，自动封存后正常退出。先核录制/真实生成/目标/AI/RNG文件事实，再给该片跨召援Back/重做/已访问后点恢复与Stop的精确步骤，不要求用户一遍完成未说明索引的观看。召援采用原生AI/75%条件分支，不手改计数或强迫召援；本包仍未关闭。
