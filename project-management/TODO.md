@@ -1,6 +1,6 @@
 # 当前任务与后续方向
 
-更新：2026-10-30，CONTENT-005进行中，A/B/D所测样本闭环验收，当前008保持；下一C骨妹代表录制/原生回放/Back续播，尚无C运行PASS。D的008/r7工具箱通过，ChoicesParadox/独立短重开未测；旧失败及旧PLAYBACK-001/build-003 Unknown保留，权限沿D-092。
+更新：2026-10-30，CONTENT-005进行中，A/B/D样本验收；当前008，C的r8默认Osty录制/生产读回通过，下一原生回放/Back/Doom续播，首次创建未覆盖。D工具箱r7通过，ChoicesParadox/独立短重开未测；旧失败与旧PLAYBACK-001/build-003 Unknown保留，权限沿D-092。
 
 ## IN_PROGRESS — CONTENT-005 五角色基础战斗支持
 
@@ -10,7 +10,7 @@ A段002/r1旧储君13项/两次胜利Back和新格式7片11项录制通过；r2�
 
 B的004/r3–r4所测录播恢复闭环完成：PM读报告/[r4摘要](../evidence/content-005/runtime-verification-r4.json)，28结果/RNG、18匹配恢复、4球胜利、3次胜利后新信号原生续播，Stop9/1和原context、20次退场球监听零余量通过。满槽第3项跨步Back仅用户反馈、无该段原始重做，不补矩阵。此证明不代替敌方Doom结算、全遗物或冷文件恢复。
 
-C源码已接入/离线通过；当前先取保留起始Osty/BoundPhylactery的默认代表片，录成长/攻击/死亡/原对象重召及Doom真正致胜，封存读回后再测同片Back/续播。首次生成前回退另按已有可选准备取样，默认不勾。录制不能代替播放/订阅/致死续播证明，008保持，动作由Implementation按当轮给出。
+C的008/r8默认Osty片已录成9项/精确生产读回，ID3成长/死亡留场/同ID重召与敌方Doom胜利、Pets/遗物终态已有文件事实，见[r8摘要](../evidence/content-005/runtime-verification-r8.json)。同session早期错误保留、有效录制无失败，不称整轮零错。下一同片recent测成长/死亡重召/第7项Doom回退重做、胜利Back8再EndTurn、Stop/短重开；录制不代替恢复/订阅/续播。首次生成前回退另用已有可选准备，默认不勾，008保持。
 
 **D-133已按008/r7工具箱样本收束。** PM核报告/[r7摘要](../evidence/content-005/runtime-verification-r7.json)：3次room先显露后选择Ready、3次Initial匹配/未带op1、11结果/RNG与真实胜利、Stop11及原context/监听清理通过，用户确认可见流程/选择中Back。选择页非独立Seek。ChoicesParadox/独立短重开未测，不追加矩阵；下列006/007记录为历史失败/局部证据，不作当前待重跑清单。
 
