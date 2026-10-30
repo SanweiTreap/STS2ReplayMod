@@ -22,7 +22,7 @@ internal static class Recorder
     internal static void Checkpoint(SerializableRun save)
     {
         if(PlayerLoop.Active||!_fresh||_attempted||LiveState.Run.CurrentMapCoord?.row!=1||LiveState.Run.CurrentMapPoint?.PointType!=MapPointType.Monster)return;
-        _attempted=true;LiveState.Format=RecordedState.Recording?3:6;LiveState.Supported();Runtime.CheckEnvironment();
+        _attempted=true;LiveState.Format=RecordedState.Recording?3:7;LiveState.Supported();Runtime.CheckEnvironment();
         if(LiveState.Format>=5)RecordingClock.Start();else RecordingClock.Reset();
         var run=LiveState.Run;var coord=run.CurrentMapCoord!.Value;
         _clip=new(LiveState.Format,Guid.NewGuid().ToString("N"),DateTimeOffset.UtcNow,Runtime.GameHash,Runtime.ModHash,Runtime.Scope,

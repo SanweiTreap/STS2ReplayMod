@@ -1,6 +1,14 @@
 # ReplayMod 0.1.0 · 原生单场回放
 
-## 当前安装：PLAYBACK-003 / build-008，片尾自动关闭Auto
+## 当前安装：CONTENT-005 / build-002，共用输入增量待实测
+
+新增格式7的独立“丢弃药水”输入，保存槽位/实例指纹/时间，播放提交原生DiscardPotionGameAction；不使用喝药牌效。Back复用现有药水数据/药水栏恢复，执行开始核对药瓶及目标身份。D-131和片尾关闭Auto保持；旧格式1–6原片不改，Defect/Necrobinder仍待本包后续接入。
+
+主菜单默认关闭的“CONTENT-005 共用测试”仅用于下一次新储君A0：原资源组合加Toolbox初始选择和第3槽供丢弃的能量药水；所有准备在录制checkpoint前完成。另有可选旧储君13项原片入口。新增丢药格式/路线、旧储君生产读取与数据、既有D-131和完整路线合同离线通过，主工程0警告0错误；原生播放/Back/隔离尚待用户短测。
+
+002 DLL `CEBCF009567E850B9C51974E66046413B80C21E0A97B6A460E3BEEF16FB07C2D`，安装收据`evidence/content-005/preparation/build-002-ccc8da9a.json`。001在交付前补队列边界后替换，未取运行结论；008及001 pair/配置保持，Cloud已确认关闭、无新进度、安装game0。详见[CONTENT-005报告](../../project-management/investigation-reports/CONTENT-005-report.md)。
+
+## 历史基线：PLAYBACK-003 / build-008，片尾自动关闭Auto
 
 007/r8已实际通过：732事件/三次recent打开、50原生结果-RNG、3真实胜利、7匹配恢复；两次补5个登记监听，另外5次恢复不重复添加。恢复后新小刀ID18/19正确生成并使用，Stop21/11/1均无Error/Outstanding，订阅Remaining=0，原manager和所比较Continue进度恢复，新片不变。修复证据与旧失败分开保留，见[报告](../../project-management/investigation-reports/PLAYBACK-003-report.md)。
 

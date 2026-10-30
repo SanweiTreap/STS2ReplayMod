@@ -1,4 +1,4 @@
-param([string]$BackupId,[string]$BuildName='build-001',[ValidateSet('demo-001','demo-002','demo-003','demo-004','demo-005','state-001','content-001','content-002','content-003','content-004','playback-001','seek-001','playback-002','playback-003')][string]$Demo='demo-002',[ValidatePattern('^direct-r\d+$')][string]$Iteration,[switch]$CloudConfirmedOff)
+param([string]$BackupId,[string]$BuildName='build-001',[ValidateSet('demo-001','demo-002','demo-003','demo-004','demo-005','state-001','content-001','content-002','content-003','content-004','content-005','playback-001','seek-001','playback-002','playback-003')][string]$Demo='demo-002',[ValidatePattern('^direct-r\d+$')][string]$Iteration,[switch]$CloudConfirmedOff)
 $ErrorActionPreference='Stop';$stage='preflight'
 trap{Write-Output "DEMO001_PREPARATION_FAILED stage=$stage type=$($_.Exception.GetType().Name); private paths withheld; inspect before retry";exit 1}
 function Need($ok,$why){if(!$ok){throw $why}}
@@ -26,7 +26,7 @@ if(!$BackupId){
     [IO.File]::WriteAllText((Join-Path $backup 'RESTORE.private.md'),$restore,[Text.UTF8Encoding]::new($false))
     JsonFile (Join-Path $evidence ('preparation/'+$BackupId+'-backup.json')) ([ordered]@{Result='ORIGINAL_ACCOUNT_LOCAL_BACKUP_VERIFIED';BackupId=$BackupId;Files=$files.Count;Bytes=[long](($files|Measure-Object Bytes -Sum).Sum);AllHashesReadBack=$true;SourceStable=$true;OriginalActiveAccountMatched=$true;OtherAccountsRead=$false;LocalOnly=$true;RestorePerformed=$false})
 }
-Need ($BackupId -cmatch '^(DEMO00[12345]|STATE001|CONTENT00[1234])-\d{8}-\d{6}-[a-f0-9]{10}$') 'backup-id'
+Need ($BackupId -cmatch '^(DEMO00[12345]|STATE001|CONTENT00[12345])-\d{8}-\d{6}-[a-f0-9]{10}$') 'backup-id'
 $backup=Join-Path 'C:/Projects/STS2ReplayMod-local/backups' $BackupId
 $private=Get-Content -LiteralPath (Join-Path $backup 'backup.private.json') -Raw|ConvertFrom-Json
 Need ($private.AllReadBack -and $private.BackupId -ceq $BackupId -and (Get-ItemProperty -LiteralPath 'HKCU:/Software/Valve/Steam/ActiveProcess' -Name ActiveUser).ActiveUser -eq $private.ActiveUser) 'backup-scope'

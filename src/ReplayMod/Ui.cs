@@ -53,11 +53,13 @@ internal static class Ui
             }
             catch(Exception){/* An unavailable optional sample must not hide the normal recent-clip entry. */}
         }
-        var regent=Button(box,"CONTENT-004 储君测试：关闭",()=>{});
-        void RegentText()=>regent.Text=TestEncounter.Armed==TestPreparation.RegentContent?"CONTENT-004 储君测试：已启用":"CONTENT-004 储君测试：关闭";
-        regent.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.RegentContent?TestPreparation.None:TestPreparation.RegentContent;
-            RecordedState.Armed=false;RegentText();Runtime.Status=TestEncounter.Armed==TestPreparation.RegentContent?
-                "新建储君A0：星星／首次锻造／双持复制／启蒙降费；跨回合后用锻造药水，录制中插一次明显停顿":"已取消储君测试准备";});RegentText();
+        const string regentReference="cd3baa3b1be7466f9cb94d385c3db420";
+        try{_ =Runtime.ReadClip(regentReference);Button(box,"打开已有储君样本 · 星星／锻造",()=>TaskHelper.RunSafely(PlayerLoop.Open(regentReference,entry:"regent-reference")));}catch{/* Optional existing sample. */}
+        var regent=Button(box,"CONTENT-005 共用测试：关闭",()=>{});
+        void RegentText()=>regent.Text=TestEncounter.Armed==TestPreparation.SharedContent?"CONTENT-005 共用测试：已启用":"CONTENT-005 共用测试：关闭";
+        regent.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.SharedContent?TestPreparation.None:TestPreparation.SharedContent;
+            RecordedState.Armed=false;RegentText();Runtime.Status=TestEncounter.Armed==TestPreparation.SharedContent?
+                "新建储君A0：工具箱开场选择；先丢弃第3槽能量药水，再星星／锻造／复制／降费，跨回合用锻造药水":"已取消共用测试准备";});RegentText();
         var cold=Button(box,"STATE测试：从落盘第1步打开",()=>{if(id is not null)TaskHelper.RunSafely(PlayerLoop.Open(id,fromFile:true));});cold.Disabled=clip?.Authority is null;
         var queued=Button(box,"PLAYBACK-001 排队录制：关闭",()=>{});
         void QueuedText()=>queued.Text=TestEncounter.Armed==TestPreparation.QueuedCards?"PLAYBACK-001 排队录制：已启用":"PLAYBACK-001 排队录制：关闭";

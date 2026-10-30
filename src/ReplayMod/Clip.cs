@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace ReplayMod;
 
-public enum OperationKind { Card, EndTurn, Potion }
+public enum OperationKind { Card, EndTurn, Potion, DiscardPotion }
 public enum TargetRole { Enemy, Player }
 public sealed record TargetKey(int Index,string Model,uint CombatId,
     [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingDefault)] TargetRole Role=TargetRole.Enemy);
@@ -35,7 +35,7 @@ public static class Codec
     public const int MaxOperations=256;
     public static void Validate(Clip clip,string game,string mod,string scope,params string[] compatibleRecordedMods)
     {
-        Require(clip.Format is 1 or 2 or 3 or 4 or 5 or 6&&Regex.IsMatch(clip.Id,"^[a-f0-9]{32}$"),"unsupported-format-or-id");
+        Require(clip.Format is >=1 and <=7&&Regex.IsMatch(clip.Id,"^[a-f0-9]{32}$"),"unsupported-format-or-id");
         Require(clip.GameHash==game&&(clip.ModHash==mod||clip.ModHash is not null&&compatibleRecordedMods.Contains(clip.ModHash,StringComparer.Ordinal))&&clip.Scope==scope&&clip.Mods.SequenceEqual(new[]{"ReplayMod:0.1.0"}),"different-build-or-profile-or-mods");
         Require((clip.Character=="CHARACTER.IRONCLAD"||clip.Format>=4&&clip.Character=="CHARACTER.SILENT"||clip.Format>=5&&clip.Character=="CHARACTER.REGENT")&&clip.Row==1&&clip.Col>=0&&clip.Encounter.Length>0&&
             clip.Checkpoint.Length>0&&clip.Initial.Length>0,"unsupported-scene");
@@ -79,6 +79,8 @@ public static class Codec
                         op.CardState is {CombatIndex:<=65535,Upgrade:>=0 and <=20} key&&Hash(key.Fingerprint)&&TargetType(key.TargetType),
                     OperationKind.Potion=>op.Card is null&&op.HandIndex is null&&op.CardState is null&&op.Potion is {Slot:>=0 and <16} potion&&
                         Model(potion.Model,"POTION")&&Hash(potion.Fingerprint)&&TargetType(potion.TargetType),
+                    OperationKind.DiscardPotion=>clip.Format>=7&&op.Card is null&&op.HandIndex is null&&op.CardState is null&&op.Target is null&&
+                        op.Potion is {Slot:>=0 and <16} discarded&&Model(discarded.Model,"POTION")&&Hash(discarded.Fingerprint)&&TargetType(discarded.TargetType),
                     _=>false
                 },"unsupported-operation");
             }

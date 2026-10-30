@@ -262,7 +262,8 @@ internal static class PlayerLoop
                 Codec.Require(!potion.IsQueued&&!potion.HasBeenRemovedFromState&&potion.PassesCustomUsabilityCheck&&LiveState.Player.CanUseOrRemovePotions,"recorded-potion-not-usable");
                 var target=LiveState.Resolve(op.Target);Codec.Require(potion.IsValidTarget(target),"recorded-potion-invalid-target");potion.EnqueueManualUse(target);
             }
-            else RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new EndPlayerTurnAction(LiveState.Player,op.Turn));
+            else if(op.Kind==OperationKind.DiscardPotion)SubmitDiscard(op);
+            else {Codec.Require(op.Kind==OperationKind.EndTurn,"unrecognized-playback-operation");RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new EndPlayerTurnAction(LiveState.Player,op.Turn));}
         }
         finally{Dispatching=false;DispatchIndex=-1;}
         Runtime.Log("native-operation-dispatch-timing",new{op.Sequence,op.Card,Kind=op.Kind.ToString(),
@@ -282,9 +283,18 @@ internal static class PlayerLoop
                 var key=op.Potion!;var potion=LiveState.Player.GetPotionAtSlotIndex(key.Slot)??throw new InvalidDataException("operation-potion-missing");
                 Codec.Require(LiveState.PotionIdentity(potion,key.Slot)==key,"operation-potion-identity");potion.EnqueueManualUse(LiveState.Resolve(op.Target));
             }
-            else RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new EndPlayerTurnAction(LiveState.Player,op.Turn));
+            else if(op.Kind==OperationKind.DiscardPotion)SubmitDiscard(op);
+            else {Codec.Require(op.Kind==OperationKind.EndTurn,"unrecognized-playback-operation");RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new EndPlayerTurnAction(LiveState.Player,op.Turn));}
         }
         finally{Prequeuing=false;Dispatching=false;DispatchIndex=-1;}
+    }
+    private static void SubmitDiscard(Operation op)
+    {
+        var key=op.Potion??throw new InvalidDataException("discard-potion-key-missing");
+        var player=LiveState.Player;var potion=player.GetPotionAtSlotIndex(key.Slot)??throw new InvalidDataException("discard-potion-slot-empty");
+        Codec.Require(op.Target is null&&LiveState.PotionIdentity(potion,key.Slot)==key&&player.CanUseOrRemovePotions&&
+            !potion.IsQueued&&!potion.HasBeenRemovedFromState,"discard-potion-identity-or-legality");
+        RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new DiscardPotionGameAction(player,(uint)key.Slot,true));
     }
     private static async Task<bool> AwaitSubmitted(Clip clip,int index,PendingOperation pending,string mode)
     {

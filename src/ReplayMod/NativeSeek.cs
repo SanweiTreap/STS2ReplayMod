@@ -155,7 +155,8 @@ internal static class NativeSeek
         var host=pending.PlaybackIndex+1;var op=_clip.Operations[host-1];
         Codec.Require(host==_completed+1&&(_retiring||_requests.Active?.Target.Host==host),"operation-start-without-navigation-grant");
         Codec.Require(LiveState.Capture()==(host==1?_clip.Initial:_clip.Operations[host-2].After),"operation-start-state-or-rng-mismatch");
-        Codec.Require(pending.Template.HandIndex==op.HandIndex&&pending.Template.CardState==op.CardState&&LiveState.Turn==op.Turn,"operation-execution-card-identity-mismatch");
+        Codec.Require(pending.Template.Kind==op.Kind&&pending.Template.HandIndex==op.HandIndex&&pending.Template.CardState==op.CardState&&
+            pending.Template.Potion==op.Potion&&pending.Template.Target==op.Target&&LiveState.Turn==op.Turn,"operation-execution-input-identity-mismatch");
         ChoiceTape.Boundary(host);Host=host;_phase="原生结算";Status();
         Runtime.Log("operation-native-started",new{Host,NativeActionId=pending.Action.Id,Generation=_generation,Attempt=Attempts.GetValueOrDefault(host),
             Request=_requests.Active,ReenteredAfterNativeCancellation=CancelledAhead.Remove(host)});
