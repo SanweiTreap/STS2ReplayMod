@@ -1,6 +1,6 @@
 # CONTENT-006：持续录制多场战斗、Continue与召援
 
-2026-10-30，D-134。状态：IN_PROGRESS（2026-10-31更新）。弱/后续普通群怪与format10两尝试录播、同进程重进及007体验等按样本已验；D准备r7两次GenerateMap失败，未到checkpoint。008只修原生卡牌创建/归属登记、已装待实际首战/D/未完跨进程。current_run及backup缺失已记录/补存49现存已知文件，猎人r6恢复点保持，无restore或进度未变断言。本包不关闭/换工程，继续原三鼠+跨进程合并、先录实再按索引看Back，不重复旧矩阵/新审批或扩整局。见[报告](../investigation-reports/CONTENT-006-report.md)。
+2026-10-30签发，D-134。授权目标与边界见下文；当前实施进度/候选/失败及运行证据以[CURRENT_STATUS](../CURRENT_STATUS.md)和[本包报告最新摘要](../investigation-reports/CONTENT-006-report.md)为准，不逐轮重写工作包。相关修复、备份安装和人工短测沿D-092自主；游戏由用户操作，无新阶段审批、新用户对话或实验工程。
 
 ## 交付给玩家的增量
 
