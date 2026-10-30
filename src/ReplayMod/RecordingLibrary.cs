@@ -44,9 +44,14 @@ public sealed class RecordingJournal(string path)
     public void Observe(string save)
     {
         if(CurrentRun is null)return;
+        ObserveFor(CurrentRun,save);
+    }
+    public void ObserveFor(string runId,string save)
+    {
+        Codec.Require(_data.Runs.ContainsKey(runId),"recording-observed-save-run-missing");
         var key=SaveKey(save);
         // Exact collisions between two separately observed new runs are ambiguous, never merged.
-        _data.Saves[key]=_data.Saves.TryGetValue(key,out var old)&&old!=CurrentRun?"ambiguous":CurrentRun;Save();
+        _data.Saves[key]=_data.Saves.TryGetValue(key,out var old)&&old!=runId?"ambiguous":runId;Save();
     }
     public BattleRecording Begin(int act,int row,int col,int floor,long start,string entry)
     {

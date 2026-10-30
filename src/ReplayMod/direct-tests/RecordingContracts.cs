@@ -29,6 +29,24 @@ internal static class RecordingContracts
             journal=new(path);journal.Continue(save);Need(!journal.ContinueMatched&&journal.CurrentRun!=first,"ambiguous-runs-merged");
             journal.Continue(save.Replace("70","69"));Need(!journal.ContinueMatched,"resource-mismatch-guessed-from-seed");
         });
+        Test("stored-save-readback-and-frozen-load-origin-survive-dto-mutation-before-setup",()=>
+        {
+            var bound=new RecordingJournal(Path.Combine(dir,"boundary-journal.json"));bound.NewRun();var run=bound.CurrentRun!;
+            bound.Observe(save);var stored=save.Replace("70","68");bound.ObserveFor(run,stored);
+            // The native writer can serialize a state differing from an earlier ToSave observation.
+            // Freeze the actual load before later reconstruction mutates its source DTO.
+            var frozen=stored;var laterDto=stored.Replace("68","66");
+            Need(RecordingJournal.SaveKey(frozen)!=RecordingJournal.SaveKey(laterDto),"probe-does-not-distinguish-mutated-dto");
+            bound=new(Path.Combine(dir,"boundary-journal.json"));bound.Continue(frozen);
+            Need(bound.ContinueMatched&&bound.CurrentRun==run,"actual-stored-load-was-not-associated");
+        });
+        Test("completed-native-save-is-associated-with-captured-run-not-a-later-current-run",()=>
+        {
+            var bound=new RecordingJournal(Path.Combine(dir,"captured-run-journal.json"));bound.NewRun();var run=bound.CurrentRun!;
+            bound.NewRun();var later=bound.CurrentRun;bound.ObserveFor(run,save);
+            Need(bound.CurrentRun==later,"save-observer-changed-active-run");bound.Continue(save);
+            Need(bound.ContinueMatched&&bound.CurrentRun==run,"save-observer-bound-wrong-run");
+        });
         var projection=JsonSerializer.Serialize(new{Mechanics=new{OrbQueue=new OrbQueueState(0,0,[]),CombatUnits=new CombatUnitState(3,[new(0,"CHARACTER.IRONCLAD",null,true,70,80,0,null,null,[])],[])}},Codec.Json);
         var clip=new Clip(9,Guid.NewGuid().ToString("N"),DateTimeOffset.UtcNow,"game","mod","scope",["ReplayMod:0.1.0"],"CHARACTER.IRONCLAD","seed",5,0,"encounter","checkpoint",projection,
             [new(1,OperationKind.Card,1,0,"CARD.DEFEND_IRONCLAD",null,projection,CardState:new(1,0,new string('A',64),"Self"),Timing:new(10,20))],Choices:[],
