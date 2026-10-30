@@ -120,6 +120,16 @@ Stop在9/1，均Error null、Outstanding false、Running/Auto false、Pending0�
 
 主工程构建0警告0错误；原有请求政策未改，不新增动画模拟测试。008 DLL `792B181B68CDB8267F3565EDC09B030352E019C63472623482FED3E5C3200024`已安装，收据`evidence/content-005/preparation/build-008-e48f6522.json`。安装前已核游戏正常Quit/Steamworks shutdown及game0、固定本体/原账号、仅ReplayMod/modded1，Cloud沿本批关闭确认；51份当前文件另存`CONTENT005-post-opening-r6-current-20261030-140149`/3,942,450 bytes，逐hash读回，收据`evidence/content-005/post-opening-r6-current-files.json`，不遍历history/其他账号、不restore。007 pair/config及原始失败体验证据保留。下一同片确认Back后可见原生进入房间→工具箱开窗→等待，选择中Back也重放该流程，再Whole0/Stop；D视觉未验收，C仍随后接回。
 
+## r7：008原生可见开场、选择中Back与完整胜利通过，接回C
+
+008/session `80a4353d76384319a3f41cede2925893`最终204事件，一次工具箱参考打开。三次开场重入均在当前新NCombatRoom.OnCombatSetUp后先显露，345/287/297ms时ChoiceReady false、NativeEffectsAllowed true、未新增请求/未播放Mod动画；其后1696/1640/1627ms到原生选择Ready，RoomAlreadyRevealed均true。第二次重入尚在选择时又Back取消等待，再次干净重入；共三次开场完成（首开与两次完成重入）均Initial匹配、Operation1Started false。用户确认实际看到入房间/工具箱窗口出现过程、选择中Back正常；没有复活旧Task或直接恢复选择页。
+
+随后Auto依次完整1..11原生操作，11结果/RNG匹配、Retiring0，真实胜利且原生VictoryTask成功、未生成奖励。终点/Stop的Auto关、Running false、Pending0、Outstanding false；Stop11 Error null，原manager/所比较Continue/进度恢复。4次房间turn-loop退休均完成且为预期取消、未复用旧Task，牌监听5/5/5/0→Remaining0。原A片SHA `5EC1EFC07843E72360953E1C3B4C71BF1857F90A8B64AB1A16B9C4DE076FEA52`未变，用户正常退出，Godot Quit/shutdown及game0已核。204事件+原片/Godot共206数据文件逐hash封存`runtime/content-005-r7-20261030-140735`，摘要`evidence/content-005/runtime-verification-r7.json`，引擎原始诊断保留。
+
+D-133按本工具箱片所测可见流程/开场请求/整体Back/完整胜利与Stop阶段闭环；本轮没有独立短重开，不重复补称，前006/r5与007/r6短开/Stop证据分别保留。没有开场选择的Defect0短开来自006/r5，不追认成008完整回归；ChoicesParadox抽牌后原生顺序有源码事实，未另取实际样本。开场重入使用房间前checkpoint，耗时含必要重建与自然初始化，不称直接memento恢复，也不改A/B既有验收边界。
+
+当前008安装不变，C仍未录制；按已确认顺序接回默认起始Osty的代表片，首回合能量药水→保镖→释放→碎骨→第二张保镖→EndTurn，第二回合死亡使者+→EndTurn取Doom真正胜利，不额外攻击。先保留BoundPhylactery，不勾首次召唤；以后按需要用已有可选准备取首次创建。C录制成功/生产读回不代替后续原生回放、Back/重召订阅与Doom胜利续播。接C前再补存已知当前51份文件（`evidence/content-005/post-opening-r7-current-files.json`），逐hash读回，原账号/固定本体/当前008核对、game0，无history/其他账号遍历/整档恢复，Cloud沿本批已确认关闭。
+
 ## B：球机制源码增量，所测闭环通过
 
 用户进行002人工测试期间继续开发，安装保持002。下一增量源码使用格式8：`Mechanics.OrbQueue`明确保存容量、有序球条目、每个原生实例的Replay逻辑ID、未来身份计数、所有者、移除标记、当前被动/激发值及各球派生模型的私有标量字段。暗球`_evokeVal`、玻璃球`_passiveVal`不会只靠模型名或当前画面推断。已有格式1–7不新增字段、不修改原片，精确兼容002录制build。
