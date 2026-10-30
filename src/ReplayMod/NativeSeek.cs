@@ -23,7 +23,7 @@ internal static class NativeSeek
     private static Clip _clip=null!;
     private static OperationRequests _requests=null!;
     private static ChoiceScope? _choice;
-    private static bool _choiceReady,_choiceMoving,_retiring,_restoring,_stopping;
+    private static bool _choiceReady,_choiceMoving,_retiring,_restoring,_coverRetirement,_applyingRestore,_stopping;
     private static int _completed,_generation,_choiceOwner;
     private static Navigation? _seek;
     private static string _phase="";
@@ -51,8 +51,8 @@ internal static class NativeSeek
     internal static bool Restoring=>_restoring;
     internal static bool Running=>Enabled&&_requests.Running;
     internal static bool Auto=>Enabled&&_requests.Auto;
-    internal static bool Covered=>Enabled&&(_restoring||_retiring||_rebuildingOpening);
-    internal static bool SilentRebuild=>Covered;
+    internal static bool Covered=>Enabled&&(_coverRetirement||_applyingRestore||_rebuildingOpening);
+    internal static bool SilentRebuild=>Enabled&&(_restoring||_retiring||_rebuildingOpening);
     internal static int Position=>_completed;
     internal static string Pending
     {
@@ -78,6 +78,7 @@ internal static class NativeSeek
     {
         Enabled=false;_generation++;Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;
         _loadRoom=null!;_resetRoom=null!;
+        NativePhaseRetirement.Clear();_applyingRestore=false;_coverRetirement=false;
         Opening=false;_openingNavigation=null;_rebuildingOpening=false;_openingReentryPending=false;_openingRequestedAt=0;
         _choiceReady=false;_choiceMoving=false;_retiring=false;_restoring=false;_stopping=false;_completed=0;Host=0;_seek=null;_phase="";_choiceOwner=0;
     }
@@ -162,7 +163,7 @@ internal static class NativeSeek
     private static void ResetOpeningState(PlaybackIntent intent)
     {
         Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;_choiceReady=false;_choiceMoving=false;_choiceOwner=0;
-        _completed=0;Host=0;_generation++;PlayerLoop.VictoryReached=false;Opening=true;_rebuildingOpening=true;_openingReentryPending=true;
+        _completed=0;Host=0;_generation++;PlayerLoop.VictoryReached=false;Opening=true;_rebuildingOpening=true;_openingReentryPending=true;_coverRetirement=false;
         _requests.Restore(-1,intent);ChoiceTape.Play(_clip);
         Runtime.Log("native-opening-reenter",new{Generation=_generation,Source="recorded-pre-room-checkpoint",Auto=intent.Auto,
             DirectMemoryRestore=false,OldTasksRestored=false,ChoiceSeekPoints=false,VisitedRoomCheckpointsCleared=true});
@@ -183,7 +184,7 @@ internal static class NativeSeek
                     _seek=null;
                     if(target.Host==-1)
                     {
-                        _restoring=true;try{await Drain();}finally{_restoring=false;}
+                        _restoring=true;try{await Drain(fastPhase:true);}finally{_restoring=false;}
                         if(!await LoadOpening(_loadRoom,_resetRoom,target.Intent))break;
                         Capture(0);PlayerLoop.Loading=false;Status();
                     }
@@ -381,19 +382,20 @@ internal static class NativeSeek
         }
         finally{_choiceMoving=false;}
     }
-    private static async Task Drain()
+    private static async Task Drain(bool fastPhase=false)
     {
-        _retiring=true;_phase="正在结束当前整项操作";Ui.Refresh();var at=Stopwatch.GetTimestamp();
+        _retiring=true;_coverRetirement=!Quiescent;_phase=fastPhase?"正在快速收束已撤销操作":"正在结束当前整项操作";Ui.Refresh();var at=Stopwatch.GetTimestamp();
         try
         {
             RunManager.Instance.ActionQueueSet.CancelNonExecutingActionsForPlayer(LiveState.Player.NetId);
+            if(fastPhase)NativePhaseRetirement.Begin();
             while(!Quiescent)
             {
                 PlayerLoop.RequireHealthy();Codec.Require(Stopwatch.GetElapsedTime(at).TotalSeconds<60,"operation-retirement-timeout");
                 if(HasView)await AdvanceChoice();ActionMonitor.Tick();await Runtime.NextFrame();
             }
         }
-        finally{_retiring=false;_phase="";Ui.Refresh();}
+        finally{if(fastPhase&&NativePhaseRetirement.Active)NativePhaseRetirement.End();_retiring=false;_phase="";Ui.Refresh();}
     }
     private static async Task Restore(Navigation navigation)
     {
@@ -401,11 +403,11 @@ internal static class NativeSeek
         var at=Stopwatch.GetTimestamp();var point=Points[target];_restoring=true;var fromVictory=false;
         try
         {
-            await Drain();var drained=Stopwatch.GetTimestamp();_generation++;fromVictory=PlayerLoop.VictoryReached;
+            await Drain(fastPhase:true);var drained=Stopwatch.GetTimestamp();_generation++;fromVictory=PlayerLoop.VictoryReached;
             _phase="正在恢复操作边界";Ui.Refresh();
             var continueTurnLoop=false;
             if(fromVictory){await BattleEnd.WaitForUiCleanup();continueTurnLoop=await NativeTurnContinuation.PrepareVictoryRestore();}
-            await point.Restore();
+            _applyingRestore=true;Ui.Refresh();await point.Restore();
             if(fromVictory)
             {
                 RunManager.Instance.ActionQueueSynchronizer.SetCombatState(ActionSynchronizerCombatState.PlayPhase);
@@ -422,6 +424,6 @@ internal static class NativeSeek
                 ChoiceSnapshotRestored=false,RebuiltNativeHosts=0,RetirementMilliseconds=Stopwatch.GetElapsedTime(at,drained).TotalMilliseconds,
                 TotalMilliseconds=Stopwatch.GetElapsedTime(at).TotalMilliseconds});
         }
-        finally{_restoring=false;_phase="";Ui.Refresh();}
+        finally{_coverRetirement=false;_applyingRestore=false;_restoring=false;_phase="";Ui.Refresh();}
     }
 }

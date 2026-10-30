@@ -11,6 +11,7 @@ internal static class NativeOpening
     internal static bool TurnBanner(int turn,ref NPlayerTurnBanner? result)
     {
         if(!NativeSeek.Enabled||PlayerLoop.TearingDown)return true;
+        if(NativePhaseRetirement.Active){result=null;return false;}
         var state=CombatManager.Instance.DebugOnlyGetState();
         if(state is null||state.Players.Count!=1||state.Players[0].PlayerCombatState is not {} pcs||pcs.TurnNumber<=turn)return true;
         result=null;Runtime.Log("opening-stale-banner-skipped",new{RequestedTurn=turn,CurrentTurn=pcs.TurnNumber,GameplayUnchanged=true});return false;

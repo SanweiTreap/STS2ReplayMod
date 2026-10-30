@@ -19,6 +19,7 @@
   <ItemGroup><Compile Include="OrbContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="CombatUnitContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="OpeningContracts.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="PhaseWaitContracts.cs" /><Compile Include="../RetiringPhaseWait.cs" Link="RetiringPhaseWait.cs" /></ItemGroup>
   <ItemGroup><Compile Include="TimingContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="RegentRecordingContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="LogWriterContracts.cs" /><Compile Include="../OrderedFileLog.cs" Link="OrderedFileLog.cs" /></ItemGroup>
