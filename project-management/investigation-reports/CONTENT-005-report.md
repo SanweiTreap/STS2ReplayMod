@@ -186,6 +186,18 @@ D-133按本工具箱片所测可见流程/开场请求/整体Back/完整胜利�
 
 主工程/DirectContracts构建0警告0错误，4组纯async计时合同通过（正常等待/异常、释放当前不取消timer且业务续接一次、下一代正常等待隔离、取消与迟到timer异常观察）；另14组D-131、7组开场政策与原C片生产读取通过，输出`evidence/content-005/checks/phase-retirement/`。这些不执行原生方法/归属绑定，也不证明实际RNG/时序或提速。010 DLL `A6B6A9E231F9661BAAC172E2F06CABE7A46A8EE78F26E8BD326E3E8385D0AD1D`已安装，收据`evidence/content-005/preparation/build-010-3ac58595.json`；009可用pair/config及r12完整证据保留。51份当前文件/3,953,223 bytes补存`CONTENT005-post-first-Osty-playback-current-20261030-153906`逐hash读回，收据`evidence/content-005/post-first-Osty-playback-current-files.json`，原账号/固定本体/仅ReplayMod/modded1/game0核对、Cloud沿本批关闭，无restore/history/其他账号遍历。下一仅同片真正in-flight EndTurn Back/Seek，比较归属/释放/到达耗时、继续到原生胜利及Stop/重开；失败按实际等待缩窄修，不放松断言。010实际优化Pending。
 
+## r13 / 011候选：010释放生效但提速不明显，扩通用已审pacing
+
+010/session `04d8d6921048473bbdcc55f9fa81486f`最终346事件、两次recent打开。17次原生结果/RNG（Retiring5）、6次Back/Seek状态匹配，真实Doom胜利1，Stop9/2均Error null、Outstanding false、Pending0、Auto关，原manager/所比较Continue进度恢复；Osty清理Known1/1回调余量0、牌登记0/5→0。mod/observer错误与retired-phase-timer-fault均0，正常Quit/shutdown/game0已核。原片不变，346事件+原片/Godot共348数据文件逐hash封存`runtime/content-005-r13-20261030-160157`，摘要`evidence/content-005/runtime-verification-r13.json`，引擎诊断保留。
+
+阶段timer真实绑定到当前state/代。5次真正in-flight EndTurn Back/Seek6的退役等待1782/2116/2023/2120/1989ms，总到达1879/2165/2066/2176/2044ms；其中2次Released1/Skipped1，3次Released0/Skipped1（请求时敌阶段timer已过）。另一次稳定7→6为52ms、Released/Skipped0，不是退役优化证据。用户反馈“提速不明显”，E不验收；不能用机制确实释放代替体验通过，也不以与009不同请求时点的均值差宣称固定提速。每次跳过玩家阶段timer后仍约.54秒才完成初始化，之前还有约1.2–1.6秒在敌行动中。
+
+继续核固定原生共享调用：NCreature.PerformIntent末尾CustomScaledWait(.25,.4)，MonsterModel.PerformMove招式前(.1,.2)/后(.1,.4)，CreatureCmd.TriggerAnim末尾起手等待，以及CreatureCmd.Damage在完整伤害/HP/受伤/死亡Hook和Kill之后的(.1,.2)。011将这四个通用调用点的async-state-machine直接调用计时加入现有allowlist，不按牌或怪物特判；仍须在当前EndTurn的StartTurn AsyncLocal真实state/SeekGeneration内，最近native调用帧匹配才包装。未取消这些方法的业务/Hook/死亡任务，也未放行未知子方法、信号或视觉循环。纯计时提前释放的并发调用端是否仍等价必须由实际状态/RNG验证，源码不代实测。
+
+剩余玩家准备等待涉及CardPileCmd.Add原生Tween及其Finished、AfterCardChangedPiles等回调，011保留完整流程，不用skipVisuals/假完成信号抹掉牌堆事件。必要退役遮罩/静默、旧回合cue定向清理、普通播放/录制/原游戏速度边界沿010保持。日志增加PacingSource，便于分辨实际释放的共享调用点；未知等待原样执行，不为提速降低断言。预计减少更多敌行动pacing只是待测推断，不承诺下一候选已达到目标。
+
+主工程构建0警告0错误、既有4组纯async计时合同和原片生产读取通过，输出`evidence/content-005/checks/expanded-retirement/`；原生新增caller绑定/状态RNG/延迟Pending。011 DLL `E222994401F1B3BD89465E540645031BF7214C531EE05F5A81F9D40FD7F321A9`已安装，收据`evidence/content-005/preparation/build-011-ef2b7c26.json`，010/009 pair/config与重要数据保留。当前51文件/3,953,223 bytes补存`CONTENT005-post-phase-wait-r13-current-20261030-160200`逐hash读回，收据`evidence/content-005/post-phase-wait-r13-current-files.json`；原账号/固定本体/仅ReplayMod/modded1/game0核对，Cloud沿本批关闭，无restore/history/其他账号遍历。下一同片真正在途EndTurn Back与Seek、继续到原生胜利和Stop/短重开，按数据与体感判断，不扩全局加速平台或新矩阵。
+
 ## B：球机制源码增量，所测闭环通过
 
 用户进行002人工测试期间继续开发，安装保持002。下一增量源码使用格式8：`Mechanics.OrbQueue`明确保存容量、有序球条目、每个原生实例的Replay逻辑ID、未来身份计数、所有者、移除标记、当前被动/激发值及各球派生模型的私有标量字段。暗球`_evokeVal`、玻璃球`_passiveVal`不会只靠模型名或当前画面推断。已有格式1–7不新增字段、不修改原片，精确兼容002录制build。
