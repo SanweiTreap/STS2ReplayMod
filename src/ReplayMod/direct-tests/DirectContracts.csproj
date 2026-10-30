@@ -15,7 +15,9 @@
   <ItemGroup><Compile Include="CharacterContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="DiscardPotionContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../OrbData.cs" Link="OrbData.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../CombatUnitData.cs" Link="CombatUnitData.cs" /></ItemGroup>
   <ItemGroup><Compile Include="OrbContracts.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="CombatUnitContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="TimingContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="RegentRecordingContracts.cs" /></ItemGroup>
   <ItemGroup><Compile Include="LogWriterContracts.cs" /><Compile Include="../OrderedFileLog.cs" Link="OrderedFileLog.cs" /></ItemGroup>

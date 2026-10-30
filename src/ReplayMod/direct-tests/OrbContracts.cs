@@ -34,7 +34,8 @@ internal static class OrbContracts
         });
         var state=new OrbQueueState(3,2,[new(1,"ORB.DARK_ORB",0,false,8,20,new(){{"DarkOrb._evokeVal","20"}}),
             new(2,"ORB.FROST_ORB",0,false,4,7,new())]);
-        string Projection(OrbQueueState queue)=>JsonSerializer.Serialize(new{Mechanics=new{OrbQueue=queue}},Codec.Json);
+        string Projection(OrbQueueState queue)=>JsonSerializer.Serialize(new{Mechanics=new{OrbQueue=queue,
+            CombatUnits=new CombatUnitState(3,[new(0,"CHARACTER.DEFECT",null,true,75,75,0,null,null,[])],[])}},Codec.Json);
         var projection=Projection(state);
         var clip=new Clip(8,Guid.NewGuid().ToString("N"),DateTimeOffset.UtcNow,"game","mod","scope",["ReplayMod:0.1.0"],
             "CHARACTER.DEFECT","seed",1,0,"ordinary","checkpoint",projection,

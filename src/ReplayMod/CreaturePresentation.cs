@@ -5,6 +5,7 @@ using MegaCrit.Sts2.Core.Animation;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
+using MegaCrit.Sts2.Core.Models.Monsters;
 
 namespace ReplayMod;
 
@@ -42,6 +43,13 @@ internal sealed class CreaturePresentation
         // Store its stable destination rather than one intermediate rendered size.
         _scale=tween is not null&&GodotObject.IsInstanceValid(tween)&&tween.IsRunning()?
             Vector2.One*_defaultScale*_temporaryScale:_visuals.Scale;
+        if(creature.Monster is Osty)
+        {
+            var size=Mathf.Lerp(Osty.ScaleRange.X,Osty.ScaleRange.Y,Mathf.Clamp((creature.IsAlive?creature.MaxHp:0)/150f,0,1));
+            _scale=Vector2.One*size*_defaultScale;
+            if(!NCombatRoom.Instance!.SceneContainer.IsAncestorOf(_visuals))_scale*=creature.CombatState!.Encounter!.GetCameraScaling();
+            _position=NCombatRoom.Instance.GetCreatureNode(creature.PetOwner!.Creature)!.Position+NCreature.GetOstyOffsetFromPlayer(creature);
+        }
     }
     internal bool SameNodes=>GodotObject.IsInstanceValid(_node)&&!_node.IsQueuedForDeletion()&&
         ReferenceEquals(NCombatRoom.Instance?.GetCreatureNode(_creature),_node)&&ReferenceEquals(_node.Visuals,_visuals)&&ReferenceEquals(_node.Body,_body);
@@ -71,6 +79,7 @@ internal sealed class CreaturePresentation
         if(AccessTools.Field(display.GetType(),"_showHideTween").GetValue(display) is Tween entrance&&GodotObject.IsInstanceValid(entrance))entrance.Kill();
         display.Position=(Vector2)AccessTools.Field(display.GetType(),"_originalPosition").GetValue(display)!;
         display.Modulate=Colors.White;display.Visible=true;
+        if(_creature.Monster is Osty)_node.ToggleIsInteractable(_creature.IsAlive);
         AccessTools.Method(display.GetType(),"RefreshValues").Invoke(display,null);
         AccessTools.Method(typeof(NCreature),"UpdateBounds",[typeof(Node)]).Invoke(_node,[_visuals]);
     }
@@ -114,6 +123,6 @@ internal sealed class CreaturePresentation
         Mathf.IsEqualApprox((float)TemporaryScale.GetValue(_node)!,_temporaryScale)&&_node.Position.IsEqualApprox(_position)&&
         Mathf.IsEqualApprox((float)Hue.GetValue(_visuals)!,_hue)&&(_animation is null||_node.SpineAnimation.GetCurrentAnimationName()==_animation||
             _continuedAnimation&&Animator.GetValue(_node) is CreatureAnimator animator&&Destination(animator)==_animation);
-    internal object Summary()=>new{Role=_creature.IsPlayer?"player":"enemy",Model=_creature.ModelId.ToString(),_creature.CombatId,
+    internal object Summary()=>new{Role=_creature.IsPlayer?"player":_creature.PetOwner is not null?"pet":"enemy",Model=_creature.ModelId.ToString(),_creature.CombatId,
         DefaultScale=_defaultScale,TemporaryScale=_temporaryScale,ScaleX=_scale.X,ScaleY=_scale.Y,PositionX=_position.X,PositionY=_position.Y,Hue=_hue,Animation=_animation};
 }

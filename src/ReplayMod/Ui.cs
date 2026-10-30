@@ -32,8 +32,8 @@ internal static class Ui
         {
             Runtime.CheckEnvironment();id=Runtime.Store.LatestId();
             clip=id is null?null:Runtime.ReadClip(id);
-            info=clip is null?"暂无片段。新建铁甲／猎人／储君／故障机器人A0，首场普通战斗会自动录制。首战胜利自动保存。":
-                $"最近{(clip.Operations[^1].Victory?"完整胜利战斗":"片段")} {clip.Id[..8]} · {clip.CreatedUtc.ToLocalTime():MM-dd HH:mm}\n{clip.Operations.Length}个操作 · {(clip.Character=="CHARACTER.DEFECT"?"故障机器人":clip.Character=="CHARACTER.REGENT"?"储君":clip.Character=="CHARACTER.SILENT"?"猎人":"铁甲")} A0\nSeed {clip.Seed}\n首战 · 出牌／用药／丢弃药水／原生选择"+
+            info=clip is null?"暂无片段。新建五角色任一A0，首场普通战斗会自动录制。首战胜利自动保存。":
+                $"最近{(clip.Operations[^1].Victory?"完整胜利战斗":"片段")} {clip.Id[..8]} · {clip.CreatedUtc.ToLocalTime():MM-dd HH:mm}\n{clip.Operations.Length}个操作 · {(clip.Character=="CHARACTER.NECROBINDER"?"亡灵契约师":clip.Character=="CHARACTER.DEFECT"?"故障机器人":clip.Character=="CHARACTER.REGENT"?"储君":clip.Character=="CHARACTER.SILENT"?"猎人":"铁甲")} A0\nSeed {clip.Seed}\n首战 · 出牌／用药／丢弃药水／原生选择"+
                     (clip.Preparation is null?"":clip.Preparation.StartsWith("CONTENT004",StringComparison.Ordinal)?"\n定向测试：储君／星星／锻造与复制":clip.Preparation.StartsWith("CONTENT003",StringComparison.Ordinal)?"\n定向测试：猎人／连续弃牌／生成小刀":clip.Preparation.StartsWith("DEMO005",StringComparison.Ordinal)?"\n定向测试：升级牌＋能力＋小花＋能量药水":"\n定向测试样本：暗港双蛞蝓")+
                     (clip.Timing is null?"\n原始操作时间：未知（旧片）":"\n已记录操作接受／完成时间");
         }
@@ -66,6 +66,13 @@ internal static class Ui
         defect.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.DefectContent?TestPreparation.None:TestPreparation.DefectContent;
             RecordedState.Armed=false;RegentText();DefectText();Runtime.Status=TestEncounter.Armed==TestPreparation.DefectContent?
                 "新建故障机器人A0：第一回合暗球→冰球→电击+，集中药水后结束回合；第二回合双重释放→扩容→混沌+":"已取消故障机器人准备";});DefectText();
+        var necro=Button(box,"CONTENT-005 亡灵契约师测试：关闭",()=>{});
+        void NecroText()=>necro.Text=TestEncounter.Armed==TestPreparation.NecrobinderContent?"CONTENT-005 亡灵契约师测试：已启用":"CONTENT-005 亡灵契约师测试：关闭";
+        necro.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.NecrobinderContent?TestPreparation.None:TestPreparation.NecrobinderContent;
+            RecordedState.Armed=false;RegentText();DefectText();NecroText();Runtime.Status=TestEncounter.Armed==TestPreparation.NecrobinderContent?
+                "新建亡灵契约师A0：能量药水→保镖→释放→碎骨→第二张保镖；第二回合死亡使者+后结束回合，以灾厄获胜":"已取消亡灵契约师准备";});NecroText();
+        var firstOsty=new CheckBox{Text="Osty 首次召唤：测试时移除起始遗物",ButtonPressed=false};box.AddChild(firstOsty);
+        TestEncounter.FirstOstySummonArmed=false;firstOsty.Toggled+=value=>TestEncounter.FirstOstySummonArmed=value;
         var cold=Button(box,"STATE测试：从落盘第1步打开",()=>{if(id is not null)TaskHelper.RunSafely(PlayerLoop.Open(id,fromFile:true));});cold.Disabled=clip?.Authority is null;
         var queued=Button(box,"PLAYBACK-001 排队录制：关闭",()=>{});
         void QueuedText()=>queued.Text=TestEncounter.Armed==TestPreparation.QueuedCards?"PLAYBACK-001 排队录制：已启用":"PLAYBACK-001 排队录制：关闭";

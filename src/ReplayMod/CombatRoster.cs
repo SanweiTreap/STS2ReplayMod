@@ -17,6 +17,7 @@ internal sealed class CombatRoster
     private readonly Dictionary<Creature,(NCreatureVisuals Visuals,Node2D Body)> _knownBodies;
     private readonly Dictionary<Creature,uint?> _ids;
     private readonly uint _nextId;
+    internal IEnumerable<Creature> Anchors=>_knownNodes.Keys;
     internal CombatRoster(CombatState state)
     {
         Initial=state.Creatures.ToArray();
@@ -30,10 +31,21 @@ internal sealed class CombatRoster
     internal string? Reason(CombatState state)
     {
         var current=state.Creatures.ToArray();
-        if((uint)AccessTools.Field(typeof(CombatState),"_nextCreatureId").GetValue(state)! !=_nextId)return "生成边界暂不能后退";
-        if(current.Any(c=>!Initial.Contains(c))||!current.SequenceEqual(Initial.Where(current.Contains)))return "生成或成员重排暂不能后退";
-        if(Initial.Any(c=>c.PetOwner is not null)||current.Any(c=>!c.IsAlive)||Initial.Where(c=>c.IsPlayer).Any(c=>!current.Contains(c)))return "玩家死亡、宠物或未完成死亡边界暂不能后退";
-        if(Initial.Any(c=>c.CombatId!=_ids[c])||Initial.Except(current).Any(c=>c.IsAlive))return "敌人身份或成员关系变化暂不能后退";
+        var added=current.Except(Initial).ToArray();
+        if(added.Any(c=>!CombatUnits.IsOsty(c))||added.Length>1||current.Count(CombatUnits.IsOsty)>1||
+            added.Length>0&&Initial.Any(CombatUnits.IsOsty))return "不支持的单位生成或宠物类型";
+        if((uint)AccessTools.Field(typeof(CombatState),"_nextCreatureId").GetValue(state)! !=_nextId+(uint)added.Length||
+            added.Any(c=>c.CombatId!=_nextId))return "单位分配计数与身份不一致";
+        if(!current.Where(c=>c.IsEnemy).SequenceEqual(Initial.Where(c=>c.IsEnemy&&current.Contains(c)))||
+            !state.Allies.Where(c=>c.IsPlayer).SequenceEqual(Initial.Where(c=>c.IsPlayer)))return "生成或成员重排暂不能后退";
+        if(current.Any(c=>c.PetOwner is not null&&!CombatUnits.IsOsty(c))||current.Any(c=>!CombatUnits.Restorable(c))||
+            Initial.Where(c=>c.IsPlayer).Any(c=>!current.Contains(c)))return "玩家死亡、其他宠物或未完成死亡边界暂不能后退";
+        foreach(var creature in added.Where(c=>!_knownNodes.ContainsKey(c)))
+        {
+            var node=NCombatRoom.Instance?.GetCreatureNode(creature);if(node is null)return "新Osty场景尚未就绪";
+            _ids.Add(creature,creature.CombatId);_knownNodes.Add(creature,node);_knownBodies.Add(creature,(node.Visuals,node.Body));
+        }
+        if(current.Any(c=>c.CombatId!=_ids[c])||Initial.Except(current).Any(c=>c.IsAlive))return "敌人身份或成员关系变化暂不能后退";
         foreach(var creature in current)
         {
             // History can show the native death tail while its real data still describes the
@@ -46,10 +58,11 @@ internal sealed class CombatRoster
         return null;
     }
     internal sealed record RemovedDisplays(int Creatures,int Fades,int ContinuedDeaths=0);
-    internal RemovedDisplays RemoveEnemyDisplays()=>RemoveDisplays(Initial.Where(c=>!c.IsPlayer).ToHashSet());
-    internal RemovedDisplays RemoveForForwardTarget(IEnumerable<Creature> target)=>RemoveDisplays(Initial.Where(c=>!c.IsPlayer&&!target.Contains(c)).ToHashSet());
-    internal RemovedDisplays RemoveRetiredEnemyDisplays(CombatState state)=>RemoveDisplays(Initial.Where(c=>!c.IsPlayer&&!state.ContainsCreature(c)).ToHashSet());
-    private static RemovedDisplays RemoveDisplays(HashSet<Creature> retired)
+    internal RemovedDisplays RemoveEnemyDisplays()=>RemoveDisplays(Initial.Where(c=>c.IsEnemy).ToHashSet());
+    internal RemovedDisplays RemoveForForwardTarget(IEnumerable<Creature> target)=>RemoveDisplays(Initial.Where(c=>c.IsEnemy&&!target.Contains(c)).ToHashSet());
+    internal RemovedDisplays RemoveRetiredEnemyDisplays(CombatState state)=>RemoveDisplays(Initial.Where(c=>c.IsEnemy&&!state.ContainsCreature(c)).ToHashSet());
+    internal RemovedDisplays RemovePetDisplays()=>RemoveDisplays(Anchors.Where(CombatUnits.IsOsty).ToHashSet());
+    private RemovedDisplays RemoveDisplays(HashSet<Creature> retired)
     {
         var creatureCount=0;var fadeCount=0;var continued=0;
         var room=NCombatRoom.Instance!;
@@ -61,6 +74,10 @@ internal sealed class CombatRoster
         }
         // A fade may already have reparented an old body into its viewport. Remove only fades tied
         // to this original roster; leaving them alive would show a second corpse over the revived enemy.
+        var visuals=_knownBodies.Where(pair=>retired.Contains(pair.Key)).Select(pair=>pair.Value.Visuals).ToHashSet(ReferenceEqualityComparer.Instance);
+        foreach(var doom in Nodes(room).OfType<NDoomVfx>().ToArray())
+            if(AccessTools.Field(typeof(NDoomVfx),"_creatureVisuals").GetValue(doom) is NCreatureVisuals owner&&visuals.Contains(owner))
+            {doom.Visible=false;doom.GetParent()?.RemoveChild(doom);doom.QueueFree();fadeCount++;}
         foreach(var fade in Nodes(room).OfType<NMonsterDeathVfx>().ToArray())
         {
             var owners=(List<NCreature>)AccessTools.Field(typeof(NMonsterDeathVfx),"_creatureNodes").GetValue(fade)!;
@@ -91,6 +108,16 @@ internal sealed class CombatRoster
         }
         // Native AddCreature above is a scene-only operation. Do not call CombatManager.AddCreature:
         // that would reset the move state machine, reroll AI, and reapply starting powers.
+    }
+    internal void AddPetDisplays(CombatState state)
+    {
+        var room=NCombatRoom.Instance!;
+        foreach(var creature in state.Allies.Where(CombatUnits.IsOsty))
+        {
+            room.AddCreature(creature);var node=room.GetCreatureNode(creature)??throw new InvalidDataException("restored-osty-node-missing");
+            node.TrackBlockStatus(creature.PetOwner!.Creature);
+            _knownNodes[creature]=node;_knownBodies[creature]=(node.Visuals,node.Body);
+        }
     }
     internal static object[] Summary(IEnumerable<Creature> creatures)=>creatures.Select((c,index)=>(object)new{
         Index=index,Model=c.ModelId.ToString(),c.CombatId,c.CurrentHp,c.IsAlive,Attached=c.CombatState is not null,

@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace ReplayMod;
 
 public enum OperationKind { Card, EndTurn, Potion, DiscardPotion }
-public enum TargetRole { Enemy, Player }
+public enum TargetRole { Enemy, Player, Pet }
 public sealed record TargetKey(int Index,string Model,uint CombatId,
     [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingDefault)] TargetRole Role=TargetRole.Enemy);
 public sealed record CardKey(uint CombatIndex,int Upgrade,string Fingerprint,string TargetType);
@@ -37,14 +37,14 @@ public static class Codec
     {
         Require(clip.Format is >=1 and <=8&&Regex.IsMatch(clip.Id,"^[a-f0-9]{32}$"),"unsupported-format-or-id");
         Require(clip.GameHash==game&&(clip.ModHash==mod||clip.ModHash is not null&&compatibleRecordedMods.Contains(clip.ModHash,StringComparer.Ordinal))&&clip.Scope==scope&&clip.Mods.SequenceEqual(new[]{"ReplayMod:0.1.0"}),"different-build-or-profile-or-mods");
-        Require((clip.Character=="CHARACTER.IRONCLAD"||clip.Format>=4&&clip.Character=="CHARACTER.SILENT"||clip.Format>=5&&clip.Character=="CHARACTER.REGENT"||clip.Format>=8&&clip.Character=="CHARACTER.DEFECT")&&clip.Row==1&&clip.Col>=0&&clip.Encounter.Length>0&&
+        Require((clip.Character=="CHARACTER.IRONCLAD"||clip.Format>=4&&clip.Character=="CHARACTER.SILENT"||clip.Format>=5&&clip.Character=="CHARACTER.REGENT"||clip.Format>=8&&clip.Character is "CHARACTER.DEFECT" or "CHARACTER.NECROBINDER")&&clip.Row==1&&clip.Col>=0&&clip.Encounter.Length>0&&
             clip.Checkpoint.Length>0&&clip.Initial.Length>0,"unsupported-scene");
         Require(clip.Operations.Length>0&&clip.Operations.Length<=(clip.Format==1?32:MaxOperations),"clip-operation-count");
         Require(clip.Format>=4?clip.Choices is not null:clip.Choices is null,"choice-format");
         if(clip.Choices is not null)ChoiceContract.Validate(clip.Choices,clip.Operations.Length);
         ValidateTiming(clip);
         if(clip.Format>=8)
-            foreach(var projection in new[]{clip.Initial}.Concat(clip.Operations.Select(o=>o.After)))ValidateOrbs(projection);
+            foreach(var projection in new[]{clip.Initial}.Concat(clip.Operations.Select(o=>o.After)))ValidateResources(projection);
         Require(clip.Authority is null||clip.Character=="CHARACTER.IRONCLAD"&&clip.Format==3&&clip.Authority=="STATE001-first-Defend-v1"&&
             clip.Operations[0] is {Kind:OperationKind.Card,Card:"CARD.DEFEND_IRONCLAD",Turn:1,Victory:false,CardState.Upgrade:0},"unsupported-authority-point");
         var victory=clip.Operations[^1].Victory;
@@ -71,9 +71,10 @@ public static class Codec
             {
                 bool Model(string? value,string prefix)=>value is not null&&value.Length<=128&&Regex.IsMatch(value,"^"+prefix+"\\.[A-Z0-9_]+$");
                 bool Hash(string? value)=>value is not null&&Regex.IsMatch(value,"^[A-F0-9]{64}$");
-                bool TargetType(string value)=>value is "None" or "Self" or "AnyEnemy" or "AllEnemies" or "RandomEnemy" or "AnyPlayer" or "AllAllies";
+                bool TargetType(string value)=>value is "None" or "Self" or "AnyEnemy" or "AllEnemies" or "RandomEnemy" or "AnyPlayer" or "AllAllies"||clip.Format>=8&&value=="Osty";
                 if(op.Target is {} target)Require(Enum.IsDefined(target.Role)&&target.Index>=0&&target.Index<128&&
-                    Model(target.Model,target.Role==TargetRole.Player?"CHARACTER":"MONSTER"),"invalid-operation-target");
+                    Model(target.Model,target.Role==TargetRole.Player?"CHARACTER":"MONSTER")&&
+                    (target.Role!=TargetRole.Pet||clip.Format>=8&&target.Index==0&&target.Model=="MONSTER.OSTY"),"invalid-operation-target");
                 Require(op.Kind switch
                 {
                     OperationKind.EndTurn=>op.Card is null&&op.HandIndex is null&&op.Target is null&&op.CardState is null&&op.Potion is null,
@@ -88,7 +89,7 @@ public static class Codec
             }
         }
     }
-    private static void ValidateOrbs(string projection)
+    private static void ValidateResources(string projection)
     {
         using var parsed=JsonDocument.Parse(projection);
         var state=parsed.RootElement;
@@ -100,6 +101,13 @@ public static class Codec
         foreach(var orb in queue!.Orbs!)
             Require(orb.Identity>0&&orb.Identity<=queue.NextIdentity&&orb.Owner==0&&Regex.IsMatch(orb.Model,"^ORB\\.[A-Z0-9_]+$")&&
                 orb.Mutable is not null&&orb.Mutable.Count<=64,"orb-queue-entry");
+        var units=JsonSerializer.Deserialize<CombatUnitState>(state.GetProperty("Mechanics").GetProperty("CombatUnits").GetRawText(),Json);
+        Require(units is {Allies:not null,Pets:not null}&&units.Allies.Length is >=1 and <=2&&units.Pets.Length<=1&&
+            units.Allies.Select(u=>u.Identity).Distinct().Count()==units.Allies.Length,"combat-ally-count-or-identity");
+        Require(units!.Allies![0] is {Owner:null,Rng:null} player&&Regex.IsMatch(player.Model,"^CHARACTER\\.[A-Z0-9_]+$")&&
+            units.Allies.All(u=>u.Identity<units.NextIdentity&&u.MaxHp>0&&u.Hp>=0&&u.Hp<=u.MaxHp&&u.Powers is not null)&&
+            units.Allies.Skip(1).All(u=>u is {Model:"MONSTER.OSTY",Owner:0,Rng:not null})&&
+            units.Pets!.All(id=>units.Allies.Any(u=>u.Identity==id&&u.Owner==0)),"combat-ally-content-or-ownership");
     }
     private static void ValidateTiming(Clip clip)
     {
