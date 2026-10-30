@@ -1,5 +1,7 @@
 # 战斗内容覆盖：材料、机制缺口与取样计划
 
+后续增量（2026-10-31）：CONTENT-005五角色首战代表机制、CONTENT-006后续普通战斗/跨进程Continue/独立战斗列表及三鼠召援前后恢复已按各自样本完成，最新能力与未测边界看[CURRENT_STATUS](../CURRENT_STATUS.md)和对应报告。下文保留2026-10-29静态基线，不能继续把其中所有当时缺口视为当前未实现；全内容/变形复活/精英Boss/通用文件恢复仍未完成。
+
 更新：2026-10-29，D-128，PM静态盘点。游戏固定v0.111.0-41cef1ea；代码基线为891e5ff（PLAYBACK-002/build-003），避免与正在并行改动的PLAYBACK-003源码混读。新包完成后只复核变化项，不重复整次调查。本页替代2026-10-28盘点作为当前参考，历史结果仍在各CONTENT/STATE报告与Git版本中。
 
 同日D-129扩展：完整材料/契约与候选批次见[BATTLE-COVERAGE-PLAN](BATTLE-COVERAGE-PLAN.md)，静态索引脚本见[Build-CombatCoverageIndex](../tools/Build-CombatCoverageIndex.ps1)。已生成本地15类/1539文件及池/命令/遭遇引用索引；注册表确认5个常规角色，内容可达性还受池、解锁和单/多人过滤。PLAYBACK-003已产出001候选但运行Pending，不把下列静态基线自动当作新候选验收。
