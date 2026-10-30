@@ -232,3 +232,15 @@ Debug音效除按owner精确Stop外，007在原生Play前把撤销owner音量设
 A/C本次格式10后续普通群怪和短片独立观看、相关Back、Stop隔离在此样本通过；未完房间跨进程与D一般敌方召援仍Pending。下一沿既有默认关闭的三鼠准备，不新增构建：主菜单展开开发准备、启用CONTENT-006三鼠召援，开铁甲A0新局进入首普通。明确它会替换当前猎人的Continue，猎人当前进度已有独立恢复点；测试准备只在新局创建时改暗港首普通遭遇为TwoTailedRatsNormal、升级原三Defend/添加两BodySlam+，五牌加原生RoyalApproved先天/保留。准备发生在真实checkpoint前，正常Continue不再注入、观看不注入expected。
 
 合并未完跨进程最短动作：首战打一张Defend+并等结算，原生保存退出到菜单后再正常退出到桌面；重新手动启动后Continue。以不同ProcessId/ProcessStartedUtc和真实写盘→load→Continue核同run/同battle/newattempt，不能只看菜单重新出现。重进先使用可用防御拖回合，暂不攻击直到原生出现援军；再用全身撞击等优先攻击/击杀新来的老鼠并正常获胜，自动封存后正常退出。先核录制/真实生成/目标/AI/RNG文件事实，再给该片跨召援Back/重做/已访问后点恢复与Stop的精确步骤，不要求用户一遍完成未说明索引的观看。召援采用原生AI/75%条件分支，不手改计数或强迫召援；本包仍未关闭。
+
+## r7：007三鼠准备导致两次地图生成失败；008修正原生卡牌归属，待重测
+
+用户“尝试了两次，都报bug了”。007/session `a1212bd6065648de8e09bf80dd03a6b9`（2026-10-31 00:56:19–00:58:14）12事件，两次test-encounter-prepared后都未到recording-room-checkpoint/start，无seal。Godot两次相同`Exception starting singleplayer run : NullReferenceException`，首栈RunState.Contains(AbstractModel)→IterateHookListeners→Hook.ModifyGeneratedMap→RunManager.GenerateMap，失败在新局地图生成，未进入召援或回退。observer-error为0不能判成功，异常由原生StartRun捕获并回菜单，按实际FAIL保留，不要求用户重复旧版或退役工程。
+
+源码与固定本体反编译定位：D分支两BodySlam使用ModelDb.Card<BodySlam>().ToMutable()后直接Deck.AddInternal。原生CardPile.AddInternal只加牌堆，未设Owner/未加RunState._allCards；RunState.Contains对卡牌及附魔会解引用Card.Owner.IsActiveForHooks。原有各角色其他准备均用RunState.CreateCard，该入口原生AddCard(card,owner)完成Owner/登记并AfterCreated。008仅把D两牌改走同一原生入口，仍显式Deck.AddInternal；附魔/升级/遭遇准备范围不变，新增D准备后全Deck Owner==player且ContainsCard的校验，并在准备日志列DeckOwnersAndRunRegistrationValid。未用异常吞掉/默认Owner猜测/跳Hook/人工地图替代处理，也不改一般敌方召援逻辑。真实新局校验是否通过仍待人工，不把源码核对当运行PASS。
+
+008显式追加已知007 hash `9BCECE95FF90DE51CB3A06B3E9B5F8069838C1E10F139D0FA43602D22926F0FF`读取兼容，保留r5/r6两份格式10原片，不允许任意ModHash。Release构建0警告0错误；对真实007胜利原片执行既有生产读取/路线终点/原字节不变检查通过（`checks/rat-owner-fix/007-victory-production-read.json`），该离线检查不运行新局、Godot Hook或D召援。不为简单工厂修正造镜像owner单元测试，也不重复未变的5组生成纯模型合同冒充原生新局证据。
+
+12原事件+Godot/journal共14数据文件逐hash封存`runtime/content-006-r7-failed-20261031-010121`，摘要`runtime-verification-r7-failed.json`。本次读取当前原生current_run时发现已无该文件，随后逐个既有51路径确认仅current_run.save及其backup不存在；其余49文件3,850,593 bytes逐hash补存`CONTENT006-post-r7-failed-current-20261031-010121`，缺失明确进入snapshot/`post-r7-failed-current-files.json`，不伪造51文件全有或恢复旧文件。失败后的缺失本身保留为事实，未凭空判断正常保存或游戏进度未变。最初归档尝试在读取该缺失文件时停止，已有私有副本保留，随后以上14数据文件的完整归档读回成功；未改原文件。猎人r6恢复点继续保留，无自动restore/其他账号遍历/全账号新快照。
+
+游戏0下008已安装，DLL `AAC068D2477D6FEB9954D7C8FFAB6FB80074739DB60E2E572F083041E30C9CCD`，manifest仍`69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-008-97365a21.json`。007 pair/config及此前失败/原片保留，Cloud沿当前批次已确认关闭，无自行启动/换账号/恢复旧存档。下一重新启用默认关闭三鼠准备、开新铁甲A0，先确认首战可进入；能进入则继续此前一张Defend+结算后保存退出、完整关到桌面、手动新进程Continue、等原生召援并击杀新鼠/胜利封存退出。未完跨进程与D仍Pending，本包未完成。

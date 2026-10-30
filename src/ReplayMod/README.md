@@ -1,6 +1,12 @@
 # ReplayMod 0.1.0 · 原生单场回放
 
-## 当前安装：CONTENT-006 / build-007，第4场两次尝试的原生观看通过
+## 当前安装：CONTENT-006 / build-008，修复三鼠测试新局创建失败
+
+007/r7两次新局均在生成地图的原生Hook枚举阶段因卡牌Owner空引用失败，尚未进入战斗或开始录制。原因是三鼠准备直接ToMutable后塞入Deck的两张BodySlam缺少原生RunState归属登记；008改用`_run.CreateCard<BodySlam>(player)`，再加入Deck，并校验/记录全部牌的Owner和ContainsCard。准备仍仅新局创建时执行，正常Continue/观看不注入。显式兼容007已验收格式10原片，不放宽任意ModHash。Release零警告/错误，007实际胜利片生产读取/兼容检查通过，但新局修复与D/跨进程仍待人工运行。
+
+008 DLL `AAC068D2477D6FEB9954D7C8FFAB6FB80074739DB60E2E572F083041E30C9CCD`已在game0安装，007 pair/失败14数据文件保留。当前51个已知路径中49文件逐hash补存、current_run及其backup已不存在（如实记录缺失，不恢复旧文件）；猎人恢复点r6保留，无restore/自行启动。重新启用三鼠准备并开新铁甲A0，能入首战后继续一张Defend+存退/完全退出桌面/手动重启Continue/等待原生援军并击杀新鼠/胜利自动封存的步骤。无需重测旧片或反复尝试007。
+
+## CONTENT-006 / build-007：第4场两次尝试的原生观看通过
 
 007/r6两份格式10新片均从普通battle-list独立打开，Initial匹配；一步片段2次原生结果/2次Back，完整片20次结果/7次Back（含小刀生成/使用及胜利后恢复），全部状态/RNG匹配，完整片3次真实终局到达。最终额外Back后分别Stop0/13，不能把Stop位置写成终点或AllOperationsMatched=true；两次Error null、无outstanding/Auto/队列，原manager及比较的Continue/progress恢复，正常退出/game0。用户确认一切正常，603数据文件封存，当前run及主progress与r5逐hash未变，仅progress.save.backup变化并已补存。无需再测这两片或换DLL。
 
