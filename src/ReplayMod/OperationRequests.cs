@@ -23,9 +23,16 @@ internal sealed class OperationRequests
     internal ForwardRequest? Active {get;private set;}
     internal ForwardRequest[] Pending=>_pending.ToArray();
     internal int Stage {get;private set;}
-    internal OperationRequests(Clip clip,int hosts)
+    internal OperationRequests(Clip clip,int hosts,bool opening=false)
     {
-        var points=new List<ForwardPoint>{new(0,0,0,0,true,"战斗开始")};
+        var points=new List<ForwardPoint>{new(0,opening?-1:0,0,0,true,opening?"战斗开场":"首次可出牌")};
+        if(opening)
+        {
+            foreach(var choice in (clip.Choices??[]).Where(c=>c.Boundary==0&&!c.Automated))
+                for(var prefix=0;prefix<SeekPlan.Events(choice).Length;prefix++)
+                    points.Add(new(points.Count,0,choice.Sequence,prefix,false,$"开场选择{choice.Sequence} · "+(prefix==0?"已打开":$"已选{prefix}")));
+            points.Add(new(points.Count,0,0,0,true,"首次可出牌"));
+        }
         foreach(var op in clip.Operations.Take(hosts))
         {
             foreach(var choice in (clip.Choices??[]).Where(c=>c.Boundary==op.Sequence&&!c.Automated))

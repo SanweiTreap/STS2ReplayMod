@@ -76,7 +76,25 @@ internal static class PlayerLoop
             Runtime.Status="加载回放：独立内存会话";Ui.Playback();ActionMonitor.Reset();ChoiceTape.Play(clip);
             if(SaveManager.Instance.CurrentRunSaveTask is {} saving)await saving;
             memory=new();memory.Install();IsolatedManager=memory.Isolated;
-            await LoadRoom(clip);checks.Add("initial");
+            if(nativeSeek)
+            {
+                var restartMemory=false;
+                async Task LoadOpeningRoom()
+                {
+                    if(restartMemory){memory.Restart();IsolatedManager=memory.Isolated;restartMemory=false;}
+                    await LoadRoom(clip);
+                }
+                async Task ResetOpeningRoom()
+                {
+                    Loading=true;ChoiceAbort=true;
+                    await ClearRoom(memory);
+                    _roster=null;Checkpoints.Clear();_fileBindings=null;Prequeued.Clear();Committed.Clear();
+                    VictoryReached=false;restartMemory=true;
+                }
+                if(!await NativeSeek.LoadOpening(LoadOpeningRoom,ResetOpeningRoom)){Cursor.Stop();return;}
+            }
+            else await LoadRoom(clip);
+            checks.Add("initial");
             if(nativeSeek)
             {
                 Runtime.Log("native-playback-open",new{clip.Id,clip.Format,Entry=entry,Core="native-actions",Open=++_opens,
@@ -134,8 +152,8 @@ internal static class PlayerLoop
                 try{await DecisionRoute.StopTask;}catch(Exception ex){Runtime.Log("route-stop-cleanup-failed",new{Reason=ex.GetBaseException().Message});}
             }
             TearingDown=true;Dispatching=false;Loading=false;
-            if(ChoiceTape.Scope is {} choice)
-                try{NativeChoice.Cancel(choice);}catch(Exception ex){Error="choice-cleanup-"+ex.GetBaseException().GetType().Name;Runtime.Log("choice-cleanup-failed",new{Reason=Error});}
+            if(!NativeSeek.Enabled&&ChoiceTape.Scope is {} legacyChoice)
+                try{NativeChoice.Cancel(legacyChoice);}catch(Exception ex){Error="choice-cleanup-"+ex.GetBaseException().GetType().Name;Runtime.Log("choice-cleanup-failed",new{Reason=Error});}
             try
             {
                 if(memory is not null){await ClearRoom(memory);restored=memory.Restore();Codec.Require(restored,"normal-Continue-or-original-progress-changed");}
@@ -148,7 +166,7 @@ internal static class PlayerLoop
                 // Restore even when scene cleanup fails, while reporting the failure rather than claiming isolation passed.
                 if(memory is not null&&!ReferenceEquals(SaveManager.Instance,memory.Original))try{restored=memory.Restore();}catch{restored=false;}
                 Runtime.Log("playback-closed",new{Id=id,Entry=entry,Core=NativeSeek.Enabled?"native-actions":nativeSeek?"not-started":"legacy-tool",TotalOperations=_playingClip?.Operations.Length,
-                    Checks=checks,Position=NativeSeek.Enabled?(int?)NativeSeek.Position:Cursor?.Rebuilding==true?(int?)null:Cursor?.Position,AllOperationsMatched=complete,VictoryReached,Error,NativeSeek=NativeSeek.Enabled,OriginalManagerRestored=memory is not null&&ReferenceEquals(SaveManager.Instance,memory.Original),NormalContinueAndOriginalProgressUnchanged=restored,OriginalProgressFileIncluded=true,WallMilliseconds=Stopwatch.GetElapsedTime(started).TotalMilliseconds});
+                    Checks=checks,Position=NativeSeek.Enabled?(int?)NativeSeek.Position:Cursor?.Rebuilding==true?(int?)null:Cursor?.Position,Opening=NativeSeek.Enabled&&NativeSeek.Opening,AllOperationsMatched=complete,VictoryReached,Error,NativeSeek=NativeSeek.Enabled,OriginalManagerRestored=memory is not null&&ReferenceEquals(SaveManager.Instance,memory.Original),NormalContinueAndOriginalProgressUnchanged=restored,OriginalProgressFileIncluded=true,WallMilliseconds=Stopwatch.GetElapsedTime(started).TotalMilliseconds});
                 Active=false;TearingDown=false;ChoiceAbort=false;Prequeuing=false;DispatchIndex=-1;_playingClip=null;Prequeued.Clear();Committed.Clear();IsolatedManager=null;Ui.ClosePlayback();ActionMonitor.Reset();ChoiceTape.Clear();NativeSeek.Clear();DecisionRoute.Clear();Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;
                 OrbState.Reset();await Runtime.FlushLog();
             }
@@ -176,27 +194,43 @@ internal static class PlayerLoop
         Runtime.Log("playback-character-verified",new{Character=LiveState.Player.Character.Id.ToString(),RecordedCharacter=clip.Character,
             Relics=LiveState.Player.Relics.Select(r=>r.Id.ToString()).ToArray(),NativeCharacterAssets=true,Authority=clip.Authority});
         EnsureRoster();
-        if(DecisionRoute.Enabled||NativeSeek.Enabled)await NativeDisplayTrace.WaitForOpeningPresentation();
+        if(DecisionRoute.Enabled)await NativeDisplayTrace.WaitForOpeningPresentation();
     }
 
     private static async Task ClearRoom(MemorySession memory)
     {
         await memory.Drain();
+        Task? oldTurnLoop=null;
         CleaningRoom=true;
         try
         {
             var room=RunManager.Instance.DebugOnlyGetState()?.CurrentRoom as CombatRoom;
+            if(room is not null)oldTurnLoop=AccessTools.Field(typeof(MegaCrit.Sts2.Core.Combat.CombatManager),"_turnLoopTask").GetValue(MegaCrit.Sts2.Core.Combat.CombatManager.Instance) as Task;
             var pcs=room is null?null:LiveState.Player.PlayerCombatState;
             var pets=room is null?[]:(_roster?.Anchors??room.CombatState.Allies).Where(c=>c.Monster is MegaCrit.Sts2.Core.Models.Monsters.Osty).ToArray();
-            if(room is not null)OrbPresentation.Retire();
+            if(room is not null&&MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom.Instance is {} display&&
+                GodotObject.IsInstanceValid(display)&&display.GetCreatureNode(LiveState.Player.Creature)?.OrbManager is not null)OrbPresentation.Retire();
             if(RunManager.Instance.DebugOnlyGetState() is not null)RunManager.Instance.CleanUp(true);
+            // Cancel NEW native waits only after the run is no longer live, so its turn
+            // loop treats cancellation as teardown rather than a stuck combat.
+            NativeOpening.Cancel();
+            if(ChoiceTape.Scope is {} choice)NativeChoice.Cancel(choice);
             if(room is not null)CombatCardTracking.Cleanup(room);
             if(pcs is not null&&LiveState.Format>=8)OstySubscriptions.Cleanup(pcs,pets);
             // Remove the old NRun before yielding: its _Process uses RunManager's current net service.
             Runtime.Game.RootSceneContainer.SetCurrentScene(new Control{Name="ReplayModRebuilding"});
         }
         finally{CleaningRoom=false;}
-        await Runtime.NextFrame();await memory.Drain();ActionMonitor.Reset();
+        await Runtime.NextFrame();
+        if(oldTurnLoop is not null)
+        {
+            var at=Stopwatch.GetTimestamp();
+            while(!oldTurnLoop.IsCompleted)
+            {Codec.Require(Stopwatch.GetElapsedTime(at).TotalSeconds<5,"retired-native-turn-loop-still-running");await Runtime.NextFrame();}
+            try{await oldTurnLoop;}catch(OperationCanceledException) { }
+            Runtime.Log("native-room-tasks-retired",new{TurnLoopCompleted=true,ExpectedCancellation=oldTurnLoop.IsCanceled,OldTasksReused=false});
+        }
+        await memory.Drain();ActionMonitor.Reset();
     }
 
     private static async Task CaptureCheckpoint(int position,string expected)
@@ -382,6 +416,7 @@ internal static class PlayerLoop
         var at=Stopwatch.GetTimestamp();var choiceAtStart=ChoiceTape.WaitingSeconds;
         while(!LiveState.Playable||ActionMonitor.StartTurnTask?.IsCompletedSuccessfully!=true)
         {
+            if(NativeSeek.OpeningWaiting){at=Stopwatch.GetTimestamp();choiceAtStart=ChoiceTape.WaitingSeconds;}
             Codec.Require(Stopwatch.GetElapsedTime(at).TotalSeconds-(ChoiceTape.WaitingSeconds-choiceAtStart)<60,"playback-room-not-ready");
             ThrowIfError();Codec.Require(ActionMonitor.StartTurnTask is not {IsFaulted:true} and not {IsCanceled:true},"start-turn-failed");
             await Runtime.NextFrame();
