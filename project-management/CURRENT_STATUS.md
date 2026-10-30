@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-31。**CONTENT-006进行中（D-134）**：007/r5后续普通群怪第4场中断/胜利format10录成，同进程重进通过；r6两片独立原生观看/Back/生成小刀恢复/胜利/Stop与用户体验通过。007保持，本包主要剩D召援及未完房间真正跨进程重进，拟合并下一样本，不重录第4场或重复已过矩阵。
+更新：2026-10-31。**CONTENT-006进行中（D-134）**：r5/r6后续群怪两尝试及format10独立录播已验，007体验结论保持。D准备r7两次在地图生成前失败（牌未登记Owner/RunState），未进战斗；008工厂修复已装待原生，D/未完跨进程仍待。本包未完成，普通录播旧结论不重测。
 
 ## 玩家现在能用到什么
 
@@ -69,7 +69,11 @@ r5重进ProcessId均108208、同session/ProcessStartedUtc，只验同进程未�
 
 最终额外Back后Stop0/13，closed AllOperationsMatched/VictoryReached false真实，不改EOF或要求终点再测；此前胜利有证。两次Error null、原manager/所比较Continue及主progress恢复，driver无Outstanding/Auto/队列，监听按日志清理、正常Quit/shutdown/game0，原两片不变。r5→r6已知51文件中current_run与主progress内容相等，仅modded/profile1的progress.save.backup变化；记录变化、不称零写入/全部51不变，不无证据归因或回滚，变化后副本已补存。
 
-下一D既有默认关闭三鼠准备：新铁甲A0测试局将按正常新局替换猎人Continue，先向用户说明猎人恢复点已保留，不自动恢复。准备只新局创建/真实checkpoint前注入，Continue不重复。首战一张Defend+完整结算后存退菜单，再真正退出桌面/手动重启，以不同PID/ProcessStartedUtc验证同run/同battle/newattempt。之后防御等原生援军，攻击/击杀新鼠后正常胜利封存退出；先核真实生成/目标/AI/RNG记录，再按实际索引安排跨召援Back/再召/后点恢复与Stop。不重录第4场，不重跑r6/旧矩阵，不扩整局外壳。本包未关闭。
+007/r7两次三鼠准备均在GenerateMap的RunState.Contains→IterateHookListeners→Hook.ModifyGeneratedMap发生NullReference，12事件/Prepared2、checkpoint/start/seal均0；observer-error0不当成功。缺口是从ModelDb模板ToMutable后直接Deck.AddInternal，漏Owner/_allCards。008只改用原生_run.CreateCard<BodySlam>(player)并验证全Deck Owner/ContainsCard，不跳Hook/地图或改召援。Release0警告/错误、007原片生产读取兼容仅离线，不造镜像owner测试/重跑旧生成合同代原生证据。[r7失败摘要](../evidence/content-006/runtime-verification-r7-failed.json)，14数据文件完整封存，首次归档遇缺失current_run停止的私有副本亦保留。
+
+失败后modded1 current_run.save及其backup确实缺失，既有51路径现存49文件已补存，缺失入收据；不恢复旧文件/宣称进度未变。r6猎人恢复点保持，属于已说明的新测试局/准备失败现场，不混成观看覆盖原普通Continue的证据。
+
+下一重新启用默认关闭三鼠准备、新铁甲A0，先确认008可进首战，能进入则继续一张Defend+完整结算后存退菜单→完整退出桌面/手动重启Continue，以新PID/StartedUtc核同run/同battle/newattempt且不重复注入。防御等原生援军，优先攻击/击杀新鼠、正常胜利封存退出，先核实际记录/目标/AI-RNG，再按索引测跨召援Back/再召/后点恢复及Stop。008新局修复与D/跨进程均未原生验证，普通相关修复同包继续，无新报告/工程/审批、旧矩阵或整局加码。
 
 ## 整局外壳的时间安排（规划，未派发）
 
@@ -77,10 +81,10 @@ r5重进ProcessId均108208、同session/ProcessStartedUtc，只验同进程未�
 
 ## 工程、恢复点与协作
 
-- 当前安装CONTENT-006/build-007，SHA256 `9BCECE95FF90DE51CB3A06B3E9B5F8069838C1E10F139D0FA43602D22926F0FF`，[收据](../evidence/content-006/preparation/build-007-1ee95b73.json)核pair/仅ReplayMod/modded1/安装时game0；候选不等于体验PASS。006/005及此前pair/config/六原片/失败与CONTENT-005/011恢复pair保留，无restore。
-- 工程[src/ReplayMod](../src/ReplayMod/README.md)，当前源码d298cd0、报告/README8a396c1，007 DLL保持；同包build编号勿与CONTENT-005混。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常查源码，有歧义再查IL。
+- 当前安装CONTENT-006/build-008，SHA256 `AAC068D2477D6FEB9954D7C8FFAB6FB80074739DB60E2E572F083041E30C9CCD`，[收据](../evidence/content-006/preparation/build-008-97365a21.json)核pair/仅ReplayMod/modded1/安装时game0；显式兼容已验007 hash，修准备不等于原生PASS。007及更早pair/config/原片/失败保持，无restore。
+- 工程[src/ReplayMod](../src/ReplayMod/README.md)，当前源码/报告25372a5，旧007录播/体验按各轮证据保持；同包build编号勿与CONTENT-005混。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常查源码，有歧义再查IL。
 - 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续当前文件/安装pair补存见报告/收据，不称更新后的完整账号快照。未整包恢复，用户有新进度先补备份，另一账号不纳入。
-- Cloud沿本批用户确认关闭；r6后已知51文件/4,003,071 bytes补存原恢复点CONTENT006-post-r6-current-20261031-004235并读回，含已变化backup；非完整新账号快照/云端保证。PM不重复读个人存档、不扫描另一账号/恢复旧基线。
+- Cloud沿本批用户确认关闭；r7失败现存49已知文件/3,850,593 bytes补存CONTENT006-post-r7-failed-current-20261031-010121，另2个current_run路径缺失如实列出，非完整新账号快照/云端保证。猎人r6恢复点另保留，无自动restore/别账号扫描；PM不重复读私人存档。
 - [公开仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始录像/日志/备份、依赖和游戏反编译缓存仅留本地。Git仅一个index写入者，提交精确路径，不reset/clean/force。[协作规则](REPOSITORY.md)。
 - Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)接续CONTENT-006；PM提交工作包后移交Git index窗口，维护状态/规划/验收，不承担大规模源码实现；不新建用户对话或覆盖模型。
 - D-092备份后允许同包查源码/hook/普通修复/安装和请求人工短测；默认modded1，unmodded1不再是禁止读取复制的禁区。实验权限不降低成品Continue隔离目标，不恢复逐步审批。

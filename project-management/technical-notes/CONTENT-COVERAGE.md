@@ -110,3 +110,7 @@ CONTENT-005/008/r9用户反馈5→Back4→再5后Osty血条不见；逻辑/回�
 - `ChoicePatches`/`ChoiceTape`/`NativeChoice`：已挂叶入口、重叠scope拒绝、候选/来源/自动选择与窗口；`CombatRoster`/`DirectCheckpoint`/`StateGraph`：成员/宠物/节点身份和数据/执行上下文边界；`BattleEnd`：当前Victory生命周期。
 - 固定原生源码：`DiscardPotionGameAction`与`NPotionPopup`、`PlayerCombatState`/`Entities.Orbs.OrbQueue`、`KnowledgeDemon`/`KnowledgeDemonBoss`，以及`TwoTailedRat.CallForBackup/CanSummon`、`Ovicopter.LayEggsMove`、`ToughEgg.HatchMove/Hatch`、`ReattachPower`/`DecimillipedeSegment`、`TestSubject.RespawnMove/Revive`/`AdaptablePower`；模型/遭遇/池文件可按需查询。
 - 本轮仅源码/既有报告复核、模型文件计数和文档更新；无游戏/程序集运行、无新probe、无源码/安装/存档修改。PLAYBACK-003正在由Implementation独立实现，以上静态基线不反写其未来成果。
+
+## 测试准备的原生对象归属（2026-10-31，CONTENT-006/r7）
+
+从ModelDb模板ToMutable后直接Deck.AddInternal不能代替原生创建/归属登记：D准备两BodySlam缺Owner和RunState._allCards，导致地图Hook枚举中的RunState.Contains解引用Owner失败。008改用RunState.CreateCard(player)后走牌堆接口，并校验Owner/ContainsCard，实际修复仍待运行。今后加入真实牌组/战斗的准备牌沿原生工厂及对应获得流程，不手填Owner或略过Hook；纯显示预览复制另论。不为此重写牌效/动画或建立镜像假测试。
