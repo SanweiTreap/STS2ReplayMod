@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-005进行中**：A/B验收保留；006空场景、007像直接切选择页的体验反馈保留，D未验收。**显露时机修复源码已构建，008准备中、未安装/实测**：新room UI/背景就绪即揭幕，选择Ready另管请求；实现者已确认game0，007最终证据待封存。当前安装仍007，C骨妹未取样。
+更新：2026-10-30。**CONTENT-005进行中**：A/B验收保留；006空场景、007直接切页体验反馈保留，D未验收。**当前008显露时机修复已安装、待原生短测**：新room UI/背景就绪即显露，选择Ready另管请求。007/r6最终92事件已封存，正常退出与Stop比较恢复通过，无视觉/全胜利结论；C骨妹未取样。
 
 ## 玩家现在能用到什么
 
@@ -42,9 +42,11 @@ r6/r7的恢复后选牌失败保留：PM已核完整异常栈及固定源码，�
 
 用户现确认当前这轮测试结束就改开场，D-133排为下一项：横幅尾不额外阻断就绪控制、开场选择接>/>>、增加可Back到的完整战斗开场。现有人工轮先收束，不把尚未开始的全部角色矩阵作为前置；同包D段已发给Implementation，无需再批。选择页仍非独立Seek，重入原生开场的恢复方式/耗时待实测，具体见体验规格。
 
-D当前修复007/源码46e1121：PM核安装收据及006/r5摘要，未重复构建。移除初始化前gate/patch，干净重入自然到首个原生选择Ready后揭开遮罩并等待；无选择到0。旧loop退休、新manager、候选/Initial精确核对、Whole止0/Auto/Stop保持，未新造选择Seek点。7开场/14D-131/4完整路线与A片读取离线通过；下一复用工具箱片测Back直接展示窗口、再选到0、后续丢药/普通Back与Stop、重开Auto，不重录。原生恢复/视觉/延迟尚待此轮，抽牌后选择覆盖另按事实判断。
+D的007/46e1121准备历史：移除初始化前gate，干净重入后到选择Ready才揭罩；保留新manager/旧loop退休及精确核对。离线合同通过后进行了r6，逻辑与视觉结果见下，不能继续把“待首轮”当当前状态。
 
-007当前轮：实现者接报时92事件/游戏未退出，2次重入至选择Ready、其中1次再选后Initial/0匹配，有Stop比较恢复，但非最终全程/视觉PASS。用户要求看见“进入房间→原生工具箱入场→窗口等待”；PM核NativeSeek遮罩链及原生OnCombatSetUp/CombatRoom启动顺序，同意在当前新room的UI/背景就绪后显露，选择Ready只控制请求。PM补足此前仅定义停点的规格，已通知实现者直接同包改显示交接，不手写动画、不改原生顺序。先正常收尾本轮，最终证据另封存再换DLL。选牌中Back撤宿主/整段开场仍是已授权行为，不新增选择页Seek。
+007/r6已核[最终摘要](../evidence/content-005/runtime-verification-r6.json)：92事件/94数据文件封存，2次重入含选择中Back，其中一次原生再选后Initial/0匹配；1次结果/普通Back和Stop0比较状态恢复，Godot正常退出。无全胜利/短重开，视觉被用户拒绝。PM核遮罩链与原生room Setup顺序，确认真实入场被罩住且OneShot/Shake静默至ChoiceReady；规格已补“房间进入→原生选牌入场→等待”的可见过程。选择中Back仍撤宿主/整开场，不新增选择Seek。
+
+008已将openingReentryPending与必要遮罩拆开，在当前新NCombatRoom.OnCombatSetUp后显露，UI遮罩/声音/震动静默同步解除，选择Ready另管请求；源码/报告已提交。PM核安装收据、007/r6最终证据，未重复构建；008原生视觉/重入/胜利与相关Stop仍待同片短测，不重录或新增角色矩阵。C仍随后接回。
 
 D的006/r5已核[摘要](../evidence/content-005/runtime-verification-r5.json)：131事件、3工具箱/1Defect打开；首开Fine/Whole完成初始选择核对且未带操作1，首项丢药/普通Back0有1次结果匹配。两次开场Back均停在StartCombatInternal前裸场景，用户拒绝；重入后没有新请求/再选择/Initial重新核对，不追判通过，327/295ms也不是正确落点的成功耗时。4次Stop比较状态恢复、134数据文件封存。预载Invalid Task ID诊断保留，未认与空场景同因。007修复仍待实测，不因无异常验收D。
 
@@ -63,7 +65,7 @@ B的004/r3–r4已按样本验收：r3格式8片dfa22d43c501492786b19cacee1411c7
 ## 工程、恢复点与工作方式
 
 - 工程：[src/ReplayMod](../src/ReplayMod/README.md)；固定版本反编译C#留本地，日常直接查源码，IL仅在有歧义时核对。
-- 当前安装CONTENT-005/build-007，SHA256 `639B6229CDD2BC482567587CF9E3406D0DC6E9EE7AB4E0DA17ABBCB66061C581`，[收据](../evidence/content-005/preparation/build-007-5c350abf.json)，D修复待实测。006失败pair/日志及005/004/002/旧008恢复pair保留；PLAYBACK-003/004是另一任务的未安装D-130草稿，勿混编号。
+- 当前安装CONTENT-005/build-008，SHA256 `792B181B68CDB8267F3565EDC09B030352E019C63472623482FED3E5C3200024`，[收据](../evidence/content-005/preparation/build-008-e48f6522.json)，显露时机修复待实测。007/006反馈及对应pair/日志保留，004/002/旧PLAYBACK-003/008恢复pair保留；不同任务的build编号勿混用。
 - [公开Git仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始证据、存档录像、备份、依赖及反编译缓存留本地，见[协作规则](REPOSITORY.md)。
 - 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，A后51当前文件/候选pair已补存，见本包报告，不冒充更新后的完整账号快照。未整包恢复；用户有新增进度时先备份，另一账号不纳入。
 - Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)，当前CONTENT-005；PM管状态/规划，不承担大规模源码实现。
