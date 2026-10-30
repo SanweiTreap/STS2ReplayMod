@@ -1,5 +1,15 @@
 # CONTENT-006：持续录制、Continue、战斗列表与召援
 
+## 最新摘要 · 2026-10-31 · 009/r9
+
+- 当前安装009（DLL `163F63D7A8D9042AC9A17AA3F05C4C45CA52AADC12898FE704723CE36A89F0B7`），无需换版；收据`evidence/content-006/preparation/build-009-4f319035.json`。
+- 已确认：后续普通战斗连续录制/真实资源承接、短片与完整片独立观看、已完成房间跨进程、未完房间同进程newattempt、相关Back/胜利/Stop；r9新增三鼠真实召援前恢复/原生再召/召援后已访问点恢复、稳定目标/击杀和完整胜利通过，用户确认符合预期。
+- 仍未完成：r8未完跨进程路径确实运行但自动分组FAIL；009登记成功保存的原生读入表示已实现，自动路径仍待一次实际短测。两份旧片显式归属修正不算自动分组PASS；本包未关闭。无新增范围或旧矩阵复测。
+- 下一动作：沿009新开一次明确三鼠铁甲A0测试局，首战仅一张防御+后存退并完全退出桌面；手动重启Continue后再打一张防御+，存退并完全退出，至此停手。核不同PID、raw/read登记、同Run/同Battle/Attempt1→2及两份独立一步片段，不需打完整战斗或等待召援。
+- 最新证据：本地`evidence/content-006/runtime-verification-r9.json`、`collection-r9.json`；原生50步片SHA保持，994事件等997文件归档。当前51文件补存，无restore/自行启动；current_run及主progress与r8不变，两个backup变化单列。
+
+## 实施历史（以下各节状态以当时轮次为准）
+
 2026-10-30。D-134同工程实施中。001/r1六场录制/资源与新进程后续录、004/r2原生菜单退出、005/r3早晚独立完整播放/Back及已完成房间write→load→Continue有各自实证；007/r4华丽收场在途Back等待/声效/尾迹通过，用户明确确认。原误拆组六片不改，索引已有据校正。007保持；后续强普通/未来第4场、召援及未完房间attempt仍未验收，本包未完成。
 
 ## build-001：A/B/C首个可测增量，尚未游戏实测
@@ -266,3 +276,11 @@ NativeSaved继续先await真实原生SaveRun成功，捕获原runId、读实际s
 232原事件+两片/原journal/两进程Godot共237输入数据文件逐hash封存`runtime/content-006-r8-20261031-012229`，另加纠正后journal读回为238数据文件，摘要`runtime-verification-r8.json`保留RawInputArchiveFiles237；引擎退出诊断保留，observer-error0不掩盖上述身份FAIL。当前51文件4,057,734 bytes补存`CONTENT006-post-r8-current-20261031-012229`，原猎人r6恢复点及r7失败缺失事实保留，无restore/其他账号遍历/全账号新快照。原片真实生产读取/路线终点/原字节不变检查通过，见`checks/native-load-representation/rats-production-read.json`。
 
 009主工程/DirectContracts构建均0警告错误、13合同通过。游戏0下已安装，DLL `163F63D7A8D9042AC9A17AA3F05C4C45CA52AADC12898FE704723CE36A89F0B7`，manifest不变，收据`preparation/build-009-4f319035.json`；008及此前pair/config/失败原片保留，Cloud沿当前批次确认，无自行运行。下一只观看现成50步片：`>>`到13，Back12后重做13反复两次，观察新鼠模型/血条/意图/旧成员；到14后Seek13核已访问召援后点，再Auto胜利（23/32的后两次召援及ID目标也全量核），Back49重做50，Stop正常退出。无需重录这50步。修复后未完跨进程自动分组仍需后续极短原生保存/重启样本，不重跑完整战斗；本包不关闭。
+
+## r9：三鼠召援跨生成恢复与原生重做通过，剩余自动分组短测
+
+用户“结果符合预期”。009/session `7dd1a39b4bae431d83205a86447a8ad7`，994事件，普通battle-list独立打开现成50步片660995ce…，Initial匹配，原片SHA与r8一致。58次原生结果/RNG全部匹配（正常56/退役2），8次Back/Seek状态/RNG及模式/Auto/清计划匹配：五次回12、一次回11、一次回召援后13、一次胜利后回49。真实native factory创建8次，其中ID4共6次（含反复回退后新原生对象）、ID5/6各一次，稳定ID/同模型排序/未来分配器随目标点恢复，非复活旧Task或重放前缀。
+
+回12时成员仅ID2、原生与登记Next均4；回11含ID2/3；回13含ID2/4、Next5且VisitedPointObjectsRetained true，未再次触发spawn业务；回49重建ID6显示、Next7，后续末项正常原生击杀。八次恢复均RoomRebuilt false、PrefixOperations0、SpawnHooksRun false，单位订阅17次核对无retired残留，Stop时Active0；用户确认新鼠模型/血条/意图与目标操作正常。两次实际终局是同一片首次/末项重做，不是两份录像。最终Stop50 AllOperationsMatched/VictoryReached true、Error null，原manager及所比较正常Continue/progress恢复，driver无Outstanding/Auto/待执行项；正常Quit/shutdown/game0。两次在途退役总约1.40s/0.88s仍如实留日志，未用本次功能PASS宣称所有召援演出等待已做性能优化。
+
+原事件+片/Godot/journal共997数据文件封存`runtime/content-006-r9-20261031-020856`；摘要`runtime-verification-r9.json`、收集收据`collection-r9.json`。复用本地小脚本`C:/Projects/STS2ReplayMod-local/tools/Collect-Content006.ps1`完成固定账号会话/片段归档及已知文件逐hash补存，不另造框架或扫描其他账号。当前51文件4,057,762 bytes备份`CONTENT006-post-r9-current-20261031-020856`；current_run与主progress不变，progress.save.backup和settings.save.backup变化，未归因/恢复或称51项零写入；原始引擎诊断保留。无新DLL/构建或重复纯合同。所测D录制/观看/跨召援恢复闭环通过；009自动分组未测试，不以D通过替代，下一按顶部两次一步片段的极短真实存退/重启收束。
