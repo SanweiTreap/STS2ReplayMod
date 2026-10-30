@@ -91,7 +91,7 @@ PLAYBACK-003/006的r7共308事件，PM已读取封存首个observer-error完整�
 
 ## 后续运行发现：死Osty状态栏恢复（2026-10-30）
 
-CONTENT-005/008/r9用户反馈5→Back4→再5后Osty血条不见；逻辑/回调匹配不能代替显示正确。PM核恢复差异及固定原生源码：`NCreature.ToggleIsInteractable(false)`同时令状态栏Visible=false，原生死亡流程主要以AnimDisableUi将alpha淡到0、DisableInteractionForDeath/StateDisplay.OnCreatureDied禁交互；StartReviveAnim只调用AnimEnableUi恢复alpha，不重设Visible。死宠恢复需保留符合debug-hide规则的可见节点、死时alpha0及死亡交互状态，让未来原生复活自然完成。修复已接候选，运行结果以本包报告/CURRENT_STATUS为准；不为该问题另写每张牌或召唤动画。恢复契约包括后续原生生命周期依赖的不变量，不能只核即时数值/截图；r9匹配结果不等于视觉验收。
+CONTENT-005/008/r9用户反馈5→Back4→再5后Osty血条不见；逻辑/回调匹配不能代替显示正确。PM核恢复差异及固定原生源码：`NCreature.ToggleIsInteractable(false)`同时令状态栏Visible=false，原生死亡流程主要以AnimDisableUi将alpha淡到0、DisableInteractionForDeath/StateDisplay.OnCreatureDied禁交互；StartReviveAnim只调用AnimEnableUi恢复alpha，不重设Visible。死宠恢复需保留符合debug-hide规则的可见节点、死时alpha0及死亡交互状态，让未来原生复活自然完成。009/r10已有25HUD恢复/9原生复活Visible与用户体验确认，postfix只读、不另写召唤动画；默认样本闭环，首次创建仍未测。恢复契约包括后续原生生命周期依赖的不变量，不能只核即时数值/截图；r9失败不追判成功，完整版本边界见本包报告。
 
 ## 用户经验与可追加材料
 
