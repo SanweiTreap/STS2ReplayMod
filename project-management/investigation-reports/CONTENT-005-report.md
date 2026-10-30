@@ -1,6 +1,6 @@
 # CONTENT-005：五角色基础战斗支持
 
-2026-10-30，D-132授权，同包按A/B/C分段。A段build-002的旧储君原生播放/胜利Back、新格式7录制→recent原生播放→丢药/锻造Back重做→胜利→Stop/短重开已实际通过。当前build-004的机器人格式8新录已通过，包含回合末电球致胜；其recent回放/Back/原生续播与Osty/Doom尚待实测，不称五角色运行完成。起点PLAYBACK-003/build-008及007/r8既有结论保持，不追认成本包验证。
+2026-10-30，D-132授权，同包按A/B/C分段。A段build-002所测共用闭环通过。B段build-004/r3–r4已取得机器人格式8新录→recent→相关Back/续播→回合末球胜利Back再胜利→Stop/短重开真实闭环；C的Osty/Doom尚待实测，不称五角色运行完成。起点PLAYBACK-003/build-008及007/r8既有结论保持，不追认成本包验证。
 
 ## A：共用输入与已有资源
 
@@ -76,7 +76,19 @@ build-004/session `0872198163fa43c6ae2d8754b277a55c`，50原事件，9次原生�
 
 50原事件、原片及Godot退出日志共52数据文件逐hash封存，摘要`evidence/content-005/runtime-verification-r3.json`；原始引擎诊断保留。下一同004普通recent打开，取满槽激发、跨回合暗球、扩槽、混沌Back再生成，以及胜利Back8→原生EndTurn再次获胜、重复恢复、Stop与短重开。录制成功不代替这些运行结果，Osty/Doom尚未取样。
 
-## B：球机制源码增量，录制通过、回放待实测
+## r4：机器人原生回放、球恢复和回合末致胜续播通过
+
+build-004/session `fa13be2ba0184bd7a2ba8f0f5f71c681`，697原事件，两次普通recent打开原格式8片，28次原生结果/RNG匹配，Retiring0，18次Back状态/RNG/手动模式与清计划匹配。18次球显示重建均通过槽容量/队列顺序/原实例绑定/当前VFX监听数检查；20次退出旧球显示（18恢复+2Stop）均NativeVfxListenersRemaining0。扩槽3/5反复恢复，混沌多次原生再生成玻璃/冰球，逻辑ID5/6和RNG/结果保持；暗球跨回合重复执行，短重开还Back0后再次原生创建暗球ID2。
+
+4次真实胜利均为最后EndTurn的原生球结算；三次胜利Back8后确实走`native-turn-loop-continued`：新信号、原生阶段方法、旧Task未恢复、开场/回合开始未重跑，随后EndTurn再次成功且完整结果/RNG匹配。由此取得此前仅源码/离线的续播桥接运行证明，范围是本片的玩家回合末电球致胜；不代替Necrobinder的Doom敌方回合结算证明。
+
+Stop在9/1，均Error null、Outstanding false、Running/Auto false、Pending0，原manager/所比较Continue进度恢复；牌堆登记监听Before0/5→Remaining0，球VFX监听零余量。Osty清理事件Known0，不能当宠物订阅运行覆盖。原片SHA保持，用户确认视觉/交互符合预期，game0；697事件+原片/Godot共699数据文件逐hash封存，摘要`evidence/content-005/runtime-verification-r4.json`，引擎诊断保留。
+
+覆盖边界：用户反馈包含满槽激发Back/重做正常；原日志里第3项只执行一次，Back目标为4/4/6/5/5/6/5/6/5/7/6/7/6/5/8/8/8/0，没有目标2，因此只把满槽激发的首次原生结果列为日志证明，不冒充独立跨该步恢复/重做。所测球删除/重生、容量/暗球私有值/随机球、实际回合末胜利等闭环成立，不机械追加旧步骤或宣称全球/遗物矩阵完成；花粉核心依旧未覆盖。
+
+开始C前补存原账号51份已知当前文件/3,942,450 bytes，`CONTENT005-post-Defect-current-20261030-133452`，原件/副本逐hash一致，收据`evidence/content-005/post-Defect-current-files.json`；非全账号快照、无history/其他账号遍历/恢复。安装保持004，下一先保留起始Osty录制成长/攻击/死亡/原对象重召及Doom真正致胜，再用该片普通入口验证恢复；首次创建另用默认关闭的可选准备取样。
+
+## B：球机制源码增量，所测闭环通过
 
 用户进行002人工测试期间继续开发，安装保持002。下一增量源码使用格式8：`Mechanics.OrbQueue`明确保存容量、有序球条目、每个原生实例的Replay逻辑ID、未来身份计数、所有者、移除标记、当前被动/激发值及各球派生模型的私有标量字段。暗球`_evokeVal`、玻璃球`_passiveVal`不会只靠模型名或当前画面推断。已有格式1–7不新增字段、不修改原片，精确兼容002录制build。
 
