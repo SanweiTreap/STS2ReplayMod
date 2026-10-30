@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-005进行中**：A/B/D样本闭环已验收；当前008，**C默认Osty的r8录制/生产读回通过，下一同片原生回放/Back/Doom续播**，尚无C恢复结论。首次创建Osty未覆盖；D工具箱r7通过，ChoicesParadox与独立短重开未测，旧失败保留。
+更新：2026-10-30。**CONTENT-005进行中**：A/B/D验收保留；C的008/r9结果/恢复/Doom续播已有证据，但重召血条视觉失败，C未验收。**当前009血条修复已安装、待同片短测**；修复原生死亡显示不变量，诊断只读，不补召唤动画。首次创建Osty仍未覆盖。
 
 ## 玩家现在能用到什么
 
@@ -60,6 +60,8 @@ B/C基础源码B提交ccbbcde、C提交1235aaa，004准备3a7f711；B恢复/显�
 
 C的008/r8：PM核报告/[摘要](../evidence/content-005/runtime-verification-r8.json)，未重计49原事件。格式8片7393a0279941453297b75597dcea5446录成9项/0选择，胜利自动封存/生产精确读回。Osty ID3/Owner0，初始1/1→成长6/6→死0/6且Pets保留→同ID重召5/5→新回合6/6；Doom26在第9项EndTurn敌方结算致胜，终态死宠留Allies/Pets清空、FishingRod计数0→1已有文件事实，尚非Back证明。同session之前2条observer-error/1录制失败事件保留，未知具体错误条件，不称整session零失败；有效录制区间无失败。下一同片recent测成长/死亡重召/Doom恢复、胜利Back8再EndTurn和退出重开，首次创建另按可选准备取样；008不变。
 
+C的008/r9已核报告/[封存摘要](../evidence/content-005/runtime-verification-r9.json)，未重计1038原事件：2recent、43结果/RNG、29匹配Back、3Doom胜利；2次胜利Back新loop续接中仅第一次随后末步再胜，第二次回更早位置。Stop9/5状态/manager恢复，Osty回调Known1→Remaining0、牌监听0/5→0，原片不变。用户明确5→Back4→再5重召无血条，C视觉失败。PM读恢复差异/原生源码确认Visible与alpha不变量；009保留节点可见/死时alpha0和原生死亡交互，后续复活由原生淡入，postfix只读核对。下一同片4↔5及相关死亡/退出短测，未获修复运行确认，不关闭C或首次创建。
+
 B的004/r3–r4已按样本验收：r3格式8片dfa22d43c501492786b19cacee1411c7录成9项，含暗球12→20、槽3→5、随机球流0→2与玻璃/冰ID5/6。r4的[封存摘要](../evidence/content-005/runtime-verification-r4.json)/报告经PM复核，未重计697原事件：2次recent、28结果/RNG、18匹配恢复、4真实球胜利；三次胜利Back8后以新信号/原生阶段续播，未重跑开场/回合开始。18球显示恢复及20次退场监听零余量；Stop9/1无Error/Outstanding，原context恢复，原片不变。满槽激发第3项只有首次前进原日志，跨该项Back/重做仅用户反馈，保留边界而不补旧矩阵。此证明限玩家回合末电球致胜，不代替C的Doom敌方回合结算。花粉核心旧bug/全遗物及冷文件恢复未覆盖；报告已随b095f5a保存。
 
 材料已交[内容覆盖清单](technical-notes/CONTENT-COVERAGE.md)和[契约/候选批次](technical-notes/BATTLE-COVERAGE-PLAN.md)：固定源码索引只作检索，不当覆盖率。知识恶魔、三鼠召援、产卵虫/卵、千足虫、实验体已定位，尚非Replay运行PASS。多人为MVP后首要大型方向，跨版本亦在MVP后；接管游戏不纳入当前MVP。
@@ -67,7 +69,7 @@ B的004/r3–r4已按样本验收：r3格式8片dfa22d43c501492786b19cacee1411c7
 ## 工程、恢复点与工作方式
 
 - 工程：[src/ReplayMod](../src/ReplayMod/README.md)；固定版本反编译C#留本地，日常直接查源码，IL仅在有歧义时核对。
-- 当前安装CONTENT-005/build-008，SHA256 `792B181B68CDB8267F3565EDC09B030352E019C63472623482FED3E5C3200024`，[收据](../evidence/content-005/preparation/build-008-e48f6522.json)，D工具箱样本已实测，C待测。007/006失败及对应pair/日志、004/002/旧PLAYBACK-003/008恢复pair保留；任务间编号勿混用。
+- 当前安装CONTENT-005/build-009，SHA256 `990FBAE08166BEA8E7C524A1A7375EE6AA6B745E2DD43B2779CE3184403A2F50`，[收据](../evidence/content-005/preparation/build-009-7c09473c.json)，C血条修复待测；显式兼容008原片、不改原文件。008/007/006等pair/日志保留，D验收仍属008/r7，不当009独立全回归。
 - [公开Git仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始证据、存档录像、备份、依赖及反编译缓存留本地，见[协作规则](REPOSITORY.md)。
 - 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续已知当前文件/候选pair补存见本包报告与各收据（已含C录制后），不冒充更新后的完整账号快照。未整包恢复；用户有新增进度时先备份，另一账号不纳入。
 - Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)，当前CONTENT-005；PM管状态/规划，不承担大规模源码实现。
