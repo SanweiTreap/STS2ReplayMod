@@ -196,3 +196,11 @@ Debug音效除按owner精确Stop外，007在原生Play前把撤销owner音量设
 下一把后续普通强怪/第4场与未完房间跨进程newattempt合并：Continue现有猎人局，沿普通地图进入下一Monster战斗（存档下一个普通为SeapunkNormal，不替用户选路/消耗RNG）；先打一张普通防御/打击、等该操作完整核对后正常保存退出并关游戏。新进程Continue应从同场原生开场重进，记本局第4场新attempt，不拼退出前步骤；再正常获胜领奖、存退并正常关游戏。预期新封存为第4场尝试1的中断前缀、尝试2的完整胜利，各自真实checkpoint/选择/资源/RNG。没有完整操作时只诊断无假片，此处指定一张稳定基础牌以明确取得前缀。
 
 这不是观看Seek/Back测试或要求一次战斗中间状态原生接续，SL回到房间前是原游戏保存语义；游戏本身重进/存盘不算观看隔离失败。先查实际文件/attempt/强普通/冷进房开场，再安排该新格式10片观看；D三鼠按后续自然停点用既有明确默认关闭准备接原生生成/跨生成Back，不重roll旧六片，不追加旧五角色矩阵。CONTENT-006仍未关闭。
+
+### 后续路径核对：休息点与精英战未生成录像，属于范围限制
+
+用户反馈“似乎并没有保存？因为下一场战斗是精英战”。核对当前原生存档：同局StartTime 1793362422，先经过休息点升级Neutralize，再进入row8/col6的ENCOUNTER.TERROR_EEL_ELITE；当前pre_finished_room为elite且is_pre_finished=true，玩家HP19。原生游戏进度已保存，latest录像仍为8515d8e32c9249deaeeea611bc6f974f，没有新封存。
+
+两次后续session 39343403e57f48f8bf198148b1e9df33、901d736d0f0a487b89e633a1cec778e8均有原生写盘/Continue身份观察，解析到校正后的同局3fd0f55b6eee4fdaab1167f30737e619；未见recording-room-checkpoint/start或clip-sealed、observer-error。源码入口明确只收MapPointType.Monster，精英房间保留_enabled以待下一受支持普通战斗，不生成尝试或假片。此为范围外路径观察，不判普通战斗录制失败，也不补判第4场/未完房间newattempt通过。
+
+前述SeapunkNormal是下一普通遭遇池，并非保证地图紧接着就是普通战斗；操作说明应强调普通怪物节点，不能让用户为此重打精英。007保持安装，不回滚进度、不扩精英支持、无新DLL或自行启动；游戏已退出。下一次实际进入首幕普通Monster房间时继续既定第4场/未完房间测试。
