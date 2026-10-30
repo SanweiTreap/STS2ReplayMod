@@ -63,6 +63,7 @@ internal static class Patches
         Patch(typeof(NCombatStartBanner),"_Ready",postfix:nameof(BannerReady),parameters:[]);
         Patch(typeof(NPlayerTurnBanner),"_Ready",postfix:nameof(BannerReady),parameters:[]);
         Patch(typeof(NPlayerTurnBanner),"Create",prefix:nameof(TurnBanner),parameters:[typeof(int)]);
+        Patch(typeof(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom),"OnCombatSetUp",postfix:nameof(OpeningRoomVisible),parameters:[typeof(CombatState)]);
         var turnState=AccessTools.TypeByName("MegaCrit.Sts2.Core.Combat.CombatTurnState")??throw new MissingMemberException("CombatTurnState");
         Patch(typeof(CombatManager),"EndCombatInternal",prefix:nameof(EndBefore),postfix:nameof(EndTask),parameters:[turnState]);
         Patch(typeof(NCombatUi),"OnCombatWon",prefix:nameof(RewardUi),parameters:[typeof(MegaCrit.Sts2.Core.Rooms.CombatRoom)]);
@@ -181,6 +182,7 @@ internal static class Patches
     private static void TurnAfter(bool __state,Task __result){if(__state){ActionMonitor.StartTurnTask=__result;ActionMonitor.Generation++;}}
     private static void BannerReady(Godot.Control __instance)=>Runtime.Guard(()=>NativeOpening.BannerReady(__instance));
     private static bool TurnBanner(int __0,ref NPlayerTurnBanner? __result)=>NativeOpening.TurnBanner(__0,ref __result);
+    private static void OpeningRoomVisible(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom __instance,CombatState __0)=>Runtime.Guard(()=>NativeSeek.OpeningRoomVisible(__instance,__0));
     private static void EndBefore(){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(BattleEnd.EndStarted);}
     private static void EndTask(Task __result){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(()=>BattleEnd.Track(__result));}
     private static bool RewardUi()

@@ -110,6 +110,16 @@ Stop在9/1，均Error null、Outstanding false、Running/Auto false、Pending0�
 
 主工程/DirectContracts构建0警告0错误；更新的7组开场请求政策（重入自然到选择后Fine）及14组D-131、4组完整路线、原A片生产读回通过，输出`evidence/content-005/checks/opening-fix/`。只证明请求政策/兼容，不代表场景重入PASS。007 DLL `639B6229CDD2BC482567587CF9E3406D0DC6E9EE7AB4E0DA17ABBCB66061C581`已安装，receipt `evidence/content-005/preparation/build-007-5c350abf.json`；006 pair/config/重要失败原始证据保留。安装前game0，原账号/固定native hash匹配，仅ReplayMod/modded1，Cloud沿本批关闭确认，无整档恢复。补存`CONTENT005-post-opening-r5-current-20261030-135321`已知当前51份文件/3,942,450 bytes，源/副本逐hash一致，receipt `evidence/content-005/post-opening-r5-current-files.json`，不遍历history/其他账号。下一工具箱原片验证Back直接回选牌→Whole0→首项/Back→选择中Stop和重开Auto完整胜利；D未验收，C仍随后接回。
 
+## r6 / 008修复：分开房间显露与选择就绪，保留原生可见入场
+
+007/session `952656ce399040e1a2fe0cfadd9678a7`最终92事件，一次工具箱参考打开。两次干净重入确实走原生选择，至选择Ready耗时1663/1652ms；第一次从0 Back，第二次在开场选择中Back再重入。随后Whole完成该次原生选择、Initial精确匹配回0；首开Whole也止0，首项丢药/普通Back0匹配。Stop0无Error，旧loop退休、原manager/所比较Continue进度恢复；用户正常退出，game0。92事件+原片/Godot共94数据文件封存`runtime/content-005-r6-20261030-140140`，摘要`evidence/content-005/runtime-verification-r6.json`；未取完整胜利/短重开，不当全流程PASS。
+
+用户进一步说明：Back应回到刚进入战斗房间，自动展示原生开场和工具箱窗口出现，当前像直接切页，质疑是否又在补动画。核源码：007从真实房间前checkpoint重入，但`_rebuildingOpening`保持到PrepareChoiceCore等待选择Ready后才清除，Ui遮罩因此覆盖原生入场；同一Covered还作为SilentRebuild，在NativeDisplayTrace.OneShot/Shake阻断声音/震动。不是直接套选择快照，却把真实过程隐藏了。PM与用户语义对齐：只遮必要重建，房间可展示即显露；选牌可接请求和Initial核对是更晚的独立条件。选牌中Back保持D-133整宿主/整开场，不增加选择页Seek。
+
+008用独立`_openingReentryPending`记录重入至选择Ready，`_rebuildingOpening`只控制必要遮罩/静默。当前代新NCombatRoom.OnCombatSetUp postfix，在原生Ui.Activate/SetUpBackground完成后立即解除遮罩并刷新；核当前room实例与当前CombatState归属，普通memento恢复/旧room不触发。此时原生StartCombatInternal/AfterRoomEntered/选择链仍自然进行，不人工挂gate、提前选择或重播动画。原生房间背景/战斗UI可见后，OneShot/Shake静默也同时解除，后续选择Ready仍控制用户提交，未改Hook顺序。增加`native-opening-room-revealed`与RoomAlreadyRevealed诊断，分开观察显露和选择就绪时间。真实效果/音效/时序仍待人工验证。
+
+主工程构建0警告0错误；原有请求政策未改，不新增动画模拟测试。008 DLL `792B181B68CDB8267F3565EDC09B030352E019C63472623482FED3E5C3200024`已安装，收据`evidence/content-005/preparation/build-008-e48f6522.json`。安装前已核游戏正常Quit/Steamworks shutdown及game0、固定本体/原账号、仅ReplayMod/modded1，Cloud沿本批关闭确认；51份当前文件另存`CONTENT005-post-opening-r6-current-20261030-140149`/3,942,450 bytes，逐hash读回，收据`evidence/content-005/post-opening-r6-current-files.json`，不遍历history/其他账号、不restore。007 pair/config及原始失败体验证据保留。下一同片确认Back后可见原生进入房间→工具箱开窗→等待，选择中Back也重放该流程，再Whole0/Stop；D视觉未验收，C仍随后接回。
+
 ## B：球机制源码增量，所测闭环通过
 
 用户进行002人工测试期间继续开发，安装保持002。下一增量源码使用格式8：`Mechanics.OrbQueue`明确保存容量、有序球条目、每个原生实例的Replay逻辑ID、未来身份计数、所有者、移除标记、当前被动/激发值及各球派生模型的私有标量字段。暗球`_evokeVal`、玻璃球`_passiveVal`不会只靠模型名或当前画面推断。已有格式1–7不新增字段、不修改原片，精确兼容002录制build。

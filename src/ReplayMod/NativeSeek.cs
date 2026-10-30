@@ -29,7 +29,7 @@ internal static class NativeSeek
     private static string _phase="";
     private static Func<Task> _loadRoom=null!,_resetRoom=null!;
     private static Navigation? _openingNavigation;
-    private static bool _rebuildingOpening;
+    private static bool _rebuildingOpening,_openingReentryPending;
     private static long _openingRequestedAt;
     internal static bool Opening {get;private set;}
     internal static bool OpeningWaiting=>Opening&&HasView&&_requests.ManualWaiting;
@@ -78,7 +78,7 @@ internal static class NativeSeek
     {
         Enabled=false;_generation++;Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;
         _loadRoom=null!;_resetRoom=null!;
-        Opening=false;_openingNavigation=null;_rebuildingOpening=false;_openingRequestedAt=0;
+        Opening=false;_openingNavigation=null;_rebuildingOpening=false;_openingReentryPending=false;_openingRequestedAt=0;
         _choiceReady=false;_choiceMoving=false;_retiring=false;_restoring=false;_stopping=false;_completed=0;Host=0;_seek=null;_phase="";_choiceOwner=0;
     }
     internal static void Control(string command)
@@ -104,10 +104,23 @@ internal static class NativeSeek
     }
     private static void OpeningReentryReady(string landing)
     {
-        if(!_rebuildingOpening)return;
-        _rebuildingOpening=false;Status();
+        if(!_openingReentryPending)return;
+        _openingReentryPending=false;Status();
         Runtime.Log("native-opening-reentry-ready",new{Landing=landing,Source="recorded-pre-room-checkpoint",InitialUsedAsBeforeState=false,Auto,Pending=_requests.Pending.Length,
+            RoomAlreadyRevealed=!_rebuildingOpening,
             RequestToReadyMilliseconds=_openingRequestedAt==0?(double?)null:Stopwatch.GetElapsedTime(_openingRequestedAt).TotalMilliseconds});
+    }
+    internal static void OpeningRoomVisible(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom room,CombatState state)
+    {
+        if(!Enabled||!Opening||!_rebuildingOpening||
+            !ReferenceEquals(room,MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom.Instance)||
+            !ReferenceEquals(state,CombatManager.Instance.DebugOnlyGetState()))return;
+        // Native setup has installed the room, its background and combat UI. Reveal
+        // it BEFORE native start/choice animations, independently of request readiness.
+        _rebuildingOpening=false;Ui.Refresh();
+        Runtime.Log("native-opening-room-revealed",new{Boundary="NCombatRoom.OnCombatSetUp",NativeOpeningStillRuns=true,
+            ChoiceReady=HasView,ExtraRequestGranted=false,NativeEffectsAllowed=!SilentRebuild,AnimationReplayedByMod=false,
+            RequestToRevealMilliseconds=_openingRequestedAt==0?(double?)null:Stopwatch.GetElapsedTime(_openingRequestedAt).TotalMilliseconds});
     }
     internal static async Task<bool> LoadOpening(Func<Task> loadRoom,Func<Task> resetRoom,PlaybackIntent? restart=null)
     {
@@ -149,7 +162,7 @@ internal static class NativeSeek
     private static void ResetOpeningState(PlaybackIntent intent)
     {
         Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;_choiceReady=false;_choiceMoving=false;_choiceOwner=0;
-        _completed=0;Host=0;_generation++;PlayerLoop.VictoryReached=false;Opening=true;_rebuildingOpening=true;
+        _completed=0;Host=0;_generation++;PlayerLoop.VictoryReached=false;Opening=true;_rebuildingOpening=true;_openingReentryPending=true;
         _requests.Restore(-1,intent);ChoiceTape.Play(_clip);
         Runtime.Log("native-opening-reenter",new{Generation=_generation,Source="recorded-pre-room-checkpoint",Auto=intent.Auto,
             DirectMemoryRestore=false,OldTasksRestored=false,ChoiceSeekPoints=false,VisitedRoomCheckpointsCleared=true});
