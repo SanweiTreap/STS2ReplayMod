@@ -244,3 +244,25 @@ A/C本次格式10后续普通群怪和短片独立观看、相关Back、Stop隔�
 12原事件+Godot/journal共14数据文件逐hash封存`runtime/content-006-r7-failed-20261031-010121`，摘要`runtime-verification-r7-failed.json`。本次读取当前原生current_run时发现已无该文件，随后逐个既有51路径确认仅current_run.save及其backup不存在；其余49文件3,850,593 bytes逐hash补存`CONTENT006-post-r7-failed-current-20261031-010121`，缺失明确进入snapshot/`post-r7-failed-current-files.json`，不伪造51文件全有或恢复旧文件。失败后的缺失本身保留为事实，未凭空判断正常保存或游戏进度未变。最初归档尝试在读取该缺失文件时停止，已有私有副本保留，随后以上14数据文件的完整归档读回成功；未改原文件。猎人r6恢复点继续保留，无自动restore/其他账号遍历/全账号新快照。
 
 游戏0下008已安装，DLL `AAC068D2477D6FEB9954D7C8FFAB6FB80074739DB60E2E572F083041E30C9CCD`，manifest仍`69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-008-97365a21.json`。007 pair/config及此前失败/原片保留，Cloud沿当前批次已确认关闭，无自行启动/换账号/恢复旧存档。下一重新启用默认关闭三鼠准备、开新铁甲A0，先确认首战可进入；能进入则继续此前一张Defend+结算后保存退出、完整关到桌面、手动新进程Continue、等原生召援并击杀新鼠/胜利封存退出。未完跨进程与D仍Pending，本包未完成。
+
+## r8：008新局与真实召援录制通过，未完跨进程实际执行但自动分组失败
+
+用户“测完了”。008/session `99eb4c9b54b34e619f0a3b90bad7d100`17事件与`3171386e11484889a57e78b62b75dd07`215事件，合计232。PID119392/Started01:06:53→PID119952/Started01:13:34，原始两份Godot保留正常退出/重启事实；不是同进程菜单Continue。新局仅一次test-encounter-prepared，DeckOwnersAndRunRegistrationValid true，成功进入首普通三鼠，007两次GenerateMap失败的008修复在此原生样本通过。重启后无再次准备事件，不重复注入。
+
+第一次原片`e964ac3aeed84826b80d6b193e326e93`，格式10，原Run bb6f010bd4ea47ffadd36b78ea243d98，第1场/尝试1，实际Preparation为三鼠准备，打一张Defend后中断，1操作/0选择，175,384 bytes，SHA `1DB9755EDAC3D61FD373259BABF356365FB2E481B4A8C9B5AB72ED797C1A6E47`。重启后原片`660995ce527442be9adf1895ddce7d8a`，格式10/50操作/0选择，胜利自动封存，2,677,973 bytes，SHA `9FA826B86414B67D3D9BC08F8E42440F44761D38ED366E87F15140953974B26B`。后片Preparation null是实际代码未在Continue设置准备模式，来源由前进程prepared事件、相同checkpoint及已序列化牌组证明，不伪称普通无准备局或再次注入。两片原生生产读回ExactPayloadMatched，Initial原字符串完全相同，第二片独立从Sequence1重录，没有续接退出前操作。
+
+真实单位轨迹：初始ID1/2/3；第4项移除1、第12项移除3，13 EndTurn原生召援ID4，当前有序[2,4]/Next5；15项移除2。23 EndTurn召援ID5后有序[5,4]/Next6，展示同模型新对象会插到前面；32 EndTurn召援ID6后[5,6]/Next7。原片21/22/29以稳定ID4为目标并在29击杀，30/31/38以ID5为目标并在38击杀，39/43/50以ID6为目标、最后BodySlam真实胜利。不是静态初始三怪替代召援，也没有按敌方索引重标已有ID；一般敌方生成的录制/目标/AI/RNG文件事实已取得，跨生成显示/Back/再召/后点恢复仍未观看，不补判D通过。
+
+本次未完跨进程自动分组明确FAIL：第一次实际写盘key88EF97…，菜单load及新进程load均3849FF…；新进程FromNativeLoadSnapshot true，Loaded/Setup同3849FF、ChangedBeforeSetup false，但MatchedObservedSave false，原始另起Run19eddce1b08e455693ff722c115d4490的第1场/尝试1，Entry continue-unmatched。不同PID证明跨进程路径实际执行，并不证明身份闭环。检查两个checkpoint全部字段差异只有十个`acts[0].saved_map.points[*].can_modify`从缺省到true（除原生时间/重载字段外）；固定本体SerializableMapPoint明示CanBeModified初始化true、写出WhenWritingDefault省略false。原始文件指纹和成功原生读入DTO再序列化的指纹会不同，旧观察只绑定前者。该地图字段有实际语义，不能简单从SaveKey忽略或宣称完全等价；不据本次发现反推旧001错组的唯一原因。
+
+### 009：登记成功保存的原生读入表示，显式修正本次同房间历史归属
+
+NativeSaved继续先await真实原生SaveRun成功，捕获原runId、读实际store内容并登记raw key，再调用本体JsonSerializationUtility.FromJson<SerializableRun>只构造保存DTO、验证成功后ToJson登记实际原生读入表示。没有创建RunState/执行业务/改变正常save、没有删掉can_modify或按seed/坐标猜同局；独立新局的精确碰撞仍按既有ambiguous拒绝。日志增加NativeLoadRepresentationKey/Observed以便下次核raw→load真实闭环，原native failure/cancel和观察Guard保持。009显式追加008 hash兼容，已有50步片可直接观看。新保存Hook路径及自动跨进程匹配尚待实际运行。
+
+新增显式CorrectReentry只供本次证据修正，不由Continue自动调用：限定alias仅一房间且与canonical房间重叠、已有正尝试计数、无嵌套纠正；记录可选AttemptOffset，显示同一Battle及累加Attempt，canonical继承未来计数，幂等重调不再累加。旧CorrectContinuation仍拒绝重叠房间。新增3组相关合同与旧10组合计13通过：raw/read表征不同仍需明确登记且未观察到的游戏字段变化拒绝、同房间显式修正及重载后attempt3/下一场2、不同房间与多房alias拒绝。它们不执行本体JsonSerializer/Harmony或原生游戏，不代替新Hook实测。
+
+原journal及两片先完整封存，再用已编译纯类型对Replay自有journal执行有证据的19edd…→bb6f…、BattleOffset0/AttemptOffset1修正；列表两片应同局第1场尝试1/2，原片Battle.RunId/Attempt/Entry仍是原始FAIL，不改rawclip/catalog/native save。`run-reentry-correction-r8.json`记录前SHA `8B668C2F3BB39A503F631E50042B2A2705D15B515E9602C1B7A4877EA5B45206`，后`4A3C2AF3D4922FB4558ED8540A2CBA99C755177177E62F03C0A308AC7C6F87A1`，两原片及51个已知正常文件hash均未变。该人工证据修正不是自动分组通过。
+
+232原事件+两片/原journal/两进程Godot共237输入数据文件逐hash封存`runtime/content-006-r8-20261031-012229`，另加纠正后journal读回为238数据文件，摘要`runtime-verification-r8.json`保留RawInputArchiveFiles237；引擎退出诊断保留，observer-error0不掩盖上述身份FAIL。当前51文件4,057,734 bytes补存`CONTENT006-post-r8-current-20261031-012229`，原猎人r6恢复点及r7失败缺失事实保留，无restore/其他账号遍历/全账号新快照。原片真实生产读取/路线终点/原字节不变检查通过，见`checks/native-load-representation/rats-production-read.json`。
+
+009主工程/DirectContracts构建均0警告错误、13合同通过。游戏0下已安装，DLL `163F63D7A8D9042AC9A17AA3F05C4C45CA52AADC12898FE704723CE36A89F0B7`，manifest不变，收据`preparation/build-009-4f319035.json`；008及此前pair/config/失败原片保留，Cloud沿当前批次确认，无自行运行。下一只观看现成50步片：`>>`到13，Back12后重做13反复两次，观察新鼠模型/血条/意图/旧成员；到14后Seek13核已访问召援后点，再Auto胜利（23/32的后两次召援及ID目标也全量核），Back49重做50，Stop正常退出。无需重录这50步。修复后未完跨进程自动分组仍需后续极短原生保存/重启样本，不重跑完整战斗；本包不关闭。

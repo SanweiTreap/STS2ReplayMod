@@ -64,7 +64,15 @@ internal static class Recorder
                 var path=(string)AccessTools.Property(typeof(RunSaveManager),"CurrentRunSavePath").GetValue(manager)!;
                 var json=store.ReadFile(path)??throw new InvalidDataException("native-saved-run-readback-missing");
                 Runtime.Journal.ObserveFor(runId,json);
+                // Native DTO defaults can change omitted fields on load (e.g. map
+                // CanBeModified=false is omitted, then defaults to true). Observe
+                // that exact native read representation, without ignoring fields.
+                var loaded=JsonSerializationUtility.FromJson<SerializableRun>(json);
+                Codec.Require(loaded.Success&&loaded.SaveData is not null,"native-saved-run-load-representation-failed");
+                var loadJson=JsonSerializationUtility.ToJson(loaded.SaveData!);
+                Runtime.Journal.ObserveFor(runId,loadJson);
                 Runtime.Log("recording-native-save-written",new{RunId=runId,SaveKey=RecordingJournal.SaveKey(json),
+                    NativeLoadRepresentationKey=RecordingJournal.SaveKey(loadJson),NativeLoadRepresentationObserved=true,
                     ExactStoredContent=true,NativeSaveSucceeded=true,OriginalSaveWrittenByReplay=false});
             });
         }
