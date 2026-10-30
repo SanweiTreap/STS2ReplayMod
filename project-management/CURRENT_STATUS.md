@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。**CONTENT-005进行中**：当前build-002，r1旧储君原生播放/胜利Back通过，新格式7片已录制封存；新片回放尚待验证，A段不关闭。故障机器人与Necrobinder首版代码/离线检查已接入，尚未安装/实测。PLAYBACK-003所测范围DONE_WITH_LIMITATIONS及旧008可用pair保留，007/r8与008离线小改的原证据边界不变。
+更新：2026-10-30。**CONTENT-005进行中**：A段002/r1–r2按所测闭环完成，当前已安装新角色候选build-004；球/Osty/Doom代码及离线检查已接入，尚无两角色游戏验证。先机器人后Necrobinder分段实测；开场横幅/工具箱的体验细化另与PM讨论，现行语义保持。PLAYBACK-003原验收与旧008恢复pair保留。
 
 ## 玩家现在能用到什么
 
@@ -42,18 +42,20 @@ r6/r7的恢复后选牌失败保留：PM已核完整异常栈及固定源码，�
 
 仍限当前单人A0首战，分段交付；两角色各少量代表录像走录制/普通入口/原生前进/关键Back续播/退出，权威文件恢复缺口如实区分。D-131控制保持，D-092允许同包修复、备份安装并直接请求用户人工测试；不另建前置调查或逐步审批。上一轮只讨论的限制已由本次“开始”指令解除，未创建新对话。
 
-A的002/r1：PM核[报告](investigation-reports/CONTENT-005-report.md)与[运行摘要](../evidence/content-005/runtime-verification-r1.json)，未重复构建/重计278原事件。旧储君参考入口1次完整13项、两次胜利Back12再做，共15结果/RNG、3真实胜利、2匹配恢复；Stop13无Error/Outstanding、原manager/所比较Continue进度恢复、监听Remaining0。新格式7片76f55fed77ab448b9ff318b9d50eff98真实录成11项/2选择并胜利封存/生产读回；首项是Slot2丢药，结果仅两处药水槽位置空，工具箱人工初始选择及星星/王剑复制/跨牌堆锻造事实已有文件证据。本轮没打开新片，不把旧参考入口当新recent闭环；下一直接用新片验证初始选择衔接、丢药Back/再丢、资源恢复、Stop短重开，不重录。摘要/报告提交1b7b31b，安装002不变。
+A的002/r1：PM核[报告](investigation-reports/CONTENT-005-report.md)与[运行摘要](../evidence/content-005/runtime-verification-r1.json)，未重复构建/重计278原事件。旧储君参考入口完整13项、两次胜利Back12再做，15结果/RNG、3胜利、2匹配恢复；Stop13无Error/Outstanding、原context恢复、监听Remaining0。新格式7片76f55fed77ab448b9ff318b9d50eff98录成11项/2选择并胜利封存/生产读回；首项Slot2丢药仅令两处药水槽位置空，工具箱初始选择及星星/王剑复制/跨牌堆锻造事实已有文件证据。r1未打开新片，后续r2补此闭环，不将旧参考入口冒充新recent证明。r1摘要/报告提交1b7b31b。
 
-B/C首版源码已接入，安装仍002：B球字段/逻辑ID/分配计数/内存恢复与原生HUD重建提交ccbbcde；C的Osty成员/主人/死亡留场重召、场景/订阅及Doom致死后新循环续接提交1235aaa。PM已读更新报告与续接代码，尚未运行或验收这些机制；离线模型和文件合同不代替原生反射、节点、订阅及致死Back验证，相关权威冷文件恢复未实现。A新片观看待反馈，B/C不用另走审批；细节随本包报告维护。
+A的r2已按所测范围验收：PM读真实用户“测试完毕，符合预期”、报告和[封存摘要](../evidence/content-005/runtime-verification-r2.json)，未重计276原事件。两次recent、16结果/RNG、4匹配Back（0/0/9/8）、1真实胜利，丢药与锻造恢复后原生再做通过；Stop11/1无Error/Outstanding、计划清空、原context恢复，牌堆监听0/5→0。两次开场原生选择自动完成后初态匹配。用户希望细化第一回合横幅/工具箱流程：当前选择在加载期间自动完成，首次可控0在选择之后；PM已读相关源码并询问具体表现/期望，尚未定新规则，不重判此次闭环失败，不阻塞新角色。
+
+B/C首版源码B提交ccbbcde、C提交1235aaa，现随004发测（记录/准备3a7f711）。球身份/显示及Osty成员/主人/死亡重召/订阅、Doom致死后新循环续接已编译/离线检查；PM读报告与续接代码，原生反射、节点、订阅及致死Back仍未实测，权威冷文件恢复未实现。003曾安装但未发测，004仅调整准备动作提示以避免提前胜利漏掉球机制。新角色按既有授权分段测试，不追加A矩阵。
 
 材料已交[内容覆盖清单](technical-notes/CONTENT-COVERAGE.md)和[契约/候选批次](technical-notes/BATTLE-COVERAGE-PLAN.md)：固定源码索引只作检索，不当覆盖率。知识恶魔、三鼠召援、产卵虫/卵、千足虫、实验体已定位，尚非Replay运行PASS。多人为MVP后首要大型方向，跨版本亦在MVP后；接管游戏不纳入当前MVP。
 
 ## 工程、恢复点与工作方式
 
 - 工程：[src/ReplayMod](../src/ReplayMod/README.md)；固定版本反编译C#留本地，日常直接查源码，IL仅在有歧义时核对。
-- 当前安装CONTENT-005/build-002，SHA256 `CEBCF009567E850B9C51974E66046413B80C21E0A97B6A460E3BEEF16FB07C2D`，[收据](../evidence/content-005/preparation/build-002-ccc8da9a.json)，待人工实测。旧PLAYBACK-003/008与本包未发用户001 pair保留；PLAYBACK-003/004仍只是未安装D-130草稿，勿混用build编号。
+- 当前安装CONTENT-005/build-004，SHA256 `3926F6B5FA74DB355EBD9C19C1A054BA09462A50EA6843E9E1CA810E2487315E`，[收据](../evidence/content-005/preparation/build-004-f655c640.json)，新角色待实测。旧002/008可用pair及未发用户001/003保留；PLAYBACK-003/004是另一个任务的未安装D-130草稿，勿混用编号。
 - [公开Git仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始证据、存档录像、备份、依赖及反编译缓存留本地，见[协作规则](REPOSITORY.md)。
-- 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续当前文件补存/候选pair见各报告，不冒充更新后的完整账号快照。未整包恢复；用户有新增进度时先备份，另一账号不纳入。
+- 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，A后51当前文件/候选pair已补存，见本包报告，不冒充更新后的完整账号快照。未整包恢复；用户有新增进度时先备份，另一账号不纳入。
 - Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)，当前CONTENT-005；PM管状态/规划，不承担大规模源码实现。
 - D-092有效：备份后允许较大胆的mod/hook与同包普通修复，不为每个失败退役代码或另开调查/审批。默认modded1；unmodded1不再禁止读取/复制，备份权限不降低成品Continue隔离目标。
 - 游戏由用户手动启动/操作，不用Computer Use、替代GUI自动化或自行启动headless；换DLL前退出，Cloud由用户现场确认，不自动改。保留可用安装，不自动卸载；见[WORKFLOW](WORKFLOW.md)/[TEST_PROTOCOL](TEST_PROTOCOL.md)。
