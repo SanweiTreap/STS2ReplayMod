@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-10-30。**当前任务CONTENT-006（D-134）**：用户要求下一批可以多做一点，已授权持续多场普通战斗录制、Continue续录、最小战斗列表与三鼠召援，交现有Implementation同工程推进；尚无本包代码/运行结论。CONTENT-005按所测范围DONE_WITH_LIMITATIONS，保留安装011及既有结果，不追加旧矩阵。
+更新：2026-10-30。**CONTENT-006进行中（D-134）**：A/B/C首个候选build-001已实现、离线检查通过并安装，三场连续录制/Continue/列表的原生实测Pending；D三鼠召援尚未接通。本包未完成。CONTENT-005按所测范围DONE_WITH_LIMITATIONS，011可用pair与既有结果保留，不追加旧矩阵。
 
 ## 玩家现在能用到什么
 
@@ -44,15 +44,20 @@ r14的14次原生结果/RNG包含Retiring6（5次被撤销EndTurn的自然收尾
 
 ## 当前推进：CONTENT-006
 
-用户已授权扩大下一批，签发[CONTENT-006](handoffs/CONTENT-006.md)：首幕A0普通战斗持续录制（含后续强怪/群怪）、正常奖励后的状态承接、Continue后的录制、按局/楼层选择旧战斗独立观看，以及三鼠敌方召援的原生前进/跨生成Back。沿同一工程分段交付，普通相关bug同包修，无新INV/逐步审批。最小实测争取一段三场游玩合并奖励变化/新进程Continue/召援/较早较晚回看；游戏仍由用户操作。当前仍安装011，新功能尚未实现或验证。
+用户已授权[CONTENT-006](handoffs/CONTENT-006.md)：首幕A0普通战斗持续录制（含后续强怪/群怪）、正常奖励后的状态承接、Continue后的录制、按局/楼层选择旧战斗独立观看，以及三鼠敌方召援的原生前进/跨生成Back。同工程分段交付，普通相关bug同包修，无新INV/逐步审批。
+
+001实现格式9的逐场/attempt元数据、Replay自有存档指纹journal分组、独立checkpoint及轻量战斗列表；正常旅行与Continue的saveGame:false入口均已接入。5组真实journal/Codec/library合同、7组开场政策及旧Osty生产读回通过，未运行游戏生命周期/节点，不能据此称多场/Continue/隔离通过。PM核源码、报告与安装收据，未重复构建/未读私人存档。[本包报告](investigation-reports/CONTENT-006-report.md)。
+
+Implementation已请求一段正常三场游玩：前两场领奖，第二场后回地图存退并退出进程，新启动Continue完成第三场后退出；先核实际文件/奖励承接/分组，再安排较早/较晚列表回看。无需PM另批或重复一轮。D目前只定位TwoTailedRatsNormal/TwoTailedRat，未扩一般敌方roster；如本轮遇召援按未完成机制同包处理、保留素材，不把用户正常游玩算协议错误或偷偷排除此目标。
 
 这比原“两场”候选更完整，但不等于整局地图/奖励语义回放、跨房间Seek、Boss/孵化/复活/跨幕、其他难度或通用冷恢复。Continue重进须有真实房间前起点并标newattempt，不能拼未完操作；至少验证下一受支持战斗续录。实际方案/覆盖待Implementation验证，任务细节以工作包为准。
 
 ## 工程、恢复点与协作
 
-- 当前安装CONTENT-005/build-011，SHA256 `E222994401F1B3BD89465E540645031BF7214C531EE05F5A81F9D40FD7F321A9`，[安装收据](../evidence/content-005/preparation/build-011-ef2b7c26.json)；009可用pair、010及更早失败/原片保留，任务间build编号勿混。
-- 工程[src/ReplayMod](../src/ReplayMod/README.md)，本包报告提交2618324。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常直接查源码，有歧义再查IL。
+- 当前安装CONTENT-006/build-001，SHA256 `061EC2212B4E0A6B30D7153FA6FCBD8BC89E1D887935EE1823128BF46F572593`，[收据](../evidence/content-006/preparation/build-001-61568ba9.json)核pair/仅ReplayMod/modded1/game0；这不是原生运行证明。CONTENT-005/011可用pair及旧片/失败保留，任务间build编号勿混。
+- 工程[src/ReplayMod](../src/ReplayMod/README.md)，CONTENT-006代码/首报0990558。固定反编译C#：`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`，日常直接查源码，有歧义再查IL。
 - 完整恢复点沿`C:/Projects/STS2ReplayMod-local/backups/CONTENT002-20261027-171201-97855f350a/`，后续当前文件/安装pair补存见报告/收据，不称更新后的完整账号快照。未整包恢复，用户有新进度先补备份，另一账号不纳入。
+- 本批用户向Implementation确认Cloud关闭、无新进度；001前沿原恢复点补存已知51文件/3,953,223 bytes，报告及`evidence/content-006/pre-abc-current-files.json`记录。PM未为重复核验重读存档；不称新增完整账号快照或云端保证。
 - [公开仓库](https://github.com/SanweiTreap/STS2ReplayMod)保存源码/文档；原始录像/日志/备份、依赖和游戏反编译缓存仅留本地。Git仅一个index写入者，提交精确路径，不reset/clean/force。[协作规则](REPOSITORY.md)。
 - Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)接续CONTENT-006；PM提交工作包后移交Git index窗口，维护状态/规划/验收，不承担大规模源码实现；不新建用户对话或覆盖模型。
 - D-092备份后允许同包查源码/hook/普通修复/安装和请求人工短测；默认modded1，unmodded1不再是禁止读取复制的禁区。实验权限不降低成品Continue隔离目标，不恢复逐步审批。

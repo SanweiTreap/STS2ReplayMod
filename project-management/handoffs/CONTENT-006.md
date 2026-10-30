@@ -1,6 +1,6 @@
 # CONTENT-006：持续录制多场战斗、Continue与召援
 
-2026-10-30，D-134。状态：AUTHORIZED。用户在CONTENT-005收束后要求安排下一批，并希望可以多做一点。交现有Implementation在`src/ReplayMod`同工程推进，不新建用户对话或实验项目。普通相关修复、重构、格式调整、备份安装和人工短测沿D-092自主，无逐步PM审批。
+2026-10-30，D-134。状态：IN_PROGRESS。A/B/C首个001候选已实现/离线通过/安装，真实多场/Continue/列表观看仍Pending；D三鼠召援尚未接通，本包未完成。见[报告](../investigation-reports/CONTENT-006-report.md)。用户在CONTENT-005收束后要求安排下一批，并希望可以多做一点。交现有Implementation在`src/ReplayMod`同工程推进，不新建用户对话或实验项目。普通相关修复、重构、格式调整、备份安装和人工短测沿D-092自主，无逐步PM审批。
 
 ## 交付给玩家的增量
 
