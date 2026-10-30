@@ -61,6 +61,7 @@ internal static class ChoiceTape
     internal static void Record(){Clear();_record=true;_started=RecordingClock.Active?RecordingClock.Origin:Stopwatch.GetTimestamp();}
     internal static void Play(Clip clip){Clear();_watch=clip.Format>=4;_play=clip.Choices??[];_started=Stopwatch.GetTimestamp();}
     internal static ChoiceFrame[] Snapshot(){Codec.Require(!Waiting,"choice-still-in-progress");return Recorded.ToArray();}
+    internal static ChoiceFrame[] CompletedPrefix(int operations)=>Recorded.Where(f=>f.Boundary<=operations).ToArray();
     internal static void Boundary(int boundary){Codec.Require(!Waiting,"choice-boundary-in-flight");_boundary=boundary;}
     internal static void AssertBoundary(int boundary)
     {

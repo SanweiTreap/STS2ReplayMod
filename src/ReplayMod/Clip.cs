@@ -23,7 +23,8 @@ public sealed record Clip(int Format,string Id,DateTimeOffset CreatedUtc,string 
     [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] string? Preparation=null,
     [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] string? Authority=null,
     [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] ChoiceFrame[]? Choices=null,
-    [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] RecordingTiming? Timing=null);
+    [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] RecordingTiming? Timing=null,
+    [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] BattleRecording? Battle=null);
 public sealed record ClipEnvelope(string SHA256,Clip Data);
 
 public static class Codec
@@ -35,9 +36,9 @@ public static class Codec
     public const int MaxOperations=256;
     public static void Validate(Clip clip,string game,string mod,string scope,params string[] compatibleRecordedMods)
     {
-        Require(clip.Format is >=1 and <=8&&Regex.IsMatch(clip.Id,"^[a-f0-9]{32}$"),"unsupported-format-or-id");
+        Require(clip.Format is >=1 and <=9&&Regex.IsMatch(clip.Id,"^[a-f0-9]{32}$"),"unsupported-format-or-id");
         Require(clip.GameHash==game&&(clip.ModHash==mod||clip.ModHash is not null&&compatibleRecordedMods.Contains(clip.ModHash,StringComparer.Ordinal))&&clip.Scope==scope&&clip.Mods.SequenceEqual(new[]{"ReplayMod:0.1.0"}),"different-build-or-profile-or-mods");
-        Require((clip.Character=="CHARACTER.IRONCLAD"||clip.Format>=4&&clip.Character=="CHARACTER.SILENT"||clip.Format>=5&&clip.Character=="CHARACTER.REGENT"||clip.Format>=8&&clip.Character is "CHARACTER.DEFECT" or "CHARACTER.NECROBINDER")&&clip.Row==1&&clip.Col>=0&&clip.Encounter.Length>0&&
+        Require((clip.Character=="CHARACTER.IRONCLAD"||clip.Format>=4&&clip.Character=="CHARACTER.SILENT"||clip.Format>=5&&clip.Character=="CHARACTER.REGENT"||clip.Format>=8&&clip.Character is "CHARACTER.DEFECT" or "CHARACTER.NECROBINDER")&&(clip.Format>=9?clip.Row>=1:clip.Row==1)&&clip.Col>=0&&clip.Encounter.Length>0&&
             clip.Checkpoint.Length>0&&clip.Initial.Length>0,"unsupported-scene");
         Require(clip.Operations.Length>0&&clip.Operations.Length<=(clip.Format==1?32:MaxOperations),"clip-operation-count");
         Require(clip.Format>=4?clip.Choices is not null:clip.Choices is null,"choice-format");
@@ -48,8 +49,11 @@ public static class Codec
         Require(clip.Authority is null||clip.Character=="CHARACTER.IRONCLAD"&&clip.Format==3&&clip.Authority=="STATE001-first-Defend-v1"&&
             clip.Operations[0] is {Kind:OperationKind.Card,Card:"CARD.DEFEND_IRONCLAD",Turn:1,Victory:false,CardState.Upgrade:0},"unsupported-authority-point");
         var victory=clip.Operations[^1].Victory;
+        Require(clip.Format>=9?clip.Battle is {Battle:>0,Attempt:>0,Act:0,Floor:>0,RunStartTime:>0} battle&&
+            Regex.IsMatch(battle.RunId,"^[a-f0-9]{32}$")&&battle.Floor==clip.Row+1&&
+            battle.Entry is "map" or "continue-known" or "continue-unmatched"&&battle.Completion==(victory?"victory":"interrupted"):clip.Battle is null,"battle-recording-metadata");
         Require(clip.Format!=1||!clip.Operations.Any(o=>o.Victory),"legacy-victory-marker");
-        Require(victory||clip.Operations.Any(o=>o.Kind==OperationKind.EndTurn),"incomplete-short-clip");
+        Require(clip.Format>=9||victory||clip.Operations.Any(o=>o.Kind==OperationKind.EndTurn),"incomplete-short-clip");
         for(var i=0;i<clip.Operations.Length;i++)
         {
             var op=clip.Operations[i];Require(op.Sequence==i+1&&op.Turn>0&&op.After.Length>0&&Enum.IsDefined(op.Kind),"operation-sequence");
