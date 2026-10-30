@@ -47,7 +47,10 @@ internal static class OpeningContracts
             var p=New();p.ToggleAuto();p.Add(ForwardKind.Whole);p.Add(ForwardKind.Whole);p.Acquire();
             p.Restore(-1,PlaybackIntent.ForNavigation(p.Auto,back:true));
             Need(p.ManualWaiting&&!p.Auto&&p.Active is null&&p.Pending.Length==0&&!p.Acquire()&&p.Stage==0,"back-retained-opening-plans");
-            var fine=p.Add(ForwardKind.Fine)!;Need(fine.Target==Open(p)&&p.Acquire(),"reentry-cannot-fine-to-choice");
+            // Reentry runs native initialization without spending a request. The
+            // native choice opens naturally before a viewer can request Fine.
+            p.Arrive(Open(p));Need(p.ManualWaiting&&!p.Acquire(),"reentry-choice-not-manual-wait");
+            var fine=p.Add(ForwardKind.Fine)!;Need(fine.Target.Host==0&&fine.Target.Stage>Open(p).Stage&&p.Acquire(),"reentry-fine-did-not-advance-decision");
         });
         Test("no-choice-natural-open-still-arrives-zero-and-seek-preserves-auto",()=>
         {

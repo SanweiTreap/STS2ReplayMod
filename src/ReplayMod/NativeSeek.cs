@@ -29,15 +29,15 @@ internal static class NativeSeek
     private static string _phase="";
     private static Func<Task> _loadRoom=null!,_resetRoom=null!;
     private static Navigation? _openingNavigation;
-    private static bool _rebuildingOpening,_atOpeningStart;
+    private static bool _rebuildingOpening;
     private static long _openingRequestedAt;
     internal static bool Opening {get;private set;}
-    internal static bool OpeningWaiting=>Opening&&(NativeOpening.Waiting||HasView&&_requests.ManualWaiting);
+    internal static bool OpeningWaiting=>Opening&&HasView&&_requests.ManualWaiting;
     internal static bool Enabled {get;private set;}
     internal static int Host {get;private set;}
     internal static int Generation=>_generation;
     internal static bool HasView=>_choice is {Closed:false,Cancelled:false}&&_choiceReady&&!_choiceMoving;
-    internal static bool Ready=>Enabled&&!_stopping&&!_restoring&&(Opening?HasView||NativeOpening.Waiting:!InFlight||HasView);
+    internal static bool Ready=>Enabled&&!_stopping&&!_restoring&&(Opening?HasView:!InFlight||HasView);
     internal static bool InFlight=>Host>_completed;
     private static bool Quiescent=>!ActionMonitor.Outstanding&&(LiveState.Playable||PlayerLoop.VictoryReached&&BattleEnd.Ready);
     internal static bool CanRestore=>Enabled&&_restoring&&Quiescent;
@@ -46,7 +46,7 @@ internal static class NativeSeek
     internal static bool CanStep=>Enabled&&(!PlayerLoop.Loading||Opening&&Ready)&&!_stopping&&!_restoring&&_seek is null&&!Finished&&_requests.Stage<_requests.Route[^1].Stage;
     internal static bool CanFine=>CanStep&&Ready&&_requests.CanRequestFine;
     internal static bool CanBack=>Enabled&&!_stopping&&!_restoring&&_seek is null&&_openingNavigation is null&&
-        (Opening?!_atOpeningStart&&(HasView||_requests.Stage>0):InFlight||_completed>=0);
+        (Opening?HasView:InFlight||_completed>=0);
     internal static bool Stopping=>_stopping;
     internal static bool Restoring=>_restoring;
     internal static bool Running=>Enabled&&_requests.Running;
@@ -78,7 +78,7 @@ internal static class NativeSeek
     {
         Enabled=false;_generation++;Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;
         _loadRoom=null!;_resetRoom=null!;
-        NativeOpening.Cancel();Opening=false;_openingNavigation=null;_rebuildingOpening=false;_atOpeningStart=false;_openingRequestedAt=0;
+        Opening=false;_openingNavigation=null;_rebuildingOpening=false;_openingRequestedAt=0;
         _choiceReady=false;_choiceMoving=false;_retiring=false;_restoring=false;_stopping=false;_completed=0;Host=0;_seek=null;_phase="";_choiceOwner=0;
     }
     internal static void Control(string command)
@@ -102,10 +102,11 @@ internal static class NativeSeek
         if(Opening&&host==-1)_openingNavigation=new(host,intent,Back:!preserveIntent);else _seek=new(host,intent,Back:!preserveIntent);
         Runtime.Log("operation-seek-request",new{From=_completed,Target=host,ChoicesAddressable=false,IntendedRunning=intent.Running,IntendedAuto=intent.Auto,Back=!preserveIntent});
     }
-    internal static void OpeningStartReady()
+    private static void OpeningReentryReady(string landing)
     {
-        _atOpeningStart=true;_rebuildingOpening=false;_phase="等待重新执行原生开场";Status();
-        Runtime.Log("native-opening-start-ready",new{Source="recorded-pre-room-checkpoint",InitialUsedAsBeforeState=false,Auto,Pending=_requests.Pending.Length,
+        if(!_rebuildingOpening)return;
+        _rebuildingOpening=false;Status();
+        Runtime.Log("native-opening-reentry-ready",new{Landing=landing,Source="recorded-pre-room-checkpoint",InitialUsedAsBeforeState=false,Auto,Pending=_requests.Pending.Length,
             RequestToReadyMilliseconds=_openingRequestedAt==0?(double?)null:Stopwatch.GetElapsedTime(_openingRequestedAt).TotalMilliseconds});
     }
     internal static async Task<bool> LoadOpening(Func<Task> loadRoom,Func<Task> resetRoom,PlaybackIntent? restart=null)
@@ -121,12 +122,8 @@ internal static class NativeSeek
                 if(_choice?.Driver is {IsFaulted:true} failed)await failed;
                 // Asset/scene loading is not cancellable. Let it reach a native wait
                 // before dismantling the room; never let a late loader enter a new run.
-                if(_stopping&&(HasView||NativeOpening.Waiting))break;
-                if(_requests.Acquire())
-                {
-                    if(HasView)await AdvanceChoice();
-                    else if(NativeOpening.Waiting){_atOpeningStart=false;NativeOpening.Release();}
-                }
+                if(_stopping&&HasView)break;
+                if(_requests.Acquire()&&HasView)await AdvanceChoice();
                 await Runtime.NextFrame();
             }
             if(_stopping||_openingNavigation is not null)
@@ -138,7 +135,7 @@ internal static class NativeSeek
                 if(_stopping)return false;
                 ResetOpeningState(navigation!.Intent);continue;
             }
-            await load;Opening=false;_atOpeningStart=false;_rebuildingOpening=false;
+            await load;OpeningReentryReady("playable-zero");Opening=false;
             Arrive(_requests.Route.Single(p=>p.Complete&&p.Host==0));
             Runtime.Log("native-opening-completed",new{ChoiceCursor=ChoiceTape.Position,InitialMatched=true,Operation1Started=false,
                 NativeOrder=true,Auto,Request=_requests.Active,Pending=_requests.Pending.Length});return true;
@@ -152,8 +149,8 @@ internal static class NativeSeek
     private static void ResetOpeningState(PlaybackIntent intent)
     {
         Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;_choiceReady=false;_choiceMoving=false;_choiceOwner=0;
-        _completed=0;Host=0;_generation++;PlayerLoop.VictoryReached=false;Opening=true;_atOpeningStart=false;_rebuildingOpening=true;
-        _requests.Restore(-1,intent);ChoiceTape.Play(_clip);NativeOpening.Arm();
+        _completed=0;Host=0;_generation++;PlayerLoop.VictoryReached=false;Opening=true;_rebuildingOpening=true;
+        _requests.Restore(-1,intent);ChoiceTape.Play(_clip);
         Runtime.Log("native-opening-reenter",new{Generation=_generation,Source="recorded-pre-room-checkpoint",Auto=intent.Auto,
             DirectMemoryRestore=false,OldTasksRestored=false,ChoiceSeekPoints=false,VisitedRoomCheckpointsCleared=true});
     }
@@ -200,7 +197,7 @@ internal static class NativeSeek
         }
     }
     private static void Status()=>Runtime.Status=Opening?
-        (_atOpeningStart?"战斗开场 · 等待请求":HasView?"开场选择 · >细进／>>完成开场":"正在原生初始化开场"):
+        (HasView?"开场选择 · >细进／>>完成开场":"正在原生初始化开场"):
         $"原生回放 · 已完成 {_completed}/{_clip.Operations.Length} · "+
         (PlayerLoop.VictoryReached?"战斗胜利；可Back再播或Stop":InFlight?$"正在操作{Host}":Finished?"片段结束":"完整操作边界");
     private static void Capture(int host)
@@ -335,6 +332,7 @@ internal static class NativeSeek
         Codec.Require(ReferenceEquals(_choice,scope),"operation-choice-generation-changed");
         _choiceReady=true;
         if(!_retiring&&!_restoring)Arrive(_requests.Route.Single(p=>p.Choice==scope.Frame.Sequence&&p.Prefix==0));
+        if(Opening&&scope.Frame.Boundary==0)OpeningReentryReady("native-opening-choice");
         Runtime.Log("operation-native-choice-opened",new{scope.Frame.Sequence,scope.Frame.Boundary,NativeId=scope.Id,NativeUi=scope.Ui!.GetType().Name,
             IndependentSeekPoint=false,ProxyUi=false});
     }

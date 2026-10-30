@@ -88,7 +88,7 @@ Stop在9/1，均Error null、Outstanding false、Running/Auto false、Pending0�
 
 本轮后补存原账号51份已知当前文件/3,942,450 bytes，`CONTENT005-post-Defect-current-20261030-133452`，原件/副本逐hash一致，收据`evidence/content-005/post-Defect-current-files.json`；非全账号快照、无history/其他账号遍历/恢复。原拟接C，随后PM传达用户已确认的D-133顺序，故先做下文D，再接回C；C未实际开录，不能称Osty/Doom已验收。
 
-## D-133：开场控制与完整开场Back，006已安装待实测
+## D-133：开场控制与完整开场Back，006实现历史
 
 新原生入口在加载Task未完成期间运行同一OperationRequests驱动。请求路线增加完整开场-1、Boundary0原生选择细阶段、首次可出牌0，既有操作1..N不重编号。首开自然走原生开场，遇选择手动等；单次Whole以0为目标，补完所有初始选择和原生开场尾业务，不附送操作1。Fine只推进下一阶段，Auto连续；没有选择的首开自然到0。选择页仍不是独立Seek目标，原始Initial比较仍在操作1之前。
 
@@ -99,6 +99,16 @@ Stop在9/1，均Error null、Outstanding false、Running/Auto false、Pending0�
 新增可选已有工具箱片入口`76f55fed77ab448b9ff318b9d50eff98`，不改recent指针/原片；新DLL显式兼容004的Defect录制hash，格式仍8。主工程及DirectContracts构建0警告0错误；7组开场请求政策（自然选择等待、Fine、Whole止0、Auto接1、Back清计划、无选择/Seek模式、连续初始选择）、14组D-131、4组完整路线及真实A/B生产读回通过。输出`evidence/content-005/checks/opening/`；均不是原生场景重入或视觉运行证明。
 
 安装006 DLL `80B35DCAC8D0798DED2F32E26159C7CF154153B758A8B06FF588C2693390457C`、manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`evidence/content-005/preparation/build-006-207d814c.json`；005是同轮封存但未测试的中间pair，006补保留旧STATE取消路径，005/004及其配置均私有保留。安装前game0、原账号匹配、固定native hash、仅ReplayMod/modded1；post-Defect 51份当前源文件全部仍与备份hash相同，Cloud沿本批关闭确认，无整档恢复/其他账号读取。下一人工复用工具箱片：初始手动等、Whole止0、0/选择中Back→干净开场再Fine/Whole、后续操作与相关Stop/重开；原生开场重入/延迟Pending。必要时再补抽牌后ChoicesParadox代表片，C仍本包接回。
+
+## r5 / 007修复：006开场Back落点错误，改为自然到原生选择
+
+006/session `1065489da97f4855a809b21be5c5c509`，131事件，工具箱参考3次及普通Defect1次打开。首开工具箱可手动Fine/Whole完成选择，Initial匹配、没有消费操作1；首项丢药原生结果匹配，Back0状态/RNG匹配。两次0→开场干净重入分别327/295ms到StartCombatInternal前门控，无mod observer/playback异常。用户明确指出“回到开场后停在一个默认场景，没有手牌也没打开工具箱选牌页面”，故不能把无代码异常当D-133体验通过。两次重入后均未再发前进请求，不能称重入后候选/再选/Initial或完整胜利已验证。
+
+4次Stop均Error null、原manager/所比较Continue进度恢复，开场选择中Stop及初态短开正常；6次房间任务退休均旧loop完成（预期取消）、未复用旧Task。原A/B片hash不变。131事件+两原片+Godot共134数据文件逐hash封存于原备份的`runtime/content-005-r5-20261030-135155`；摘要`evidence/content-005/runtime-verification-r5.json`。Godot的房间预载Invalid Task ID及退出RID/resource诊断原样保留，不预认与门控落点同根因。
+
+按用户反馈，007删除StartCombatInternal前的人工gate及其patch，仍以房间前checkpoint干净重建、新内存manager和新原生任务。重入自然执行到首个开场选择UI准备好才解除重建遮罩/手动等，不在未初始化场景要求额外`>`；没有开场选择则自然到playable0。选择中Back仍撤整段开场后重开第一选择、清旧计划/Auto，Whole仍止0，Auto可续到正常操作。所有实际原生初始化/候选/Initial校验保留。日志新增`native-opening-reentry-ready`，区分native-opening-choice与playable-zero落点并记请求至就绪耗时；真实落点、重入再选及延迟需人工验证。
+
+主工程/DirectContracts构建0警告0错误；更新的7组开场请求政策（重入自然到选择后Fine）及14组D-131、4组完整路线、原A片生产读回通过，输出`evidence/content-005/checks/opening-fix/`。只证明请求政策/兼容，不代表场景重入PASS。007 DLL `639B6229CDD2BC482567587CF9E3406D0DC6E9EE7AB4E0DA17ABBCB66061C581`已安装，receipt `evidence/content-005/preparation/build-007-5c350abf.json`；006 pair/config/重要失败原始证据保留。安装前game0，原账号/固定native hash匹配，仅ReplayMod/modded1，Cloud沿本批关闭确认，无整档恢复。补存`CONTENT005-post-opening-r5-current-20261030-135321`已知当前51份文件/3,942,450 bytes，源/副本逐hash一致，receipt `evidence/content-005/post-opening-r5-current-files.json`，不遍历history/其他账号。下一工具箱原片验证Back直接回选牌→Whole0→首项/Back→选择中Stop和重开Auto完整胜利；D未验收，C仍随后接回。
 
 ## B：球机制源码增量，所测闭环通过
 
