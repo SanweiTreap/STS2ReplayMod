@@ -130,6 +130,16 @@ D-133按本工具箱片所测可见流程/开场请求/整体Back/完整胜利�
 
 当前008安装不变，C仍未录制；按已确认顺序接回默认起始Osty的代表片，首回合能量药水→保镖→释放→碎骨→第二张保镖→EndTurn，第二回合死亡使者+→EndTurn取Doom真正胜利，不额外攻击。先保留BoundPhylactery，不勾首次召唤；以后按需要用已有可选准备取首次创建。C录制成功/生产读回不代替后续原生回放、Back/重召订阅与Doom胜利续播。接C前再补存已知当前51份文件（`evidence/content-005/post-opening-r7-current-files.json`），逐hash读回，原账号/固定本体/当前008核对、game0，无history/其他账号遍历/整档恢复，Cloud沿本批已确认关闭。
 
+## r8：C默认起始Osty已录成，原生回放与恢复待测
+
+008/session `b55645bb6d32493390bc3a66df44e952`最终49事件。新片`7393a0279941453297b75597dcea5446`，格式8/9项/0选择，574,612 bytes，SHA `73079FEFAD3ECB156299038422DE5D1A4FC4A9D34C7D79554791334637CD6A5B`；mod仍008。实际准备保留原10牌/BoundPhylactery，附加Bodyguard/BoneShards/Deathbringer+与Bag/能量药水，Neow实际获得FishingRod。步骤：1能量药水，2Bodyguard，3Unleash，4BoneShards，5第二Bodyguard，6EndTurn，7Deathbringer+，8DefendNecrobinder，9EndTurn真实胜利。额外防御不影响所需机制，无需重录。
+
+文件单位事实明确：Osty原生ID3、Owner0、NextIdentity4、Pets[3]，初始HP1/1→操作2成长6/6；3攻击第二敌26→14；4群伤后敌18/5、玩家Block9，Osty死0/6但留在Allies/Pets；5同ID重召活5/5；6新回合成长6/6；7双方Doom26/Weak1，8防御受脆弱得Block3。9在敌方阶段结算胜利，玩家受1伤至65，Osty死0/6仍在Allies、胜利清空Pets；Defeated含原两敌ID1/2，不把宠物误列敌人，FishingRod的CombatsSeen0→1也在胜利状态。起始对象重召不是首次新建对象证明，未勾可选首次召唤。
+
+真实胜利自动seal、原生VictoryTask成功，生产读取ExactPayloadMatched；额外直接生产读回/兼容检查通过（`evidence/content-005/checks/necrobinder-recording/production-read.json`），保留格式8单位/资源/胜利状态/RNG原字符串，不提供任意点冷恢复。该session前一次准备入口报test-entry-character-or-A0-mismatch，随后未准备首战零操作退出触发clip-operation-count，两条observer-error与一条recording-unsupported-or-failed均保留，不猜具体选错条件；后续有效定向片从recording-start到封存无失败，不把整session称零错误。
+
+49事件+原片/Godot共51数据文件逐hash封存`runtime/content-005-r8-20261030-141840`，摘要`evidence/content-005/runtime-verification-r8.json`。用户正常退出、Godot正常Quit/shutdown、game0已核；播放前补存已知当前51文件/3,953,133 bytes，收据`evidence/content-005/post-necrobinder-recording-current-files.json`，源/副本逐hash匹配，不遍历history/其他账号、无restore。008保持；接同片普通recent原生全播、成长/死亡/同对象重召/Doom回退重做、胜利Back8再EndTurn、Stop与短重开。C回放/显示/订阅/恢复及Doom胜利续播仍Pending，不以录成代验收。
+
 ## B：球机制源码增量，所测闭环通过
 
 用户进行002人工测试期间继续开发，安装保持002。下一增量源码使用格式8：`Mechanics.OrbQueue`明确保存容量、有序球条目、每个原生实例的Replay逻辑ID、未来身份计数、所有者、移除标记、当前被动/激发值及各球派生模型的私有标量字段。暗球`_evokeVal`、玻璃球`_passiveVal`不会只靠模型名或当前画面推断。已有格式1–7不新增字段、不修改原片，精确兼容002录制build。
