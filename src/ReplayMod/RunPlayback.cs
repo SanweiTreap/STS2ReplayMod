@@ -29,9 +29,11 @@ internal static class RunPlayback
     private static MoveToMapCoordAction? _mapMove;
     private static Task? _mapTask;
     private static long _phaseAt;
+    private static Dictionary<int,RunContinuation[]> _continuations=[];
     // This exact recording build has the same run/clip format and native inputs.
     internal const string RecordingBuild="145E3A3DE8A918CBD8AE90EBF4EFE1D7413E3F46911A1A5C26298266828F66EC";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild;
+    internal const string AcceptedChainRecordingBuild="DD563F456E5A693E9139F669B3C7E9B95ECFB11D6096A32A79F6EE82E89CF1FA";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild;
     internal static RunOperation? Current;
     internal static bool HasFollowing=>Active&&_index+1<_run.Operations.Count&&_run.Operations[_index+1].Status=="complete"&&_run.Operations[_index+1].Kind!="gap";
     internal static bool WantsNext=>HasFollowing&&(_auto||_continuation);
@@ -47,10 +49,14 @@ internal static class RunPlayback
         _index=startSequence is {} sequence?run.Operations.FindIndex(o=>o.Sequence==sequence):StartIndex(run);
         Codec.Require(_index>=0&&run.Operations[_index] is {Kind:"battle",Status:"complete",Clip:not null},"run-has-no-recorded-battle-start");
         Codec.Require(!RunStore.ResourceDiscontinuities(run).Any(s=>s>run.Operations[_index].Sequence),"run-has-unrecorded-resource-transition");
+        var first=run.Operations[_index];
+        _continuations=run.Continuations.Where(c=>c.PreFinished&&c.Visit>=first.Visit)
+            .Select(c=>(Before:RunStore.ContinueBefore(run,c),Point:c)).Where(c=>c.Before>=first.Sequence)
+            .GroupBy(c=>c.Before).ToDictionary(g=>g.Key,g=>g.Select(c=>c.Point).ToArray());
         _run=run;Active=true;NonCombat=false;Driving=false;_auto=false;_whole=false;_stop=false;_continuation=false;
         _fine=0;_wholeRequests=0;_decision=0;_phaseAt=0;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;Current=run.Operations[_index];RunPatches.Clear();
     }
-    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();}
+    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();_continuations.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();}
     internal static void Track(Task task)
     {
         if(!Active||!OwnedTasks.Add(task))return;
@@ -70,7 +76,8 @@ internal static class RunPlayback
     internal static void Control(string command)
     {
         if(command=="stop")
-        {_stop=true;_auto=false;_fine=0;_wholeRequests=0;PlayerLoop.ChoiceAbort=true;PlayerLoop.Cursor?.Stop();if(NativeSeek.Enabled)NativeSeek.Control("stop");return;}
+        {Runtime.Log("run-playback-stop",new{Operation=_index+1,NonCombat,AtRecordedEnd=_index==_run.Operations.Count-1});
+            _stop=true;_auto=false;_fine=0;_wholeRequests=0;PlayerLoop.ChoiceAbort=true;PlayerLoop.Cursor?.Stop();if(NativeSeek.Enabled)NativeSeek.Control("stop");return;}
         if(_stop)return;
         if(!NonCombat&&!NativeSeek.Finished){NativeSeek.Control(command);return;}
         if(command=="auto")_auto=!_auto;
@@ -141,6 +148,7 @@ internal static class RunPlayback
                 }
                 Codec.Require(Current.Status=="complete"&&Current.Kind!="gap","run-recording-gap");
                 NonCombat=true;_whole=false;_decision=0;
+                ApplyContinuations(Current);
                 if(_rewardsRoom is {} room)
                 {
                     Codec.Require(Current.Kind is "reward" or "proceed","run-missing-reward-operation");
@@ -157,12 +165,32 @@ internal static class RunPlayback
                 if(Current.After is {} expected)Compare(Current.Sequence,"after",expected,RunResources.Capture());
                 Runtime.Log("run-operation-verified",new{_run.Id,Current.Sequence,Current.Visit,Current.Kind,ResourcesAndRngMatched=true,NativeBusinessExecuted=true,ExpectedStateInjected=false});
                 if(_index==_run.Operations.Count-1)
-                {_auto=false;Runtime.Status="已到记录终点；可Stop返回菜单";while(!_stop)await Runtime.NextFrame();return true;}
+                {
+                    _auto=false;Runtime.Status="已到记录终点；可Stop返回菜单";
+                    Runtime.Log("run-playback-endpoint",new{Operation=Current.Sequence,Auto=false,AwaitingStop=true,SceneKeptOpen=true});
+                    while(!_stop)await Runtime.NextFrame();return true;
+                }
                 _index++;
             }
             return false;
         }
         catch(OperationCanceledException) when(_stop){return false;}
+    }
+    private static void ApplyContinuations(RunOperation operation)
+    {
+        if(!_continuations.Remove(operation.Sequence,out var points))return;
+        foreach(var point in points)
+        {
+            var visit=_run.Visits.Single(v=>v.Id==point.Visit);
+            Codec.Require(operation.Visit==point.Visit&&LiveState.Run.CurrentMapCoord is {} coord&&coord.row==visit.Row&&coord.col==visit.Col&&
+                LiveState.Run.CurrentRoom is CombatRoom {IsPreFinished:true},"run-continue-room-boundary-mismatch");
+            // EnterMapPointInternal invokes this before restoring an already
+            // completed room. Reuse that native history finalization while
+            // keeping this playback's live RunState, resources and RNGs.
+            AccessTools.Method(typeof(RunManager),"UpdatePlayerStatsInMapPointHistory").Invoke(RunManager.Instance,[]);
+            Runtime.Log("run-native-continue-boundary",new{Operation=operation.Sequence,point.Visit,LegacyVisitBoundary=point.BeforeOperation is null,
+                NativeHistoryFinalized=true,SameRunState=true,CheckpointLoaded=false,ExpectedStateInjected=false});
+        }
     }
     private static void Compare(int sequence,string point,string expected,string actual)
     {
