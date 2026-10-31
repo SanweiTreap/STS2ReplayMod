@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · 商店首增量004已安装，待首次录制
+## 最新摘要 · 2026-11-01 · r10商店交易录制通过，待首次观看
+
+- 保持RUN-002/build-004，无换版。r10会话ea71b598共68事件、0 observer-error，真实新局82beed25，首战c7998d15共8步胜利自动封存。13项原始操作均complete，3访问/3尝试；首战领奖/跳卡、进入连接的第3层商店、开关货架和交易都已记录，无merchant-proceed，尚未SL或播放商店。
+- 实际交易顺序是会员卡228金币、愤怒24金币、力量药水25金币，随后删牌取消和确认。会员卡原生折扣使删牌现价75→37，商店库存/价格快照已包含前后变化；金币1012→784→760→735→735→698。取消Selected=[]、Success=false，完整资源前后不变；确认Selected=[3]对应未升级打击、Success=true，扣37金币，牌组13→12。未自行模拟折扣或删牌。
+- 当前原生完整fingerprint精确匹配成功point5：visit3/attempt3商店入口，PreFinished=false、路径[1..6]，金币1012、牌组12、无会员卡/所买愤怒，交易没有写进当前局内save。领取/购买时全局Progress的正常变化另存，不由“没点前进”或资源相似推断位置。root及首战生产读取/checksum、选中路线资源连续性通过，root实际1,768,369 bytes，16MB上限内。
+- 72数据文件封存，51当前文件4,375,233 bytes补存`RUN002-post-r10-current-20261101-011819`；latest.mcr、current_run及backup、Progress及backup、settings.backup共6项正常变化，无缺失，game0、无restore/自行启动。证据`runtime-verification-r10.json`、`collection-r10.json`、`checks/r10/`，完整保存指纹与交易证据在本地，不公开原始数据。
+- 下一步同版从主菜单82beed25第2层Auto到关闭货架终点，核原生会员卡折扣/买牌/药水/删牌取消与确认、资源/RNG/库存及终点Auto关闭留场，再Stop/正常退出。先保留当前选择路径作首次播放验证，不正常Continue或重录；通过后再用point5实测商店入口SL、相同/不同交易与下一战。本包IN_PROGRESS，问号/事件内部战斗仍待。
+
+## 004：商店首增量实现与安装
 
 - 宝箱首增量r6/r8/r9代表结论经PM接受，旧r4严格FAIL不追改；原文CURRENT_STATUS/TODO独立提交aae3318。RUN-002仍IN_PROGRESS，沿原授权继续商店/问号，不重跑宝箱旧矩阵。
 - 当前RUN-002/build-004，DLL `1C02153EFE00347294CBAADB2789ECDD304CCE495EE5C3C34FDB549047909A8F`，manifest仍`69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-004-14623129.json`。显式兼容003原首战后战及旧root，001/002/003 pair均保留。主构建0警告0错误，9项分支/上下文与8项文件/位置合同、当前root和003后战生产读取通过，尚无004商店游戏结论。
