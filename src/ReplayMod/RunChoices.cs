@@ -66,6 +66,7 @@ internal static class RunChoices
     {
         if(RunPlayback.NonCombat)
         {
+            RunPlayback.Track(native);
             var expected=RunPlayback.Decision(kind,options);var driver=drive(expected);
             await driver;var result=await native;
             Codec.Require(selected(result).SequenceEqual(expected.Selected),"run-native-choice-result-mismatch");return result;

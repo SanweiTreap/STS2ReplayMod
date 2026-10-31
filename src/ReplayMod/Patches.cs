@@ -42,6 +42,7 @@ internal static class Patches
         Patch(typeof(EndPlayerTurnAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
         Patch(typeof(UsePotionAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
         Patch(typeof(DiscardPotionGameAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
+        Patch(typeof(MoveToMapCoordAction),"ExecuteAction",postfix:nameof(MapTask),parameters:[]);
         Patch(typeof(CardModel),"OnPlayWrapper",prefix:nameof(CardBefore),postfix:nameof(CardTask));
         Patch(typeof(PotionModel),"OnUseWrapper",postfix:nameof(PotionTask));
         Patch(typeof(PotionModel),"EnqueueManualUse",prefix:nameof(ManualPotion));
@@ -103,7 +104,8 @@ internal static class Patches
     private static void Entry(Task __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Entry(__result));}
     private static bool Queue(GameAction __0)
     {
-        if(RunPlayback.Active&&RunPlayback.Driving&&__0 is VoteForMapCoordAction)return true;
+        if(RunPlayback.Active&&__0 is VoteForMapCoordAction or MoveToMapCoordAction)
+        {var owned=false;Runtime.Guard(()=>owned=RunPlayback.MapAction(__0));return owned;}
         if(DecisionRoute.Enabled&&DecisionRoute.Historical&&__0 is not (PlayCardAction or EndPlayerTurnAction or UsePotionAction or DiscardPotionGameAction))
         {
             Runtime.Guard(()=>throw new InvalidDataException("route-business-action-during-history-"+__0.GetType().Name));return false;
@@ -124,6 +126,7 @@ internal static class Patches
         Runtime.Guard(()=>ActionMonitor.Queue(__0));return true;
     }
     private static void ActionTask(GameAction __instance,Task __result)=>Runtime.Guard(()=>ActionMonitor.ActionTask(__instance,__result));
+    private static void MapTask(MoveToMapCoordAction __instance,Task __result)=>Runtime.Guard(()=>RunPlayback.MapTask(__instance,__result));
     private static void ActionStarted(GameAction __instance)=>Runtime.Guard(()=>ActionMonitor.Started(__instance));
     private static void CardTask(CardModel __instance,bool isAutoPlay,Task __result)=>Runtime.Guard(()=>ActionMonitor.CardTask(__instance,isAutoPlay,__result));
     private static bool Observing=>Recorder.Active||PlayerLoop.Active&&!PlayerLoop.Loading&&!PlayerLoop.TearingDown;
@@ -234,7 +237,6 @@ internal static class Patches
     private static void CancelSettled(GameAction __instance){if(NativeSeek.Enabled)Runtime.Guard(()=>NativeSeek.CancelSettled(__instance));}
     private static void ReadyAction(ref GameAction? __result)
     {
-        if(RunPlayback.Active&&RunPlayback.Current?.Kind=="map"&&__result is VoteForMapCoordAction)return;
         if(!NativeSeek.Enabled)return;
         var candidate=__result;GameAction? filtered=null;Runtime.Guard(()=>filtered=NativeSeek.FilterReady(candidate));__result=filtered;
     }

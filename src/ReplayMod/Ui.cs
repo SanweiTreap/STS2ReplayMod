@@ -44,7 +44,7 @@ internal static class Ui
                     var play=Button(box,$"从第{visit.Floor}层战斗／尝试{anchor.Battle?.Attempt??0}顺播路线",()=>
                         TaskHelper.RunSafely(PlayerLoop.Open(anchor.Clip!,entry:"run-list",chain:run,chainStart:anchor.Sequence)));
                     play.TooltipText="从该记录起点原生顺播；遇到未支持或中断处停止。战外Back与跨房间Seek暂禁用";
-                    play.Disabled=run.ModHash!=Runtime.ModHash||discontinuities.Any(s=>s>anchor.Sequence);
+                    play.Disabled=!RunPlayback.Compatible(run.ModHash)||discontinuities.Any(s=>s>anchor.Sequence);
                 }
             }
             catch(Exception ex){box.AddChild(Label($"路线 {runId[..8]} 暂不可用：{ex.GetType().Name}"));}
