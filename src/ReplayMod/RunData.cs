@@ -18,6 +18,9 @@ public sealed record RunEnvelope(string SHA256,RunDocument Data);
 
 internal sealed class RunStore(string root)
 {
+    internal static int[] ResourceDiscontinuities(RunDocument run)=>run.Operations.Zip(run.Operations.Skip(1))
+        .Where(pair=>pair.First is {Status:"complete",After:not null}&&pair.Second is {Status:"complete",Before:not null}&&pair.First.After!=pair.Second.Before)
+        .Select(pair=>pair.Second.Sequence).ToArray();
     internal void Save(RunDocument run)
     {
         Validate(run);Directory.CreateDirectory(root);

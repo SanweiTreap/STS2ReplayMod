@@ -21,7 +21,7 @@ internal static class RunChoices
             foreach(var method in methods)h.Patch(AccessTools.DeclaredMethod(type,method),prefix:new HarmonyMethod(typeof(RunChoices),nameof(Input)));
     }
     private static bool Input()=>!RunPlayback.Active||!RunPlayback.NonCombat||RunPlayback.Driving;
-    private static string CardKey(CardModel card)=>card.Id+":"+card.CurrentUpgradeLevel+":"+
+    internal static string CardKey(CardModel card)=>card.Id+":"+card.CurrentUpgradeLevel+":"+
         JsonSerializer.Serialize(card.ToSerializable(),JsonSerializationUtility.GetTypeInfo<SerializableCard>());
     private static void Reward(NCardRewardSelectionScreen __instance,ref Task<int?> __result)
     {

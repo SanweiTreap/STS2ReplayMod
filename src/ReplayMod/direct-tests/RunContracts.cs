@@ -24,6 +24,12 @@ internal static class RunContracts
         });
         Test("incomplete-operation-is-never-promoted-to-complete-on-read",()=>
         {var read=store.Read(id);Need(read.Operations[^1].Status=="pending"&&read.Operations[^1].After is null,"incomplete-operation-falsified");});
+        Test("unrecorded-resource-change-is-diagnosed-without-inventing-a-choice-or-mutating-history",()=>
+        {
+            var steps=run.Operations.ToList();steps[2]=steps[2] with{Before="unrecorded-claim"};var gap=run with{Operations=steps};
+            var before=Codec.Bytes(gap);
+            Need(RunStore.ResourceDiscontinuities(gap).SequenceEqual(new[]{3})&&RunStore.ResourceDiscontinuities(run).Length==0&&Codec.Bytes(gap).SequenceEqual(before),"missing-transition-not-truthfully-diagnosed");
+        });
         Test("altered-run-payload-is-rejected-while-another-good-run-remains-readable",()=>
         {
             var good=run with{Id=Guid.NewGuid().ToString("N")};store.Save(good);

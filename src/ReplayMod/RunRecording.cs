@@ -78,7 +78,7 @@ internal static class RunRecording
         }
         var supported=room.RoomType==RoomType.Monster&&visit.MapType=="Monster"||room.RoomType==RoomType.RestSite&&visit.MapType=="RestSite";
         _run.Visits[index]=visit with{RoomType=room.RoomType.ToString(),Model=room.ModelId?.ToString(),Status="entered",
-            Gap=supported?null:"本轮未支持的实际房间"};Save();
+            Gap=supported?visit.Gap:"本轮未支持的实际房间"};Save();
     }
     internal static RunOperation? Begin(string kind,RunArgument argument)
     {
@@ -119,6 +119,12 @@ internal static class RunRecording
         var op=_run!.Operations[_battleSequence-1];Replace(op with{Status="complete",Clip=clip.Id,Battle=clip.Battle});Save();
     }
     internal static void EntryContext(){if(Enabled)_entryProgress=RunResources.Progress();}
+    internal static void MissingOperation(string kind,string reason)
+    {
+        if(!Enabled||_visit==0)return;
+        Gap("记录"+kind+"失败："+reason);var index=_run!.Visits.FindIndex(v=>v.Id==_visit);
+        _run.Visits[index]=_run.Visits[index] with{Gap="有未成功记录的房间操作",Status="gap"};Save();
+    }
     internal static void Exit()
     {
         if(!Enabled)return;if(Pending is {} pending)Missing(pending,"退出时选择或转换尚未完成");Save();_run=null;Pending=null;

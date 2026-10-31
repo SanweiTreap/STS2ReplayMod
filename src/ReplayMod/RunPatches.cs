@@ -20,11 +20,35 @@ internal static class RunPatches
     internal static RewardsSet? Rewards;
     internal static NRewardsScreen? RewardsScreen;
     internal static Task? Travel;
-    private static RunOperation? Record(Func<RunOperation?> begin)
-    {RunOperation? operation=null;Runtime.Guard(()=>operation=begin());return operation;}
+    private static RunOperation? Record(string kind,Func<RunOperation?> begin)
+    {
+        try{return begin();}
+        catch(Exception ex)
+        {
+            Runtime.Guard(()=>RunRecording.MissingOperation(kind,ex.GetType().Name));
+            Runtime.Guard(()=>System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex).Throw());return null;
+        }
+    }
     internal static object? Field(object instance,string name)=>AccessTools.Field(instance.GetType(),name)?.GetValue(instance);
-    internal static string RewardKey(Reward reward)=>reward.GetType().Name+":"+
-        JsonSerializer.Serialize(reward.ToSerializable(),JsonSerializationUtility.GetTypeInfo<SerializableReward>());
+    internal static string RewardKey(Reward reward)
+    {
+        // Native CardReward.ToSerializable explicitly rejects combat creation
+        // flags. Describe the already-generated native offer, not a save DTO.
+        if(reward is CardReward cards)
+        {
+            var options=AccessTools.Property(typeof(CardReward),"Options").GetValue(cards)!;
+            string? Value(string name)=>AccessTools.Property(options.GetType(),name)?.GetValue(options)?.ToString()??
+                AccessTools.Field(options.GetType(),name)?.GetValue(options)?.ToString();
+            return "CardReward-v2:"+JsonSerializer.Serialize(new{Cards=cards.Cards.Select(RunChoices.CardKey).ToArray(),
+                cards.CanSkip,cards.CanReroll,Source=Value("Source"),Flags=Value("Flags")},Codec.Json);
+        }
+        if(reward is PotionReward potion)
+        {
+            Codec.Require(potion.Potion is not null,"run-reward-potion-not-populated");
+            return "PotionReward-v2:"+potion.Potion!.Id;
+        }
+        return reward.GetType().Name+":"+JsonSerializer.Serialize(reward.ToSerializable(),JsonSerializationUtility.GetTypeInfo<SerializableReward>());
+    }
     internal static void Install(Harmony h)
     {
         void Patch(Type type,string name,string? before=null,string? after=null)
@@ -48,7 +72,7 @@ internal static class RunPatches
     private static bool Map(NMapPoint __0)
     {
         if(RunPlayback.Active)return RunPlayback.Driving;
-        Runtime.Guard(()=>RunRecording.Begin("map",new(__0.Point.coord.row,__0.Point.coord.col)));return true;
+        _=Record("map",()=>RunRecording.Begin("map",new(__0.Point.coord.row,__0.Point.coord.col)));return true;
     }
     private static void EnteredMap(ref Task __result)
     {
@@ -64,19 +88,19 @@ internal static class RunPatches
         __state=null;if(!RunRecording.Enabled)return;
         var index=Rewards?.Rewards.IndexOf(__0)??-1;
         if(index<0)return;
-        __state=Record(()=>RunRecording.Begin("reward",new(RewardIndex:index,RewardKey:RewardKey(__0))));
+        __state=Record("reward",()=>RunRecording.Begin("reward",new(RewardIndex:index,RewardKey:RewardKey(__0))));
     }
     private static void RewardAfter(ref Task<bool> __result,RunOperation? __state)=>__result=RunRecording.Wrap(__result,__state);
-    private static void ProceedBefore(out RunOperation? __state)=>__state=Record(()=>RunRecording.Begin("proceed",new()));
+    private static void ProceedBefore(out RunOperation? __state)=>__state=Record("proceed",()=>RunRecording.Begin("proceed",new()));
     private static void ProceedAfter(ref Task __result,RunOperation? __state)=>__result=RunRecording.Wrap(__result,__state);
     private static void RestBefore(RestSiteSynchronizer __instance,int __0,out RunOperation? __state)
     {
         __state=null;if(!RunRecording.Enabled)return;
         var option=__instance.GetLocalOptions()[__0];
-        __state=Record(()=>RunRecording.Begin("rest",new(Option:option.OptionId)));
+        __state=Record("rest",()=>RunRecording.Begin("rest",new(Option:option.OptionId)));
     }
     private static void RestAfter(ref Task<bool> __result,RunOperation? __state)=>__result=RunRecording.Wrap(__result,__state);
-    private static void RestProceedBefore(out RunOperation? __state)=>__state=Record(()=>RunRecording.Begin("rest-proceed",new()));
+    private static void RestProceedBefore(out RunOperation? __state)=>__state=Record("rest-proceed",()=>RunRecording.Begin("rest-proceed",new()));
     private static void RestProceedAfter(RunOperation? __state){if(__state is not null)Runtime.Guard(()=>RunRecording.Complete(__state));}
     internal static void Clear(){Rewards=null;RewardsScreen=null;Travel=null;}
 }
