@@ -20,6 +20,9 @@ internal static class RunTreasures
     private static PickRelicAction? _pick;
     private static string? _pickedModel;
     private static bool _obtainStarted;
+    private static RelicModel? _addingRelic;
+    private static Player? _addingPlayer;
+    private sealed record ObtainScope(RunOperation? Operation,bool Playback);
     private static NTreasureRoomRelicCollection Collection=>(NTreasureRoomRelicCollection)RunPatches.Field(_room!,"_relicCollection")!;
     private static string Offer()=>JsonSerializer.Serialize(RunManager.Instance.TreasureRoomRelicSynchronizer.CurrentRelics?.Select(r=>r.Id.ToString()).ToArray()??[],Codec.Json);
     internal static void Install(Harmony h)
@@ -75,7 +78,7 @@ internal static class RunTreasures
         if(__state is null)return;var native=__result;__result=Finish();RunPlayback.Track(__result);
         async Task Finish(){try{await native;}finally{__state.Dispose();}}
     }
-    internal static void Clear(){_room=null;_open=null;_awards=null;_obtain=null;_pickTask=null;_pick=null;_pickedModel=null;_obtainStarted=false;}
+    internal static void Clear(){_room=null;_open=null;_awards=null;_obtain=null;_pickTask=null;_pick=null;_pickedModel=null;_obtainStarted=false;_addingRelic=null;_addingPlayer=null;}
     private static bool PickBefore(int? __0)
     {
         if(!Input())return false;
@@ -88,19 +91,24 @@ internal static class RunTreasures
             if(RunRecording.Enabled)RunRecording.Begin("treasure-pick",new(RewardIndex:index,RewardKey:Offer()));
         });return true;
     }
-    private static void ObtainBefore(RelicModel __0,Player __1,out RunOperation? __state)
+    private static void ObtainBefore(RelicModel __0,Player __1,out ObtainScope? __state)
     {
         __state=null;
         if(_obtainStarted||_pickedModel!=__0.Id.ToString()||!ReferenceEquals(__1,LiveState.Player))return;
-        if(RunPlayback.Active&&RunPlayback.Current?.Kind=="treasure-pick")_obtainStarted=true;
-        else if(RunRecording.Pending is {Kind:"treasure-pick"} pending){_obtainStarted=true;__state=pending;}
+        if(RunPlayback.Active&&RunPlayback.NonCombat&&RunPlayback.Current?.Kind=="treasure-pick"&&_pick is not null)
+        {_obtainStarted=true;_addingRelic=__0;_addingPlayer=__1;__state=new(null,true);}
+        else if(RunRecording.Pending is {Kind:"treasure-pick"} pending){_obtainStarted=true;__state=new(pending,false);}
     }
-    private static void ObtainAfter(RelicModel __0,ref Task<RelicModel> __result,RunOperation? __state)
+    private static void ObtainAfter(RelicModel __0,ref Task<RelicModel> __result,ObtainScope? __state)
     {
-        if(__state is not null)__result=RunRecording.Wrap(__result,__state);
-        if(RunPlayback.Active&&RunPlayback.Current?.Kind=="treasure-pick"&&_pickedModel==__0.Id.ToString())
-        {_obtain??=__result;RunPlayback.Track(__result);}
+        if(__state is null)return;
+        if(__state.Operation is {} operation)__result=RunRecording.Wrap(__result,operation);
+        if(__state.Playback){_obtain=__result;RunPlayback.Track(__result);}
+        if(ReferenceEquals(_addingRelic,__0)){_addingRelic=null;_addingPlayer=null;}
     }
+    internal static bool OwnsRelicAdd(Player player,RelicModel relic)=>RunPlayback.Active&&RunPlayback.NonCombat&&
+        RunPlayback.Current?.Kind=="treasure-pick"&&_pick is not null&&ReferenceEquals(player,_addingPlayer)&&
+        ReferenceEquals(relic,_addingRelic)&&ReferenceEquals(player,LiveState.Player);
     internal static bool OwnsPick(PickRelicAction action)
     {
         Codec.Require(RunPlayback.NonCombat&&RunPlayback.Driving&&_room is not null&&_pick is null&&action.OwnerId==LiveState.Player.NetId&&

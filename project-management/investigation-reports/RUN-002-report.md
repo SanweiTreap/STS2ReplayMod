@@ -1,7 +1,15 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-10-31 · 001/r2宝箱入口Load及相同选择独立尝试通过，回放待测
+## 最新摘要 · 2026-10-31 · r3领取被旧保护误报FAIL，002已安装待原片复测
 
+- 当前RUN-002/build-002，DLL `0DE66D1936532107143E6AE9B42E80CC94A6D5884A7C2FD5939C51EBDEE25B3E`，收据`preparation/build-002-ed3ed5d9.json`；001和006 pair保留。构建0警告0错误，显式兼容001原片/root，尚无002游戏结论。当前51文件安装后无进度变化，game0，无restore/自行启动。
+- r3原生观看b0d06809：首战与三项领奖、真实地图入宝箱、开箱和生成白星均资源/RNG匹配；日志明确执行的是sourceSequence11/attempt4，旧raw8/9/10没有串入。到projected9/source12领取时，原Player.AddRelicInternal保护报告`incomplete-unsupported-relic-membership-change`，自动保护退出，整条领取回放FAIL，不误判正常终点。
+- 旧RelicMembership原只适用于战斗内不支持的遗物增删，仍覆盖了新宝箱原生Obtain。002只在已核PickRelicAction派生的Obtain同步调用中，核对确切Player和Relic实例再允许Add；按移除/战斗/未归属变化继续诊断。主任务仅捕获该次主Obtain，不把嵌套同模型领取当成主任务。没有手写遗物效果、改金币或改expected。
+- r3共146事件，11个登记任务退场收束（1取消/1故障），原manager与所比较Continue/Progress恢复通过；该故障轮不判清理成功体验。002另补退场故障详情日志以便必要时定位。150原始数据文件封存，51当前文件4,379,881 bytes补存`RUN002-post-r3-current-20261031-231836`，相对r2逐hash无变化。关键本地证据`runtime-verification-r3.json`、`collection-r3.json`、`preparation/post-002-progress-check.json`。
+- r1/r2入口锚点及独立相同尝试录制结论保持：point5→attempt4(parent3)，当前路径[1..7,11,12]，旧10项与原片保留；内容/资源/RNG相同也没有去重。仍未完成领取终点观看，下一只重开当前路线从第2层Auto至宝箱领取终点、关Auto等待手动Stop并正常退出；不重录/不Continue/不改变当前主线。
+- 本包仍IN_PROGRESS；领取回放通过后再安排第三次入口重进改为不拿、进入后战核最终延续路径；商店/问号/事件内部战斗仍待接。非战斗Back/跨房间Seek禁用，其他遗物/附加奖励的覆盖继续分别报告。
+
+## r2：宝箱入口Load与相同领取独立尝试通过
 - 保持RUN-002/build-001，无换版/重录。r2真正新进程Continue精确匹配成功入口save-point5，仍在b0d06809/visit3，entries1→2；新attempt4的parent3/restoredSave5正确。12事件、0 observer-error，成功存盘观察新增point6，位置仍是入口路径[1..7]。只按此样本认宝箱房前SL，不外推商店/问号。
 - 再次开箱领取仍为RELIC.WHITE_STAR，但没有合并/去重：原raw1..10逐项及8步胜利片hash原封不动，新raw11开箱、12领取独立归属attempt4。当前最终延续路线为[1..7,11,12]，原8/9/10事实保留而不选择；总访问仍3次/尝试4次，不虚增楼层。
 - 两次生成物相同，开箱前完整资源/RNG及领取后完整资源/RNG字符串亦逐字一致；金币都是入口117、开箱后163。当前原生存档精确匹配point6（attempt4），仍117金币且无白星；不是以内容相同推断SL或默认为重掷。root生产读取/checksum及选中路线资源连续性通过，尚未执行观看。

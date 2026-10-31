@@ -35,7 +35,8 @@ internal static class RunPlayback
     internal const string RecordingBuild="145E3A3DE8A918CBD8AE90EBF4EFE1D7413E3F46911A1A5C26298266828F66EC";
     internal const string AcceptedChainRecordingBuild="DD563F456E5A693E9139F669B3C7E9B95ECFB11D6096A32A79F6EE82E89CF1FA";
     internal const string Run001Baseline="392B6DEB1899B1D5D9E71325382F2999D049CC16E0A9568A9B08951017D4E9DB";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline;
+    internal const string TreasureRecordingBuild="2FB5E5938104CA23256FFF25895DD2AB27A324A31CDD5484704F4149F4C584F3";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild;
     internal static RunOperation? Current;
     internal static bool HasFollowing=>Active&&_index+1<_run.Operations.Count&&_run.Operations[_index+1].Status=="complete"&&_run.Operations[_index+1].Kind!="gap";
     internal static bool WantsNext=>HasFollowing&&(_auto||_continuation);
@@ -72,6 +73,8 @@ internal static class RunPlayback
         var at=Stopwatch.GetTimestamp();
         while(OwnedTasks.Any(t=>!t.IsCompleted))
         {Codec.Require(Stopwatch.GetElapsedTime(at).TotalSeconds<5,"run-native-action-did-not-retire");await Runtime.NextFrame();}
+        var faults=OwnedTasks.Where(t=>t.IsFaulted).Select(t=>t.Exception!.ToString()).ToArray();
+        if(faults.Length>0)Runtime.Log("run-native-task-faults",new{Faults=faults,BeforeOriginalManagerRestored=true});
         // Faults have already been observed by the operation or its fault observer.
         // A settled failure must not prevent restoring the original manager.
         Runtime.Log("run-native-action-retired",new{Completed=true,Tasks=OwnedTasks.Count,Canceled=OwnedTasks.Count(t=>t.IsCanceled),Faulted=OwnedTasks.Count(t=>t.IsFaulted),BeforeOriginalManagerRestored=true});
