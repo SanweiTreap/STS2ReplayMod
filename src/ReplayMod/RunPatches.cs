@@ -75,6 +75,7 @@ internal static class RunPatches
         Patch(typeof(RestSiteSynchronizer),"ChooseLocalOption",before:nameof(RestBefore),after:nameof(RestAfter));
         Patch(typeof(NRestSiteRoom),"OnProceedButtonReleased",before:nameof(RestProceedBefore),after:nameof(RestProceedAfter));
         RunChoices.Install(h);
+        RunTreasures.Install(h);
     }
     private static void GeneratedMap(ActMap __0)=>Runtime.Guard(()=>TestEncounter.ConfigureRunRoute(__0));
     private static void Room(AbstractRoom __0,ref Task __result)
@@ -93,17 +94,21 @@ internal static class RunPatches
     private static void RewardsBegan(RewardsSet __0)
     {if((RunRecording.Enabled||RunPlayback.Active)&&ReferenceEquals(__0.Player,LiveState.Player))Rewards=__0;}
     private static void RewardsShown(NRewardsScreen __result)
-    {if(RunRecording.Enabled||RunPlayback.Active)RewardsScreen=__result;}
+    {
+        if(RunRecording.Enabled||RunPlayback.Active)RewardsScreen=__result;
+        if(RunPlayback.Active&&RunPlayback.Current?.Kind=="treasure-open")Runtime.Guard(()=>throw new InvalidDataException("treasure-extra-reward-screen-not-yet-supported"));
+    }
     private static void RewardBefore(Reward __0,out RunOperation? __state)
     {
         __state=null;if(!RunRecording.Enabled)return;
+        if(RunRecording.Pending is {Kind:"treasure-open"}){Runtime.Guard(()=>RunRecording.Unsupported("treasure-extra-reward","附加奖励页尚未接入"));return;}
         var index=Rewards?.Rewards.IndexOf(__0)??-1;
         if(index<0)return;
         __state=Record("reward",()=>RunRecording.Begin("reward",new(RewardIndex:index,RewardKey:RewardKey(__0))));
     }
     private static void RewardAfter(ref Task<bool> __result,RunOperation? __state)
     {__result=RunRecording.Wrap(__result,__state);if(RunPlayback.Active){ResultTask=__result;RunPlayback.Track(__result);}}
-    private static void ProceedBefore(out RunOperation? __state)=>__state=Record("proceed",()=>RunRecording.Begin("proceed",new()));
+    private static void ProceedBefore(out RunOperation? __state)=>__state=Record("proceed",()=>RunRecording.Begin(LiveState.Run.CurrentRoom is TreasureRoom?"treasure-proceed":"proceed",new()));
     private static void ProceedAfter(ref Task __result,RunOperation? __state)
     {__result=RunRecording.Wrap(__result,__state);if(RunPlayback.Active){ProceedTask=__result;RunPlayback.Track(__result);}}
     private static void RestBefore(RestSiteSynchronizer __instance,int __0,out RunOperation? __state)

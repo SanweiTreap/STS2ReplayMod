@@ -1,5 +1,6 @@
 using System.Reflection;
 using ReplayMod;
+if(args.Length>1&&args[1]=="run-branches"){RunBranchContracts.Run(args[0]);return;}
 if(args.Length>1&&args[1]=="run-envelope"){RunContracts.Run(args[0]);return;}
 if(args.Length>3&&args[1]=="verify-run"){RunContracts.Verify(args[0],args[2],args[3]);return;}
 if(args.Length>1&&args[1]=="enemy-generation"){EnemyGenerationContracts.Run(args[0]);return;}

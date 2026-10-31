@@ -32,9 +32,12 @@ internal static class Ui
         {
             try
             {
-                var run=RunRecording.Store.Read(runId);var start=RunPlayback.StartIndex(run);
+                var raw=RunRecording.Store.Read(runId);var run=RunRoutes.Playback(raw);var start=RunPlayback.StartIndex(run);
+                var selectedVisits=run.Operations.Select(o=>o.Visit).ToHashSet();
                 box.AddChild(Label($"对局 {run.Id[..8]} · {run.Character.Replace("CHARACTER.","")}\n"+
-                    string.Join(" → ",run.Visits.Select(v=>$"{v.Floor}:{v.RoomType??v.MapType}{(v.Gap is null?"":"（缺口）")}"))));
+                    string.Join(" → ",run.Visits.Where(v=>raw.Branches is null||selectedVisits.Contains(v.Id)).Select(v=>$"{v.Floor}:{v.RoomType??v.MapType}{(v.Gap is null?"":"（缺口）")}"))));
+                if(raw.Branches is {} branch)box.AddChild(Label($"最终延续路线 · 保留{branch.Attempts.Count}次房间尝试／{raw.Operations.Count}项原始操作，当前路线{run.Operations.Count}项"));
+                else box.AddChild(Label("旧记录：没有房间分支索引，保持原有合法观看"));
                 var discontinuities=RunStore.ResourceDiscontinuities(run);
                 if(discontinuities.Length>0)box.AddChild(Label("路线存在未记录的资源变化：第"+string.Join("、",discontinuities)+"项之前"));
                 if(start<0)box.AddChild(Label("尚无可播放起点"));
@@ -42,7 +45,7 @@ internal static class Ui
                 {
                     var visit=run.Visits.Single(v=>v.Id==anchor.Visit);
                     var play=Button(box,$"从第{visit.Floor}层战斗／尝试{anchor.Battle?.Attempt??0}顺播路线",()=>
-                        TaskHelper.RunSafely(PlayerLoop.Open(anchor.Clip!,entry:"run-list",chain:run,chainStart:anchor.Sequence)));
+                        TaskHelper.RunSafely(PlayerLoop.Open(anchor.Clip!,entry:"run-list",chain:raw,chainStart:anchor.SourceSequence??anchor.Sequence)));
                     play.TooltipText="从该记录起点原生顺播；遇到未支持或中断处停止。战外Back与跨房间Seek暂禁用";
                     play.Disabled=!RunPlayback.Compatible(run.ModHash)||discontinuities.Any(s=>s>anchor.Sequence);
                 }
@@ -97,6 +100,13 @@ internal static class Ui
             TestEncounter.Armed=TestEncounter.Armed==TestPreparation.RunRoute?TestPreparation.None:TestPreparation.RunRoute;
             RecordedState.Armed=false;route.Text=TestEncounter.Armed==TestPreparation.RunRoute?"RUN-001 短路线准备：已启用（下一新局）":"RUN-001 短路线准备：关闭";
             Runtime.Status="下一新铁甲A0：首场普通→营火→普通；三防御+／两全身撞击+先天保留，40HP；按准备路线正常领奖与选路";});
+        var rooms=Button(box,"RUN-002 宝箱SL短路线：关闭",()=>{});
+        rooms.Pressed+=()=>
+        {
+            TestEncounter.Armed=TestEncounter.Armed==TestPreparation.RunRooms?TestPreparation.None:TestPreparation.RunRooms;
+            RecordedState.Armed=false;rooms.Text=TestEncounter.Armed==TestPreparation.RunRooms?"RUN-002 宝箱SL短路线：已启用（下一新局）":"RUN-002 宝箱SL短路线：关闭";
+            Runtime.Status="下一新铁甲A0：首普通→宝箱→普通；三防御+／两全身撞击+先天保留，40HP；先正常开箱领取，再保存退出验证SL入口";
+        };
         const string hunterReference="1d5346b085b04635ab3e00b43fe9190c";
         try{_ =Runtime.ReadClip(hunterReference);Button(box,"打开已有猎人样本 · 完整27项",()=>TaskHelper.RunSafely(PlayerLoop.Open(hunterReference,entry:"hunter-reference")));}catch{/* Optional reference, not the production input. */}
         const string continuousSample="fc6432b4c0af41d69defda73f1770824";

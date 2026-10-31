@@ -17,7 +17,8 @@ internal static class RunChoices
         h.Patch(AccessTools.Method(typeof(NCardRewardSelectionScreen),"OptionSelected"),postfix:new HarmonyMethod(typeof(RunChoices),nameof(Reward)));
         h.Patch(AccessTools.Method(typeof(NCardGridSelectionScreen),"CardsSelected"),postfix:new HarmonyMethod(typeof(RunChoices),nameof(Deck)));
         foreach(var (type,methods) in new[]{(typeof(NCardRewardSelectionScreen),new[]{"SelectCard","OnAlternateRewardSelected"}),
-            (typeof(NDeckUpgradeSelectScreen),new[]{"OnCardClicked","ConfirmSelection","CancelSelection","CloseSelection"})})
+            (typeof(NDeckUpgradeSelectScreen),new[]{"OnCardClicked","ConfirmSelection","CancelSelection","CloseSelection"}),
+            (typeof(NDeckCardSelectScreen),new[]{"OnCardClicked","ConfirmSelection","CancelSelection","CloseSelection"})})
             foreach(var method in methods)h.Patch(AccessTools.DeclaredMethod(type,method),prefix:new HarmonyMethod(typeof(RunChoices),nameof(Input)));
     }
     private static bool Input()=>!RunPlayback.Active||!RunPlayback.NonCombat||RunPlayback.Driving;
@@ -46,20 +47,24 @@ internal static class RunChoices
     private static void Deck(NCardGridSelectionScreen __instance,ref Task<IEnumerable<CardModel>> __result)
     {
         if(!RunRecording.Choosing&&!RunPlayback.NonCombat)return;
-        Codec.Require(__instance is NDeckUpgradeSelectScreen,"run-unsupported-deck-choice");
+        if(__instance is not (NDeckUpgradeSelectScreen or NDeckCardSelectScreen))
+        {
+            if(RunPlayback.NonCombat)throw new InvalidDataException("run-unsupported-deck-choice-"+__instance.GetType().Name);
+            Runtime.Guard(()=>RunRecording.Unsupported("deck-choice",__instance.GetType().Name));return;
+        }
         var cards=((IEnumerable<CardModel>)RunPatches.Field(__instance,"_cards")!).ToArray();
         var native=__result;
-        __result=Watch(native,"deck-upgrade",cards.Select(CardKey).ToArray(),selected=>selected.Select(c=>Array.FindIndex(cards,v=>ReferenceEquals(v,c))).ToArray(),async decision=>
+        __result=Watch(native,__instance is NDeckUpgradeSelectScreen?"deck-upgrade":"deck-card",cards.Select(CardKey).ToArray(),selected=>selected.Select(c=>Array.FindIndex(cards,v=>ReferenceEquals(v,c))).ToArray(),async decision=>
         {
             await Ready(__instance);
             foreach(var index in decision.Selected)
             {
                 Codec.Require(index>=0&&index<cards.Length,"run-upgrade-choice-index");
-                await RunPlayback.TakePhase("选中升级卡牌");
-                RunPlayback.Native(()=>AccessTools.Method(typeof(NDeckUpgradeSelectScreen),"OnCardClicked").Invoke(__instance,[cards[index]]));
+                await RunPlayback.TakePhase(__instance is NDeckUpgradeSelectScreen?"选中升级卡牌":"选中卡牌");
+                RunPlayback.Native(()=>AccessTools.Method(__instance.GetType(),"OnCardClicked").Invoke(__instance,[cards[index]]));
             }
-            await RunPlayback.TakePhase(decision.Selected.Length==0?"取消升级":"确认升级");
-            RunPlayback.Native(()=>AccessTools.Method(typeof(NDeckUpgradeSelectScreen),decision.Selected.Length==0?"CloseSelection":"ConfirmSelection").Invoke(__instance,[null]));
+            await RunPlayback.TakePhase(decision.Selected.Length==0?"取消选择":__instance is NDeckUpgradeSelectScreen?"确认升级":"确认选择");
+            RunPlayback.Native(()=>AccessTools.Method(__instance.GetType(),decision.Selected.Length==0?"CloseSelection":"ConfirmSelection").Invoke(__instance,[null]));
         });
     }
     private static async Task<T> Watch<T>(Task<T> native,string kind,string[] options,Func<T,int[]> selected,Func<RunDecision,Task> drive)

@@ -98,12 +98,14 @@ internal static class Patches
         if(!ReferenceEquals(__instance,PlayerLoop.IsolatedManager)&&__result.Success&&__result.SaveData is {} save&&
             SaveManager.Instance.CurrentProfileId==1)Runtime.Guard(()=>Recorder.Loaded(save));
     }
-    private static void NativeRunSaved(RunSaveManager __instance,bool __1,ref Task __result)
-    {if(!PlayerLoop.Active&&!__1)__result=Recorder.NativeSaved(__instance,__result);}
+    private static void NativeRunSaved(RunSaveManager __instance,SerializableRun __0,bool __1,ref Task __result)
+    {if(!PlayerLoop.Active&&!__1)__result=Recorder.NativeSaved(__instance,__0,__result);}
     private static void EntryBefore(MapCoord __0,object? __1,bool __2){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.BeginEntry(__0,__1 is not null,__2));}
     private static void Entry(Task __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Entry(__result));}
     private static bool Queue(GameAction __0)
     {
+        if(RunPlayback.Active&&__0 is PickRelicAction pick)
+        {var owned=false;Runtime.Guard(()=>owned=RunTreasures.OwnsPick(pick));return owned;}
         if(RunPlayback.Active&&__0 is VoteForMapCoordAction or MoveToMapCoordAction)
         {var owned=false;Runtime.Guard(()=>owned=RunPlayback.MapAction(__0));return owned;}
         if(DecisionRoute.Enabled&&DecisionRoute.Historical&&__0 is not (PlayCardAction or EndPlayerTurnAction or UsePotionAction or DiscardPotionGameAction))
