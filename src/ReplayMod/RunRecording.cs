@@ -65,7 +65,7 @@ internal static class RunRecording
             }
             _run.Continuations.Add(new(DateTimeOffset.UtcNow,_visit,save?.PreFinishedRoom is not null,
                 save is null?"":RecordingJournal.SaveKey(JsonSerializationUtility.ToJson(save)),_unknownLoad?"unmatched-anchor":"native-continue",_run.Operations.Count+1,
-                _run.Branches is {ActiveAttempt:>0} b?b.ActiveAttempt:null));
+                _run.Branches is {ActiveAttempt:>0} b?b.ActiveAttempt:null,Progress:RunResources.Progress()));
             if(_run.Branches is null&&save?.PreFinishedRoom is null&&_run.Visits.LastOrDefault()?.RoomType=="Monster")
                 Gap("未完战斗从原生开场重进；前次操作不拼接");
         }
@@ -126,7 +126,8 @@ internal static class RunRecording
     {
         if(!Enabled||_visit==0||Recorder.CollectingChoices)return null;
         if(Pending is not null){Gap("尚未完成的房间操作被新的操作打断");return null;}
-        var operation=new RunOperation(_run!.Operations.Count+1,_visit,kind,argument,RunResources.Capture(),null,"pending",[],Attempt:CurrentAttempt);
+        var operation=new RunOperation(_run!.Operations.Count+1,_visit,kind,argument,RunResources.Capture(),null,"pending",[],
+            Progress:RunResources.Progress(),Attempt:CurrentAttempt);
         RunRoutes.Append(_run,operation);Pending=operation;Save();return operation;
     }
     internal static async Task<T> Wrap<T>(Task<T> native,RunOperation? operation)

@@ -73,6 +73,35 @@ internal static class RunBranchContracts
             Add(complete,1,"reward","continued");var view=RunRoutes.Playback(complete);
             Need(view.Operations.Count==2&&view.Continuations.Single().BeforeOperation==2&&view.Operations[1].SourceSequence==3,"continue-position-reindexed-incorrectly");
         });
+        Test("load-progress-belongs-to-selected-attempt-and-precedes-native-room-generation",()=>
+        {
+            var sample=Fresh();RunRoutes.StartAttempt(sample,1,null,null,"entry");Add(sample,1,"battle","victory");
+            Add(sample,1,"map","chest");sample.Operations[1]=sample.Operations[1] with{Argument=new(2,0)};
+            RunRoutes.StartAttempt(sample,2,1,null,"entry");RunRoutes.Observe(sample,2,2,[1,2],"disk","load","key",false);
+            Add(sample,2,"treasure-open","old");RunRoutes.Restore(sample,"load");
+            sample.Continuations.Add(new(DateTimeOffset.UtcNow,2,false,"key","native-continue",4,sample.Branches!.ActiveAttempt,"old-context"));
+            Add(sample,2,"treasure-open","old-again");RunRoutes.Restore(sample,"load");
+            sample.Continuations.Add(new(DateTimeOffset.UtcNow,2,false,"key","native-continue",5,sample.Branches.ActiveAttempt,"actual-new-load-context"));
+            Add(sample,2,"treasure-open","new");
+            sample.Operations[3]=sample.Operations[3] with{Progress="abandoned-operation-context"};
+            sample.Operations[4]=sample.Operations[4] with{Progress="actual-selected-operation-context"};
+            var before=Codec.Bytes(sample);var view=RunRoutes.Playback(sample);
+            Need(view.Continuations is [{Progress:"actual-new-load-context",BeforeOperation:3}]&&
+                RunRoutes.ProgressBefore(view,view.Continuations.Single())==2&&view.Operations[^1].Progress=="actual-selected-operation-context"&&
+                Codec.Bytes(sample).SequenceEqual(before),
+                "load-context-lost-or-applied-after-room-generation-or-abandoned-context-replayed");
+            var folder=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(output))!,"context-store-"+Guid.NewGuid().ToString("N"));
+            var store=new RunStore(folder);store.Save(sample);Need(Codec.Bytes(store.Read(sample.Id)).SequenceEqual(before),"load-context-envelope-roundtrip");
+        });
+        Test("missing-old-context-stays-absent-and-unplaced-new-context-is-rejected",()=>
+        {
+            var point=new RunContinuation(DateTimeOffset.UtcNow,2,false,"key","native-continue",2);
+            Need(!System.Text.Encoding.UTF8.GetString(Codec.Bytes(point)).Contains("Progress"),"old-context-was-fabricated");
+            var sample=Fresh();sample.Operations.Add(new(1,1,"battle",new(),null,null,"complete",[]));
+            sample.Operations.Add(new(2,2,"treasure-open",new(),null,null,"complete",[]));
+            var rejected=false;try{_=RunRoutes.ProgressBefore(sample,point with{Progress="observed"});}catch(InvalidDataException){rejected=true;}
+            Need(rejected,"new-progress-context-silently-applied-after-native-entry");
+        });
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
         File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_RUN_BRANCH_SELECTION_CONTRACTS_NOT_NATIVE_RUNTIME",Tests=tests,NativeRuntimeNotExecuted=true}));
         Console.WriteLine("PASS_RUN_BRANCH_SELECTION_CONTRACTS_NOT_NATIVE_RUNTIME");

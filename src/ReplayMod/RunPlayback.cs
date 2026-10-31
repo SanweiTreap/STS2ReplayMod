@@ -30,13 +30,15 @@ internal static class RunPlayback
     private static Task? _mapTask;
     private static long _phaseAt;
     private static Dictionary<int,RunContinuation[]> _continuations=[];
+    private static Dictionary<int,RunContinuation[]> _progressContexts=[];
     private static int _rawOperations;
     // This exact recording build has the same run/clip format and native inputs.
     internal const string RecordingBuild="145E3A3DE8A918CBD8AE90EBF4EFE1D7413E3F46911A1A5C26298266828F66EC";
     internal const string AcceptedChainRecordingBuild="DD563F456E5A693E9139F669B3C7E9B95ECFB11D6096A32A79F6EE82E89CF1FA";
     internal const string Run001Baseline="392B6DEB1899B1D5D9E71325382F2999D049CC16E0A9568A9B08951017D4E9DB";
     internal const string TreasureRecordingBuild="2FB5E5938104CA23256FFF25895DD2AB27A324A31CDD5484704F4149F4C584F3";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild;
+    internal const string TreasureObtainBuild="0DE66D1936532107143E6AE9B42E80CC94A6D5884A7C2FD5939C51EBDEE25B3E";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild;
     internal static RunOperation? Current;
     internal static bool HasFollowing=>Active&&_index+1<_run.Operations.Count&&_run.Operations[_index+1].Status=="complete"&&_run.Operations[_index+1].Kind!="gap";
     internal static bool WantsNext=>HasFollowing&&(_auto||_continuation);
@@ -55,13 +57,29 @@ internal static class RunPlayback
         Codec.Require(_index>=0&&run.Operations[_index] is {Kind:"battle",Status:"complete",Clip:not null},"run-has-no-recorded-battle-start");
         Codec.Require(!RunStore.ResourceDiscontinuities(run).Any(s=>s>run.Operations[_index].Sequence),"run-has-unrecorded-resource-transition");
         var first=run.Operations[_index];
+        _progressContexts=run.Continuations.Where(c=>c.Status=="native-continue"&&c.Progress is not null&&c.BeforeOperation>=first.Sequence)
+            .Select(c=>(Before:RunRoutes.ProgressBefore(run,c),Point:c)).Where(c=>c.Before>=first.Sequence)
+            .GroupBy(c=>c.Before).ToDictionary(g=>g.Key,g=>g.Select(c=>c.Point).ToArray());
         _continuations=run.Continuations.Where(c=>c.PreFinished&&c.Visit>=first.Visit)
             .Select(c=>(Before:RunStore.ContinueBefore(run,c),Point:c)).Where(c=>c.Before>=first.Sequence)
             .GroupBy(c=>c.Before).ToDictionary(g=>g.Key,g=>g.Select(c=>c.Point).ToArray());
         _run=run;Active=true;NonCombat=false;Driving=false;_auto=false;_whole=false;_stop=false;_continuation=false;
         _fine=0;_wholeRequests=0;_decision=0;_phaseAt=0;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;Current=run.Operations[_index];RunPatches.Clear();
     }
-    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();_continuations.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();}
+    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();}
+    internal static string? InitialProgress()
+    {
+        if(!_progressContexts.Remove(_run.Operations[_index].Sequence,out var points))return Current?.Progress;
+        var point=points[^1];LogProgress(point,_run.Operations[_index].Sequence,true);return point.Progress;
+    }
+    private static void LogProgress(RunContinuation point,int before,bool initial)=>Runtime.Log("run-native-load-progress-context",new{
+        BeforeOperation=before,point.Visit,point.Attempt,point.PreFinished,InitialMemoryContext=initial,
+        SHA256=Codec.Hash(System.Text.Encoding.UTF8.GetBytes(point.Progress!)),IsolatedManagerOnly=true,RunResourcesOrRngRestored=false});
+    private static void ApplyProgressContexts(int before)
+    {
+        if(!_progressContexts.Remove(before,out var points))return;
+        foreach(var point in points){MemorySession.ApplyRecordedProgress(point.Progress!);LogProgress(point,before,false);}
+    }
     internal static void Track(Task task)
     {
         if(!Active||!OwnedTasks.Add(task))return;
@@ -147,6 +165,7 @@ internal static class RunPlayback
                 Current=_run.Operations[_index];
                 if(Current.Kind=="battle")
                 {
+                    ApplyProgressContexts(Current.Sequence);
                     NonCombat=false;await NativeSeek.Run();
                     if(_stop)return NativeSeek.AllMatched&&_index==_run.Operations.Count-1;
                     Codec.Require(NativeSeek.Finished&&HasFollowing,"run-battle-transition-without-complete-result");
@@ -187,6 +206,7 @@ internal static class RunPlayback
     private static void ApplyContinuations(RunOperation operation)
     {
         if(!_continuations.Remove(operation.Sequence,out var points))return;
+        ApplyProgressContexts(operation.Sequence);
         foreach(var point in points)
         {
             var visit=_run.Visits.Single(v=>v.Id==point.Visit);
@@ -213,6 +233,16 @@ internal static class RunPlayback
         if(operation.Kind=="rest")await Wait(()=>NRestSiteRoom.Instance is not null,"run-rest-site-not-ready");
         await TakePhase(operation.Kind switch{"reward"=>"领取奖励","map"=>"地图选路","rest"=>"营火选择","treasure-open"=>"打开宝箱","treasure-pick"=>"领取遗物",
             "proceed" or "rest-proceed" or "treasure-proceed"=>"离开房间",_=>operation.Kind});
+        if(operation.Progress is {} progress)
+        {
+            MemorySession.ApplyRecordedProgress(progress);
+            Runtime.Log("run-operation-progress-context",new{operation.Sequence,operation.SourceSequence,operation.Attempt,
+                SHA256=Codec.Hash(System.Text.Encoding.UTF8.GetBytes(progress)),IsolatedManagerOnly=true,RunResourcesOrRngRestored=false});
+        }
+        // The retained map action predates a later room-entry Load. Apply the
+        // Load's newer account context after that action's own input context,
+        // before it generates the room for the selected restored attempt.
+        ApplyProgressContexts(operation.Sequence);
         if(operation.Before is {} expected)Compare(operation.Sequence,"before",expected,RunResources.Capture());
         switch(operation.Kind)
         {
