@@ -25,7 +25,7 @@ internal static class RunPatches
     internal static Task? Travel;
     internal static Task? UiTask,ProceedTask,RestAnimation;
     internal static Task<bool>? ResultTask;
-    private static RunOperation? Record(string kind,Func<RunOperation?> begin)
+    internal static RunOperation? Record(string kind,Func<RunOperation?> begin)
     {
         try{return begin();}
         catch(Exception ex)
@@ -76,6 +76,7 @@ internal static class RunPatches
         Patch(typeof(NRestSiteRoom),"OnProceedButtonReleased",before:nameof(RestProceedBefore),after:nameof(RestProceedAfter));
         RunChoices.Install(h);
         RunTreasures.Install(h);
+        RunMerchants.Install(h);
     }
     private static void GeneratedMap(ActMap __0)=>Runtime.Guard(()=>TestEncounter.ConfigureRunRoute(__0));
     private static void Room(AbstractRoom __0,ref Task __result)

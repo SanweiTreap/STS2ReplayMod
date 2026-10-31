@@ -38,7 +38,8 @@ internal static class RunPlayback
     internal const string Run001Baseline="392B6DEB1899B1D5D9E71325382F2999D049CC16E0A9568A9B08951017D4E9DB";
     internal const string TreasureRecordingBuild="2FB5E5938104CA23256FFF25895DD2AB27A324A31CDD5484704F4149F4C584F3";
     internal const string TreasureObtainBuild="0DE66D1936532107143E6AE9B42E80CC94A6D5884A7C2FD5939C51EBDEE25B3E";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild;
+    internal const string AccountContextBuild="1AD070C28A881D7E9ACA8A7F13EFFD5F975F56217C6ECB8A43F8672AECB15C08";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild;
     internal static RunOperation? Current;
     internal static bool HasFollowing=>Active&&_index+1<_run.Operations.Count&&_run.Operations[_index+1].Status=="complete"&&_run.Operations[_index+1].Kind!="gap";
     internal static bool WantsNext=>HasFollowing&&(_auto||_continuation);
@@ -66,7 +67,7 @@ internal static class RunPlayback
         _run=run;Active=true;NonCombat=false;Driving=false;_auto=false;_whole=false;_stop=false;_continuation=false;
         _fine=0;_wholeRequests=0;_decision=0;_phaseAt=0;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;Current=run.Operations[_index];RunPatches.Clear();
     }
-    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();}
+    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();}
     internal static string? InitialProgress()
     {
         if(!_progressContexts.Remove(_run.Operations[_index].Sequence,out var points))return Current?.Progress;
@@ -232,7 +233,8 @@ internal static class RunPlayback
         if(operation.Kind=="map")await Wait(()=>NMapScreen.Instance is {IsOpen:true,IsTravelEnabled:true} map&&!TweenRunning(map,"_tween")&&!TweenRunning(map,"_actAnimTween"),"run-map-not-ready");
         if(operation.Kind=="rest")await Wait(()=>NRestSiteRoom.Instance is not null,"run-rest-site-not-ready");
         await TakePhase(operation.Kind switch{"reward"=>"领取奖励","map"=>"地图选路","rest"=>"营火选择","treasure-open"=>"打开宝箱","treasure-pick"=>"领取遗物",
-            "proceed" or "rest-proceed" or "treasure-proceed"=>"离开房间",_=>operation.Kind});
+            "merchant-open"=>"打开商店","merchant-close"=>"关闭商店","merchant-buy"=>"购买商品","merchant-remove"=>"商店删牌",
+            "proceed" or "rest-proceed" or "treasure-proceed" or "merchant-proceed"=>"离开房间",_=>operation.Kind});
         if(operation.Progress is {} progress)
         {
             MemorySession.ApplyRecordedProgress(progress);
@@ -247,6 +249,8 @@ internal static class RunPlayback
         switch(operation.Kind)
         {
             case "treasure-open":case "treasure-pick":case "treasure-proceed":await RunTreasures.Play(operation);break;
+            case "merchant-open":case "merchant-close":case "merchant-proceed":case "merchant-buy":case "merchant-remove":
+                await RunMerchants.Play(operation);break;
             case "reward":
                 var rewards=RunPatches.Rewards!;var index=operation.Argument.RewardIndex??-1;
                 Codec.Require(index>=0&&index<rewards.Rewards.Count,"run-reward-index");var reward=rewards.Rewards[index];
@@ -308,7 +312,7 @@ internal static class RunPlayback
                     var battle=_run.Operations[_index+1];var clip=Runtime.ReadClip(battle.Clip!);
                     await PlayerLoop.LoadEnteredBattle(clip,Enter);
                 }
-                else {Codec.Require(point.PointType is MapPointType.RestSite or MapPointType.Treasure,"run-next-room-unsupported");await Enter();}
+                else {Codec.Require(point.PointType is MapPointType.RestSite or MapPointType.Treasure or MapPointType.Shop,"run-next-room-unsupported");await Enter();}
                 break;
             default:throw new InvalidDataException("run-operation-unsupported-"+operation.Kind);
         }
