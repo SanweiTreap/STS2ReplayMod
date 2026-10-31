@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r12商店入口SL改选及后战录制通过，待观看
+## 最新摘要 · 2026-11-01 · r13商店SL最终路线至后战观看通过
+
+- 保持RUN-002/build-004，无换版/重录。r13会话16826d3a共280事件、0 observer-error/资源差异，9项非战斗操作严格匹配资源/RNG/商店库存及价格，商店只执行attempt4的raw14..18，未执行旧raw7..13的会员卡/愤怒/药水/删牌。首战与后战各8步均原生胜利并匹配原胜利投影。
+- 实际Continue.Progress的hash A8BEC876…88449在projected6、原生商店生成前应用到隔离manager，随后各操作用其实际Progress。r12首次/恢复入口的discovered_cards判别差异在严格比较中通过，没有忽略字段或改玩家列表。后战`InitialAndRngMatched=true`、`CheckpointLoaded=false`、`ExpectedStateInjected=false`，证实从中间实际新交易自然延续。
+- 用户确认终点Auto关闭；Stop在Operation12、NonCombat=false、AtRecordedEnd=true。11登记任务全部完成、0取消/故障，AllOperationsMatched/Complete/VictoryReached=true、Error=null，原manager和所比较Continue/Progress恢复true，root逐hash不变。
+- 封存285数据文件，51当前文件4,396,386 bytes补存`RUN002-post-r13-current-20261101-015132`；相对r12仅Progress.backup变化，新backup与r12已保存主Progress完全相同，主Progress及current_run均不变，无缺失，game0、无restore/自行启动。证据`runtime-verification-r13.json`、`collection-r13.json`。
+- 下一做当前路线货架打开待购买时Stop及重开Step1/Stop短测，核商店窗口未关闭时退出。当前最终尝试没有删牌，旧删牌尝试保留原件；不为此新增历史尝试观看或改写选中路线。删牌窗口在途Stop尚未单独覆盖（取消/确认原生播放已r11通过），保持细分限制，不用货架Stop冒充。商店特殊遗物/嵌套自动购买、首次商人教程等未全覆盖；问号/事件内部战斗仍待，本包IN_PROGRESS。
+
+## r12：商店入口SL改选及后战录制通过
 
 - 保持RUN-002/build-004，无换版。r12会话ff3a0336共57事件、0 observer-error：真实Continue精确匹配point5商店入口，visit3新attempt4(parent3/restoredSave5)，旧13操作及原首战片均逐项/逐hash不变。新raw14开货架、15只购买另一张牌、16关货架、17前进、18地图、19后战均complete；默认最终路线[1..6,14..19]，旧会员卡/愤怒/药水/删牌仍保留事实而不选。
 - 恢复后原生库存及原价与首次入口整串相同，删牌价恢复75，无旧会员卡折扣；新购CARD.BOLAS花178，1012→834金币。后战4929f45a共8步胜利，真实checkpoint为834金币/13张牌/5张打击，无会员卡、愤怒或力量药水，明确排除了旧交易和旧删牌，而非仅推断投影正确。
