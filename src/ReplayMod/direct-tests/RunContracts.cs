@@ -6,7 +6,7 @@ internal static class RunContracts
 {
     internal static void Verify(string output,string root,string id)
     {
-        var path=Path.Combine(root,id+".json");var before=File.ReadAllBytes(path);var run=new RunStore(root).Read(id);
+        var path=Path.Combine(root,id+".json");var before=File.ReadAllBytes(path);var raw=new RunStore(root).Read(id);var run=RunRoutes.Playback(raw);
         Codec.Require(run.Id==id,"run-id-mismatch");
         var gaps=RunStore.ResourceDiscontinuities(run);var anchor=run.Operations.FirstOrDefault(o=>o.Kind=="battle"&&o.Status=="complete");
         Codec.Require(anchor is not null,"run-has-no-complete-battle-anchor");
@@ -16,7 +16,7 @@ internal static class RunContracts
         Codec.Require(File.ReadAllBytes(path).SequenceEqual(before),"run-read-mutated-original");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
         File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_ACTUAL_RUN_PRODUCTION_READ_NOT_NATIVE_PLAYBACK",run.Id,run.Format,
-            OriginalSHA256=Codec.Hash(before),Visits=run.Visits.Count,Operations=run.Operations.Count,StartSequence=anchor!.Sequence,
+            OriginalSHA256=Codec.Hash(before),Visits=run.Visits.Count,Operations=run.Operations.Count,RecordedOperations=raw.Operations.Count,StartSequence=anchor!.Sequence,
             ResourceDiscontinuities=gaps,Continuations=continuations,OriginalUnchanged=true,NativeRuntimeNotExecutedByThisCheck=true}));
         Console.WriteLine("PASS_ACTUAL_RUN_PRODUCTION_READ_NOT_NATIVE_PLAYBACK");
     }

@@ -38,7 +38,7 @@ internal static class Recorder
         var setup=JsonSerializationUtility.ToJson(save);var original=fromLoad?_loadedJson!:setup;
         NewRun(false);Runtime.CheckEnvironment();_continueSave=original;Runtime.Journal.Continue(_continueSave);
         _enabled=true;
-        RunRecording.Attach(true,save);
+        RunRecording.Attach(true,save,original);
         Runtime.Log("recording-continue",new{RunId=Runtime.Journal.CurrentRun,MatchedObservedSave=Runtime.Journal.ContinueMatched,
             save.StartTime,save.CurrentActIndex,PreFinished=save.PreFinishedRoom is not null,FromNativeLoadSnapshot=fromLoad,
             LoadedSaveKey=RecordingJournal.SaveKey(original),SetupSaveKey=RecordingJournal.SaveKey(setup),
@@ -52,9 +52,11 @@ internal static class Recorder
         Runtime.Log("recording-native-save-loaded",new{save.StartTime,save.CurrentActIndex,BeforeRunStateReconstruction=true,
             SaveKey=RecordingJournal.SaveKey(_loadedJson)});
     }
-    internal static Task NativeSaved(RunSaveManager manager,Task saved)
+    internal static Task NativeSaved(RunSaveManager manager,SerializableRun request,Task saved)
     {
         if(!_enabled||Runtime.Journal.CurrentRun is not {} runId)return saved;
+        var location=RunRecording.SavePosition();
+        var requestedFingerprint=RecordingJournal.NativeFingerprint(JsonSerializationUtility.ToJson(request));
         return Observe();
         async Task Observe()
         {
@@ -64,6 +66,11 @@ internal static class Recorder
                 var store=(ISaveStore)AccessTools.Field(typeof(RunSaveManager),"_saveStore").GetValue(manager)!;
                 var path=(string)AccessTools.Property(typeof(RunSaveManager),"CurrentRunSavePath").GetValue(manager)!;
                 var json=store.ReadFile(path)??throw new InvalidDataException("native-saved-run-readback-missing");
+                if(RecordingJournal.NativeFingerprint(json)!=requestedFingerprint)
+                {
+                    Runtime.Log("run-save-position-unresolved",new{RunId=runId,Reason="native-save-was-superseded-before-readback",NativeSaveSucceeded=true});
+                    return;
+                }
                 Runtime.Journal.ObserveFor(runId,json);
                 // Native DTO defaults can change omitted fields on load (e.g. map
                 // CanBeModified=false is omitted, then defaults to true). Observe
@@ -72,6 +79,7 @@ internal static class Recorder
                 Codec.Require(loaded.Success&&loaded.SaveData is not null,"native-saved-run-load-representation-failed");
                 var loadJson=JsonSerializationUtility.ToJson(loaded.SaveData!);
                 Runtime.Journal.ObserveFor(runId,loadJson);
+                RunRecording.NativeSaved(location,json,loadJson,loaded.SaveData!.PreFinishedRoom is not null);
                 Runtime.Log("recording-native-save-written",new{RunId=runId,SaveKey=RecordingJournal.SaveKey(json),
                     NativeLoadRepresentationKey=RecordingJournal.SaveKey(loadJson),NativeLoadRepresentationObserved=true,
                     ExactStoredContent=true,NativeSaveSucceeded=true,OriginalSaveWrittenByReplay=false});

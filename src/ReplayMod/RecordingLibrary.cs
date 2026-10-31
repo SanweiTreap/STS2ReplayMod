@@ -26,6 +26,7 @@ public sealed class RecordingJournal(string path)
         foreach(var key in new[]{"save_time","run_time","num_reloads"})node.Remove(key);
         return Codec.Hash(Canonical(node));
     }
+    public static string NativeFingerprint(string json)=>Codec.Hash(Canonical(JsonNode.Parse(json)??throw new InvalidDataException("invalid-native-run-save")));
     private static byte[] Canonical(JsonNode node)
     {
         using var stream=new MemoryStream();using(var writer=new Utf8JsonWriter(stream))Write(node,writer);

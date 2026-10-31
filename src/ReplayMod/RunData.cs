@@ -7,14 +7,30 @@ public sealed record RunDecision(string Kind,string[] Options,int[] Selected);
 public sealed record RunArgument(int? Row=null,int? Col=null,int? RewardIndex=null,string? RewardKey=null,string? Option=null);
 public sealed record RunOperation(int Sequence,int Visit,string Kind,RunArgument Argument,string? Before,string? After,
     string Status,RunDecision[] Decisions,string? Clip=null,BattleRecording? Battle=null,bool? Success=null,
-    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? Progress=null);
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? Progress=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? Attempt=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? SourceSequence=null);
 public sealed record RoomVisit(int Id,int Act,int Floor,int Row,int Col,string MapType,string? RoomType,string? Model,
     int Entries,string Status,string? Gap,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string[]? Subrooms=null);
 public sealed record RunContinuation(DateTimeOffset At,int Visit,bool PreFinished,string SaveKey,string Status,
-    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? BeforeOperation=null);
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? BeforeOperation=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? Attempt=null);
+public sealed record RoomAttempt(int Id,int Visit,int? Parent,int? RestoredSave,DateTimeOffset At,string Reason,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? RoomType=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? Model=null);
+public sealed record RunSavePoint(int Id,int Visit,int Attempt,DateTimeOffset At,string Fingerprint,string NativeFingerprint,
+    string SaveKey,bool PreFinished,int[] Path);
+public sealed class RunBranches
+{
+    public List<int> Selected {get;init;}=[];
+    public List<RoomAttempt> Attempts {get;init;}=[];
+    public List<RunSavePoint> Saves {get;init;}=[];
+    public int ActiveAttempt {get;set;}
+}
 public sealed record RunDocument(int Format,string Id,string GameHash,string ModHash,string Scope,string Character,
-    DateTimeOffset Created,List<RoomVisit> Visits,List<RunOperation> Operations,List<RunContinuation> Continuations);
+    DateTimeOffset Created,List<RoomVisit> Visits,List<RunOperation> Operations,List<RunContinuation> Continuations,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] RunBranches? Branches=null);
 public sealed record RunEnvelope(string SHA256,RunDocument Data);
 
 internal sealed class RunStore(string root)
@@ -65,5 +81,6 @@ internal sealed class RunStore(string root)
         Codec.Require(run.Continuations.All(c=>(c.Visit==0||run.Visits.Any(v=>v.Id==c.Visit))&&
             (c.BeforeOperation is null||c.BeforeOperation>=1&&c.BeforeOperation<=run.Operations.Count+1&&
              (c.Visit==0||c.BeforeOperation>run.Operations.Count||run.Operations[c.BeforeOperation.Value-1].Visit==c.Visit))),"run-continuation-position");
+        RunRoutes.Validate(run);
     }
 }

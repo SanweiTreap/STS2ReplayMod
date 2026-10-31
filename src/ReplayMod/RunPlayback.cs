@@ -30,23 +30,27 @@ internal static class RunPlayback
     private static Task? _mapTask;
     private static long _phaseAt;
     private static Dictionary<int,RunContinuation[]> _continuations=[];
+    private static int _rawOperations;
     // This exact recording build has the same run/clip format and native inputs.
     internal const string RecordingBuild="145E3A3DE8A918CBD8AE90EBF4EFE1D7413E3F46911A1A5C26298266828F66EC";
     internal const string AcceptedChainRecordingBuild="DD563F456E5A693E9139F669B3C7E9B95ECFB11D6096A32A79F6EE82E89CF1FA";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild;
+    internal const string Run001Baseline="392B6DEB1899B1D5D9E71325382F2999D049CC16E0A9568A9B08951017D4E9DB";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline;
     internal static RunOperation? Current;
     internal static bool HasFollowing=>Active&&_index+1<_run.Operations.Count&&_run.Operations[_index+1].Status=="complete"&&_run.Operations[_index+1].Kind!="gap";
     internal static bool WantsNext=>HasFollowing&&(_auto||_continuation);
     internal static bool Stopping=>_stop;
     internal static bool Auto=>_auto;
     internal static bool CompletingOperation=>_whole;
-    internal static string Display=>Active?$"\n路线 · 房间{Current?.Visit??_run.Operations[_index].Visit}/{_run.Visits.Count} · 操作{_index+1}/{_run.Operations.Count}"+
+    internal static string Display=>Active?$"\n路线 · 第{_run.Visits.Single(v=>v.Id==(Current?.Visit??_run.Operations[_index].Visit)).Floor}层 · 操作{_index+1}/{_run.Operations.Count}"+
+        (Current?.Attempt is {} attempt?$" · 采用尝试#{attempt}（最终延续路线）":"")+
         (NonCombat?$" · {(_auto?"自动连续":"手动等待／执行")} · 待播{_fine+_wholeRequests}":""):"";
     internal static int StartIndex(RunDocument run)=>run.Operations.FindIndex(o=>o.Kind=="battle"&&o.Status=="complete"&&o.Clip is not null);
     internal static void Begin(RunDocument run,int? startSequence=null)
     {
+        _rawOperations=run.Operations.Count;run=RunRoutes.Playback(run);
         Codec.Require(run.GameHash==Runtime.GameHash&&run.Scope==Runtime.Scope&&Compatible(run.ModHash),"run-environment-or-build-mismatch");
-        _index=startSequence is {} sequence?run.Operations.FindIndex(o=>o.Sequence==sequence):StartIndex(run);
+        _index=startSequence is {} sequence?run.Operations.FindIndex(o=>(o.SourceSequence??o.Sequence)==sequence):StartIndex(run);
         Codec.Require(_index>=0&&run.Operations[_index] is {Kind:"battle",Status:"complete",Clip:not null},"run-has-no-recorded-battle-start");
         Codec.Require(!RunStore.ResourceDiscontinuities(run).Any(s=>s>run.Operations[_index].Sequence),"run-has-unrecorded-resource-transition");
         var first=run.Operations[_index];
@@ -56,7 +60,7 @@ internal static class RunPlayback
         _run=run;Active=true;NonCombat=false;Driving=false;_auto=false;_whole=false;_stop=false;_continuation=false;
         _fine=0;_wholeRequests=0;_decision=0;_phaseAt=0;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;Current=run.Operations[_index];RunPatches.Clear();
     }
-    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();_continuations.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();}
+    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();_continuations.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();}
     internal static void Track(Task task)
     {
         if(!Active||!OwnedTasks.Add(task))return;
@@ -118,12 +122,12 @@ internal static class RunPlayback
         var expected=Current!.Decisions[_decision++];
         Codec.Require(expected.Kind==kind&&expected.Options.SequenceEqual(options),"run-native-choice-options-mismatch");return expected;
     }
-    private static async Task Wait(Func<bool> ready,string reason)
+    internal static async Task Wait(Func<bool> ready,string reason)
     {
         var at=Stopwatch.GetTimestamp();
         while(!ready()){CheckStop();Codec.Require(Stopwatch.GetElapsedTime(at).TotalSeconds<45,reason);await Runtime.NextFrame();}
     }
-    private static async Task Await(Task task)
+    internal static async Task Await(Task task)
     {
         Track(task);
         while(!task.IsCompleted){CheckStop();await Runtime.NextFrame();}
@@ -131,7 +135,8 @@ internal static class RunPlayback
     }
     internal static async Task<bool> Run()
     {
-        Runtime.Log("run-playback-open",new{_run.Id,StartOperation=_index+1,Visits=_run.Visits.Count,SameMemorySession=true});
+        Runtime.Log("run-playback-open",new{_run.Id,StartOperation=_index+1,Visits=_run.Visits.Count,SameMemorySession=true,
+            RecordedOperations=_rawOperations,SelectedOperations=_run.Operations.Count,PreservedAttempts=_run.Branches?.Attempts.Count});
         try
         {
             while(!_stop)
@@ -163,7 +168,7 @@ internal static class RunPlayback
                 await Execute(Current);
                 Codec.Require(_decision==Current.Decisions.Length,"run-recorded-choice-not-consumed");
                 if(Current.After is {} expected)Compare(Current.Sequence,"after",expected,RunResources.Capture());
-                Runtime.Log("run-operation-verified",new{_run.Id,Current.Sequence,Current.Visit,Current.Kind,ResourcesAndRngMatched=true,NativeBusinessExecuted=true,ExpectedStateInjected=false});
+                Runtime.Log("run-operation-verified",new{_run.Id,Current.Sequence,Current.SourceSequence,Current.Attempt,Current.Visit,Current.Kind,ResourcesAndRngMatched=true,NativeBusinessExecuted=true,ExpectedStateInjected=false});
                 if(_index==_run.Operations.Count-1)
                 {
                     _auto=false;Runtime.Status="已到记录终点；可Stop返回菜单";
@@ -203,10 +208,12 @@ internal static class RunPlayback
         if(operation.Kind is "reward" or "proceed")await RewardsReady(requireVisible:false);
         if(operation.Kind=="map")await Wait(()=>NMapScreen.Instance is {IsOpen:true,IsTravelEnabled:true} map&&!TweenRunning(map,"_tween")&&!TweenRunning(map,"_actAnimTween"),"run-map-not-ready");
         if(operation.Kind=="rest")await Wait(()=>NRestSiteRoom.Instance is not null,"run-rest-site-not-ready");
-        await TakePhase(operation.Kind switch{"reward"=>"领取奖励","map"=>"地图选路","rest"=>"营火选择","proceed" or "rest-proceed"=>"离开房间",_=>operation.Kind});
+        await TakePhase(operation.Kind switch{"reward"=>"领取奖励","map"=>"地图选路","rest"=>"营火选择","treasure-open"=>"打开宝箱","treasure-pick"=>"领取遗物",
+            "proceed" or "rest-proceed" or "treasure-proceed"=>"离开房间",_=>operation.Kind});
         if(operation.Before is {} expected)Compare(operation.Sequence,"before",expected,RunResources.Capture());
         switch(operation.Kind)
         {
+            case "treasure-open":case "treasure-pick":case "treasure-proceed":await RunTreasures.Play(operation);break;
             case "reward":
                 var rewards=RunPatches.Rewards!;var index=operation.Argument.RewardIndex??-1;
                 Codec.Require(index>=0&&index<rewards.Rewards.Count,"run-reward-index");var reward=rewards.Rewards[index];
@@ -268,7 +275,7 @@ internal static class RunPlayback
                     var battle=_run.Operations[_index+1];var clip=Runtime.ReadClip(battle.Clip!);
                     await PlayerLoop.LoadEnteredBattle(clip,Enter);
                 }
-                else {Codec.Require(point.PointType==MapPointType.RestSite,"run-next-room-unsupported");await Enter();}
+                else {Codec.Require(point.PointType is MapPointType.RestSite or MapPointType.Treasure,"run-next-room-unsupported");await Enter();}
                 break;
             default:throw new InvalidDataException("run-operation-unsupported-"+operation.Kind);
         }
