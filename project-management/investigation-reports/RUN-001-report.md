@@ -1,7 +1,15 @@
 # RUN-001：整局外壳与第一条非战斗录播链
 
-## 最新摘要 · 2026-10-31 · 005/r5首条原生链通过，包内剩余分支待测
+## 最新摘要 · 2026-10-31 · 005/r6 Auto整链、营火选择中Stop及重开通过
 
+- 保持RUN-001/build-005（DLL `DD563F456E5A693E9139F669B3C7E9B95ECFB11D6096A32A79F6EE82E89CF1FA`），不换版、不重录旧片。r5两条手动升级链已通过；r6同片0cdfdef2的Auto原生链至后战初态/RNG及Defend+、终点Stop通过。后战仍为一项前缀，不是胜利。
+- r6共四次打开：Auto全链；首战胜利处Stop；营火升级选牌窗口中Stop；重开一项后Stop。492事件，26项战斗操作、11项战外操作核对，0 observer-error；四次原manager与所比较Continue/Progress恢复通过。Auto全链14任务收束；营火中止11任务收束，其中3个原生选择取消、0故障，重开正常。
+- 奖励选牌Stop本轮未覆盖：第二次观看没有进入reward phase，停在首战8/8胜利。已向用户核对，答“可能停在胜利画面了”；仅记为胜利处Stop，不判奖励选择中止通过，也不记新bug。下一短样本播放时补这一点，不重测已过的Auto/营火Stop。
+- 497原始数据文件封存，当前51文件4,389,898 bytes补存`RUN001-post-r6-current-20261031-190753`，相对r5仅settings.save.backup变化；新增正常游戏进度保持，game0，无restore/自行启动。关键本地证据`runtime-verification-r6.json`、`collection-r6.json`。历史失败与r5代表手动链保留，不逐候选唤醒PM。
+- 剩余：奖励选牌中Stop、跳卡、营火HEAL、合法原生保存点真正退出/新进程Continue。已查原生暂停菜单只退菜单，并不额外写盘；营火选择后没有自动保存，不能让用户在此退出后假称已保存休息。下一新短路线合并跳卡/HEAL，第二战胜利出现奖励页后先不领奖，利用CombatManager原生SaveRun(preFinishedRoom)的合法完成点关游戏，先核保存再安排真正Continue。
+- 同005现有默认关闭的短路线准备可直接用，用户亲自选择跳卡/HEAL，无新增牌/遗物模拟或正常存档覆盖。先录两场短普通战斗，之后核Continue归属/无重复及同局后续，再用新片补奖励窗口Stop与休息/跳卡回放。整包仍IN_PROGRESS，战外Back/跨房间Seek与其他房间继续不开放。
+
+## r5：首条原生升级链，手动细进与整项通过
 - 当前RUN-001/build-005保持安装，DLL `DD563F456E5A693E9139F669B3C7E9B95ECFB11D6096A32A79F6EE82E89CF1FA`，收据`preparation/build-005-ba46e13d.json`。r5用户确认效果正常；本段通过，不标RUN-001整包完成。
 - 同一原片0cdfdef2两轮整链：一轮全程`>`细进，一轮`>>`整项。各自首战8项胜利→金币→选CARD.HEMOKINESIS→原生地图→营火升级Bash→地图→后战完整初态/RNG核对→原生Defend+→Stop。后战只录了一项中断前缀，不是后战胜利；没有载入后场checkpoint/注入expected。
 - 日志378事件，18项原生战斗操作、14项战外操作、2次后战初态核对与2次run Complete=true；0 observer-error。`>`在奖励页完整出现后等待约5秒才领取，选择页面与选中/确认均逐阶段推进；地图投票及派生移动4对都归属正确。两轮各14个登记任务全部收束，无取消/故障；Stop后原manager与所比较Continue/Progress恢复通过。
