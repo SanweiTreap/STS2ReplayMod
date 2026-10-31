@@ -1,14 +1,15 @@
 # RUN-001：整局外壳与第一条非战斗录播链
 
-## 最新摘要 · 2026-10-31 · build-003 已安装，奖励选牌补录待测
+## 最新摘要 · 2026-10-31 · build-003/r2 录制通过，整链观看待测
 
-- 当前安装RUN-001/build-003，DLL `145E3A3DE8A918CBD8AE90EBF4EFE1D7413E3F46911A1A5C26298266828F66EC`，收据`evidence/run-001/preparation/build-003-87ed5cdc.json`。002/r1原生短路线正常完成，但卡牌奖励记录因受限存档接口漏项；003改记录原生实际offer，待重录验证。
+- 当前安装RUN-001/build-003，DLL `145E3A3DE8A918CBD8AE90EBF4EFE1D7413E3F46911A1A5C26298266828F66EC`，保持不换版。r2战后卡牌奖励候选/最终索引已完整录下，从第2层战斗合法锚点至营火和后战无资源断点；整链观看尚待原生测试。
 - r1实证：四次实际访问含涅奥缺口、普通→营火→普通；首战8操作胜利片及后战1操作片段均封存读回匹配，金币/药水/选路/营火SMITH候选选择已录，后战Bash升级1。仅CardReward选牌未记录，不能判整链录制或播放通过。
 - r1原件/69事件等74数据文件已封存，当前51文件3,960,178 bytes补存`RUN001-post-r1-current-20261031-154821`；正常保存进度是本次未完短路线后战。旧009/001/002 pair和恢复点保持，无restore/自行启动。
-- 003构建0警告错误、5项文件/资源缺口合同通过；真实r1只读诊断第5项前有漏记变化。失败root不改写/不补猜选择，旧002战斗片仍可独立读取，旧整链明确不可用。新卡牌奖励身份/候选记录和整链播放、休息/跳卡/合法点Continue/选择中Stop仍待原生实测。
+- r2对局0cdfdef2：首战8操作胜利、战后选CARD.HEMOKINESIS索引2/4项（含跳过）、营火升级Bash索引4/6候选，后战1操作片段/Bash升级1，读回匹配。全root断点3位于未支持涅奥内、在合法起点4之前，不冒充涅奥全流程支持。70事件等75数据文件封存，当前51文件3,964,225 bytes补存`RUN001-post-r2-current-20261031-160430`。
+- 003构建/5项文件合同及真实root生产读取通过，不替代原生播放；r1漏记原件/失败保留。休息/跳卡、合法点Continue、选择中Stop与整链播放仍待实测。
 - 原生入口已定位：RewardsSetSynchronizer.SelectLocalReward、NCardRewardSelectionScreen.OptionSelected、RestSiteSynchronizer.ChooseLocalOption及NDeckUpgradeSelectScreen、NMapScreen原生选路/TravelToMapCoord。单场播放器现有胜利奖励屏蔽保持；整局模式在观看者推进时才开放原生奖励，避免新奖励等待破坏战斗Back。
 - 首个短样本拟默认关闭准备：铁甲A0暗港普通战斗→营火→普通战斗，使用原生牌/遭遇与实际相连地图节点，准备在checkpoint前明确记录。未支持房间留缺口，非战斗Back/跨房间Seek禁用。
-- 下一动作：003重新启用短路线准备，新铁甲A0重复短路线：最左普通获胜→金币/选一张奖励牌/有药水领取→最左营火升级痛击→最左普通打一张防御+后正常存退关游戏。只因这轮选牌缺失补录，核成功后进入整链观看；不补造旧决策、不重跑旧50步/角色矩阵。证据本地`evidence/run-001/`。
+- 下一动作：主菜单“已记录路线”找到0cdfdef2，选“从第2层战斗／尝试1顺播路线”，Auto依次看胜利→金币/选牌→选路→营火升级→选路→下一战那张防御+，到记录终点Stop并正常退出。不要点最近单场入口代替整链；无需再录，若报错保留位置/日志后同片修测。证据本地`evidence/run-001/`。
 
 ## 001→002：首个纵向实现，尚无原生运行结论
 
@@ -39,3 +40,11 @@
 CardReward身份改为实际已生成的有序卡牌（复用已成功用于营火候选的CardKey：模型/升级/原生SerializableCard）、CanSkip/CanReroll及只读Source/Flags；不再调用明确不支持IsFromCombat的CardReward.ToSerializable，也不清除flags或重建expected奖励。药水奖励另记录真实Potion.ModelId，避免原生基类SerializableReward不含药水型号；领取继续走同一原生同步器和结果比较。任何录制Begin失败现在留显式gap/visit标记并保留原异常，正常游戏仍执行；资源断点另作只读诊断，禁止有漏项的起点播放，不凭结果填补步骤。旧原件/校验均不改，旧002战斗片加入精确hash兼容，旧候选整链在UI明确禁用。
 
 主工程/DirectContracts构建0警告错误；原4文件合同加1资源漏记诊断及不篡改历史合同通过，见`checks/reward-offer-fix/run-data.json`。同一诊断对真实r1 root实得断点5（写入r1摘要），不是假对象验证新NativeReward路径；尚未原生补录，未称奖励修复或整链PASS。游戏0下003安装完成，DLL `145E3A3DE8A918CBD8AE90EBF4EFE1D7413E3F46911A1A5C26298266828F66EC`，manifest不变，收据`preparation/build-003-87ed5cdc.json`，002 pair/config和失败保留。Cloud沿本包确认，无自行启动/恢复；下一只重录这条短路线补齐真实选牌，再取整链播放。
+
+## r2：003奖励选牌完整录制，合法战斗锚点后的资源链连续
+
+用户补录后“ok了。你看看”。session `14a8617c27634a4d95758f3126f81893`70事件，无observer-error/显式missing。Run `0cdfdef2363c4dfd8fc7b613560ebaf9`有4次实际访问、12项，全部status complete；第1层Neow实际Event仍标未支持，前3项不当本包合法播放起点。第4项锚定2层普通战斗`c87ff59118ac4ef7ab5d34050dbf4bd2`8操作真实胜利，后场4层普通战斗`e3de04de82cc4b55888ad01c8c35ac02`1操作interrupted，两片生产封存读回匹配。
+
+合法起点后的第5金币、第6 CardReward-v2及reward-card选择（3牌+跳过共4项、选2即CARD.HEMOKINESIS）、Proceed、地图到营火、第9 SMITH/deck-upgrade（6候选选4为CARD.BASH）、营火离开、地图到后战均已记录。后战初态Bash升级1。资源连续性只在未支持涅奥内的第3项之前有断点，从合法锚点4之后为0，不因此误判本轮选牌仍漏记，也不宣称Neow链条支持。003运行时offer身份修正与营火最终决策记录取得实际原生证据；下一战初态来自正常游玩，这仍不是回放自然生成后战的证明。
+
+复用收集脚本封存70事件+两片/root/journal/Godot共75数据文件`runtime/run-001-r2-20261031-160430`，摘要`runtime-verification-r2.json`及`collection-r2.json`。增加既有DirectContracts的verify-run读取入口，使用实际RunStore校验root和原件hash不变、定位合法起点/断点，见`checks/r2/run-production-read.json`；这是生产文件读取，不运行Godot，不重跑未变的纯合同。当前51文件3,964,225 bytes读回补存`RUN001-post-r2-current-20261031-160430`，正常新局/存盘变化保留，game0，Quit/shutdown正常；无restore/新DLL/自行启动。整链观看、休息/跳卡分支、Continue及选择中Stop继续待测，003保持，按顶部步骤先测这份现成路线。
