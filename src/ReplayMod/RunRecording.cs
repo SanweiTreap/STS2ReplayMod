@@ -27,6 +27,7 @@ internal static class RunResources
         result["acts"]=acts;
         if(RunManager.Instance.DebugOnlyGetState()?.CurrentRoom is MerchantRoom)
             result["merchant_inventory"]=JsonNode.Parse(RunMerchants.Offer());
+        if(RunEvents.InOrdinaryEvent)result["event_state"]=JsonNode.Parse(RunEvents.State());
         return result.ToJsonString(Codec.Json);
     }
 }
@@ -42,7 +43,7 @@ internal static class RunRecording
     private static bool _restoredEntry,_unknownLoad;
     internal sealed record SaveLocation(string Run,int Visit,int Attempt,int[] Path);
     internal static bool Enabled=>_run is not null&&!PlayerLoop.Active;
-    internal static bool Choosing=>Enabled&&Pending?.Kind is "reward" or "rest" or "treasure-pick" or "merchant-buy" or "merchant-remove";
+    internal static bool Choosing=>Enabled&&Pending?.Kind is "reward" or "rest" or "treasure-pick" or "merchant-buy" or "merchant-remove" or "event-choice";
     internal static void Attach(bool continuation,SerializableRun? save=null,string? loadedJson=null)
     {
         if(PlayerLoop.Active||Runtime.Journal.CurrentRun is not {} id)return;
@@ -112,16 +113,19 @@ internal static class RunRecording
         if(!Enabled||room.RoomType==RoomType.Map)return;
         if(_visit==0&&LiveState.Run.VisitedMapCoords.Count>0)Entry(LiveState.Run.VisitedMapCoords[^1],room.IsPreFinished,false);
         if(_visit==0)return;var index=_run!.Visits.FindIndex(v=>v.Id==_visit);var visit=_run.Visits[index];
+        var firstRoomInAttempt=false;
         if(_run.Branches is {ActiveAttempt:>0} branch)
         {
             var at=branch.Attempts.FindIndex(a=>a.Id==branch.ActiveAttempt);var attempt=branch.Attempts[at];
-            if(attempt.RoomType is null)branch.Attempts[at]=attempt with{RoomType=room.RoomType.ToString(),Model=room.ModelId?.ToString()};
+            if(attempt.RoomType is null){firstRoomInAttempt=true;branch.Attempts[at]=attempt with{RoomType=room.RoomType.ToString(),Model=room.ModelId?.ToString()};}
         }
-        if(visit.RoomType is not null&&visit.RoomType!=room.RoomType.ToString())
+        if(visit.RoomType is not null&&visit.RoomType!=room.RoomType.ToString()&&!firstRoomInAttempt)
         {
             _run.Visits[index]=visit with{Subrooms=(visit.Subrooms??[]).Append(room.RoomType+":"+room.ModelId).ToArray(),Gap="本轮未支持嵌套房间"};Save();return;
         }
-        var supported=room.RoomType==RoomType.Monster&&visit.MapType=="Monster"||room.RoomType==RoomType.RestSite&&visit.MapType=="RestSite"||room.RoomType is RoomType.Treasure or RoomType.Shop;
+        var supported=room.RoomType==RoomType.Monster&&visit.MapType is "Monster" or "Unknown"||
+            room.RoomType==RoomType.RestSite&&visit.MapType=="RestSite"||room.RoomType is RoomType.Treasure or RoomType.Shop||
+            room is EventRoom {CanonicalEvent:not MegaCrit.Sts2.Core.Models.AncientEventModel}&&visit.MapType=="Unknown";
         _run.Visits[index]=visit with{RoomType=room.RoomType.ToString(),Model=room.ModelId?.ToString(),Status="entered",
             Gap=supported?visit.Gap:"本轮未支持的实际房间"};Save();
     }
@@ -168,7 +172,7 @@ internal static class RunRecording
         if(!Enabled||_battleSequence==0)return;
         var op=_run!.Operations[_battleSequence-1];Replace(op with{Status="complete",Clip=clip.Id,Battle=clip.Battle});Save();
     }
-    internal static void EntryContext(){if(Enabled)_entryProgress=RunResources.Progress();}
+    internal static void EntryContext(string? progress=null){if(Enabled)_entryProgress=progress??RunResources.Progress();}
     internal static void MissingOperation(string kind,string reason)
     {
         if(!Enabled||_visit==0)return;

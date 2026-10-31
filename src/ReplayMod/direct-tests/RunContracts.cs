@@ -13,11 +13,14 @@ internal static class RunContracts
         Codec.Require(!gaps.Any(s=>s>anchor!.Sequence),"run-has-missing-resource-transition-after-anchor");
         var continuations=run.Continuations.Where(c=>c.PreFinished&&c.Visit>=anchor!.Visit)
             .Select(c=>new{c.Visit,BeforeOperation=RunStore.ContinueBefore(run,c),LegacyVisitBoundary=c.BeforeOperation is null}).ToArray();
+        var destinations=run.Operations.Zip(run.Operations.Skip(1)).Where(p=>p.First.Kind=="map"&&p.First.Sequence>=anchor!.Sequence)
+            .Select(p=>{var destination=RunRoutes.Destination(run,p.First,p.Second);
+                return new{Operation=p.First.Sequence,destination.Visit.Id,destination.Visit.MapType,destination.Type,destination.Model};}).ToArray();
         Codec.Require(File.ReadAllBytes(path).SequenceEqual(before),"run-read-mutated-original");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
         File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_ACTUAL_RUN_PRODUCTION_READ_NOT_NATIVE_PLAYBACK",run.Id,run.Format,
             OriginalSHA256=Codec.Hash(before),Visits=run.Visits.Count,Operations=run.Operations.Count,RecordedOperations=raw.Operations.Count,StartSequence=anchor!.Sequence,
-            ResourceDiscontinuities=gaps,Continuations=continuations,OriginalUnchanged=true,NativeRuntimeNotExecutedByThisCheck=true}));
+            ResourceDiscontinuities=gaps,Continuations=continuations,Destinations=destinations,OriginalUnchanged=true,NativeRuntimeNotExecutedByThisCheck=true}));
         Console.WriteLine("PASS_ACTUAL_RUN_PRODUCTION_READ_NOT_NATIVE_PLAYBACK");
     }
     internal static void Run(string output)

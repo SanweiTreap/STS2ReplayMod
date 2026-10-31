@@ -58,6 +58,14 @@ internal static class RunRoutes
             "run-progress-context-room-entry-boundary-missing");
         return travel!.Sequence;
     }
+    internal static (RoomVisit Visit,string? Type,string? Model) Destination(RunDocument run,RunOperation map,RunOperation next)
+    {
+        var visit=run.Visits.Single(v=>v.Id==next.Visit);
+        Codec.Require(map.Kind=="map"&&map.Visit!=next.Visit&&visit.Row==map.Argument.Row&&visit.Col==map.Argument.Col,
+            "run-map-destination-recording-mismatch");
+        var attempt=next.Attempt is {} id?run.Branches?.Attempts.Single(a=>a.Id==id&&a.Visit==visit.Id):null;
+        return (visit,attempt?.RoomType??visit.RoomType,attempt is {RoomType:not null}?attempt.Model:visit.Model);
+    }
     internal static void Validate(RunDocument run)
     {
         if(run.Branches is not {} branch)return;

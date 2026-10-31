@@ -102,6 +102,20 @@ internal static class RunBranchContracts
             var rejected=false;try{_=RunRoutes.ProgressBefore(sample,point with{Progress="observed"});}catch(InvalidDataException){rejected=true;}
             Need(rejected,"new-progress-context-silently-applied-after-native-entry");
         });
+        Test("unknown-destination-uses-selected-attempt-type-and-model-without-rewriting-map-identity",()=>
+        {
+            var sample=Fresh();sample.Visits[1]=sample.Visits[1] with{MapType="Unknown",RoomType="Shop"};
+            RunRoutes.StartAttempt(sample,1,null,null,"entry");Add(sample,1,"battle","won");
+            var travel=Add(sample,1,"map","unknown") with{Argument=new(2,0)};sample.Operations[1]=travel;
+            RunRoutes.StartAttempt(sample,2,1,null,"entry");sample.Branches!.Attempts[1]=sample.Branches.Attempts[1] with{RoomType="Shop"};
+            RunRoutes.Observe(sample,2,2,[1,2],"disk","load","key",false);Add(sample,2,"merchant-open","old");
+            RunRoutes.Restore(sample,"load");sample.Branches.Attempts[2]=sample.Branches.Attempts[2] with{RoomType="Monster",Model="ENCOUNTER.NEW"};
+            var combat=Add(sample,2,"battle","new");var before=Codec.Bytes(sample);var target=RunRoutes.Destination(sample,travel,combat);
+            Need(target.Visit.MapType=="Unknown"&&target.Type=="Monster"&&target.Model=="ENCOUNTER.NEW"&&
+                Codec.Bytes(sample).SequenceEqual(before)&&sample.Branches.Attempts[1].RoomType=="Shop","unknown-destination-guessed-from-visit-or-overwrote-old-attempt");
+            var rejected=false;try{_=RunRoutes.Destination(sample,travel with{Argument=new(9,9)},combat);}catch(InvalidDataException){rejected=true;}
+            Need(rejected,"unknown-destination-ignored-recorded-coordinates");
+        });
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
         File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_RUN_BRANCH_SELECTION_CONTRACTS_NOT_NATIVE_RUNTIME",Tests=tests,NativeRuntimeNotExecuted=true}));
         Console.WriteLine("PASS_RUN_BRANCH_SELECTION_CONTRACTS_NOT_NATIVE_RUNTIME");

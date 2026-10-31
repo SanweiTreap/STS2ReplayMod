@@ -1,6 +1,16 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r14货架待购买Stop/重开通过，商店代表样本收束
+## 最新摘要 · 2026-11-01 · 普通事件增量005已安装，待首次录制
+
+- PM已接受004商店代表样本，r11/r13/r14及细分限制保持，RUN-002仍IN_PROGRESS。当前RUN-002/build-005，DLL `B09A643DF2ECE027ECBDA8EB3EA437BCA6FF8086173B192AD3CA1E9CE7480C04`，manifest仍`69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-005-2e23faf4.json`。004及全部旧pair保留、显式兼容004原片/root，尚无005事件游戏结论。
+- 普通事件沿原生NEventOptionButton→EventSynchronizer→EventOption.Chosen执行，选项和离开分别录制，复用原生牌组选牌。严格资源快照新增事件页key、选项身份/锁定/已选、动态数值与字符串、事件自身RNG及共享事件同步页/RNG；原生历史在Chosen调用后追加，完成快照等该调用栈结束后一帧，不靠expected补历史。事件派生遗物领取只准当前原生选项异步调用上下文内的确切Obtain实例，其他增删保护保持；该分支未作本轮领取覆盖声明。
+- 问号保留Unknown地图身份，原生Roll照常执行并日志；录制先冻结掷房前checkpoint及实际Progress，只在真正掷成普通战斗后绑定战斗录制，事件/商店/宝箱不会卡在战斗等待。播放根据选中attempt的已记录实际类型准备对应播放器，但不改掷房结果，原生生成后再核类型/模型与资源/RNG。恢复后的实际房型可与前尝试不同，不误标为同attempt内嵌套；纯元数据合同有判别覆盖，实际Unknown非事件分流仍待样本。
+- 本增量先接普通事件/多页/共用选牌。自定义/嵌入战斗布局、事件内部战斗和事件内额外领奖页明确尚未支持，正常游戏继续并保留缺口；内部战斗/返回/阶段SL仍是同包后续，不以Subrooms目录当播放支持。特殊事件输入/全部私有状态组合未全覆盖。
+- 默认关闭的新局准备`RUN-002 事件SL短路线`：铁甲A0/暗港，40HP、五张先天保留牌与首两场弱双蛞蝓；连接普通→Unknown浴场→Unknown光暗之门→普通。事件顺序及非事件当前odds=-1在第一checkpoint前写入原生可序列化状态，不改未序列化base odds，也不在Continue/观看重做；原生掷房仍消耗自己的RNG。该定向样本不代表正常房型概率覆盖。
+- 主程序/合同程序均0警告0错误，10项分支/上下文/实际房型合同及8项文件合同通过；两个真实旧root连同新目的房间计划、004后战生产读取/checksum通过，均不替代原生游戏。证据`checks/build-005/`。安装后相对`RUN002-post-r14-current-20261101-015622`的51文件仅settings.save配置变化，无缺失/进度变化，game0、无restore/自行启动，见`preparation/post-005-progress-check.json`。
+- 下一步仅新录首战并进浴场：进入→停留两次→离开浴场，停在事件结束文字、不点前进，保存退出正常关游戏。先核原生页序、代价/收益、RNG与成功存盘实际位置，再看该段；之后真实SL改选并接第二事件选牌/后战。当前旧商店原生进度point8与原件/恢复点均保留，新局由用户手动开启。
+
+## r14：货架待购买Stop/重开通过，商店代表样本收束
 
 - 保持RUN-002/build-004，DLL `1C02153EFE00347294CBAADB2789ECDD304CCE495EE5C3C34FDB549047909A8F`。r14会话18db040e共190事件、0 observer-error/资源差异：先完成attempt4的raw14开货架，关闭Auto，在projected8待购买前Stop，未执行raw15购买；用户确认商品待选。9登记任务全部完成、0取消/故障，Error=null、原manager及所比较Continue/Progress恢复true。
 - 同进程重开同一录像，首战Step到Position1后再次Stop，0登记任务/故障，原context恢复true。两次Complete/AllOperationsMatched=false均为计划内提前退出；整段原交易/删牌播放及SL改选后战PASS见r11/r13，不把短测当作整段胜利。
