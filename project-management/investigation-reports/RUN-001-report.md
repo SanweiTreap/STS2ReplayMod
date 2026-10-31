@@ -1,7 +1,15 @@
 # RUN-001：整局外壳与第一条非战斗录播链
 
-## 最新摘要 · 2026-10-31 · 005/r7跳卡/休息双胜利录制通过，合法保存点已核
+## 最新摘要 · 2026-10-31 · 005/r8真正重启Continue与后续领奖归属通过
 
+- 保持RUN-001/build-005，无换版。r8是不同启动时刻的新进程，原生加载表示Key精确匹配r7已观察存盘，MatchedObservedSave=true、PreFinished=true、ChangedBeforeSetup=false；用户回到第二场胜利奖励页，无重打。RunId仍9946446b，不靠seed/坐标猜局。
+- 四次房间访问保持；第二场所在visit4 Entries由1到2，新增一条native-continue说明重进，未增加房间/战斗。原两份8步胜利片hash及前10项操作逐项原封不动，只有seq11金币、seq12跳卡、seq13离开追加，均complete。11事件、0 observer-error；生产RunStore读回完整且无资源断点。
+- r7已录首战跳卡索引3/4及营火HEAL，HP80→85/max85；r8第二场亦跳卡索引3/4。两场胜利及后续领奖现已同局关联，仍须实际播放此新链，不能仅凭记录/文件读取判跳卡与休息回放通过。
+- r8共16数据文件封存；当前51文件4,384,648 bytes补存`RUN001-post-r8-current-20261031-193520`，4个原生replay/current_run/progress文件是本次正常Continue存盘变化，无缺失，game0，无restore/自行启动。关键证据`runtime-verification-r8.json`、`collection-r8.json`、`checks/r8/run-production-read.json`；r7及用户原新增进度恢复点保留。
+- 剩余只需此新链两项观看：从第2层首战锚点，先在真实奖励三卡选择窗口中Stop；重开同锚点Auto，核跳卡/HEAL80→85、第二战完整胜利及Continue后记录的金币/跳卡/回地图终点，再Stop。原单场与其他矩阵不重跑，005不重装。r5手动升级链、r6 Auto/营火选择Stop与重开结论保持。
+- 整包仍IN_PROGRESS，完成本次回放后再交PM阶段验收；目前不声称任意界面保存、跨房间Seek、其他房间/难度或全部遗物组合支持。奖励选牌Stop此前实际停在胜利处，保持待测，不追改成通过。
+
+## r7：跳卡/休息双胜利录制与合法保存点确认
 - 保持RUN-001/build-005。新路线9946446b，两场普通战斗各8项胜利，4次真实访问（涅奥缺口→普通→营火→普通）、10项操作全部complete；生产RunStore/ClipStore校验读回匹配且原件未改。r5手动升级链及r6 Auto/营火选择Stop结论保持，本新链尚未原生播放。
 - 首战卡牌候选3张＋跳过，最终索引3/4，native Success=false表示未领取卡牌、符合主动跳过，不是失败。营火原生HEAL成功，HP 80→85（max85），金币112保持；第二战真实获胜，尚未领取其任何奖励。99事件，0 observer-error、无缺失操作；未支持涅奥只在合法战斗起点之前，不补造。
 - 当前原生current_run.save确为第4层第二场monster已完成（is_pre_finished=true），StartTime匹配本局；原始SaveKey及原生已观察的加载表示Key都绑定RunId9946446b。只读核验，没有重构/启动游戏；真正新进程Continue仍未测。详细`checks/r7/current-save-binding.json`，两片及root生产读取在`checks/r7/`。
