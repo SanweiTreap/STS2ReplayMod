@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-10-31 · r4严格FAIL保留，003已安装待新短尝试
+## 最新摘要 · 2026-11-01 · r5短领取与真实上下文录制通过，待观看
+
+- 保持RUN-002/build-003，DLL `1AD070C28A881D7E9ACA8A7F13EFFD5F975F56217C6ECB8A43F8672AECB15C08`，无换版/重打首战。r5会话e543191d共12事件、0 observer-error：实际Continue精确匹配成功save-point6，visit3新增attempt5(parent4/restoredSave6)，raw13开箱、14领取均complete，没新增前进。当前路线为[1..7,13,14]，旧raw1..12及原8步胜利片逐项/逐hash不变；3访问、5尝试，不按同内容去重。
+- 新Continue.Progress及两个非战斗Operation.Progress均真实记录57,863 UTF8 bytes，均含账户已发现WHITE_STAR；旧首战Progress不含该项，具备检验新输入上下文是否真的生效的判别力。玩家领取后discovered_relics仍空，完整开箱前/领取后资源与旧attempt4分别逐字相同，金币117→163、白星0→1；这些是正常录制结论，不提前当作观看修复PASS。
+- 成功存盘观察新增point7，位置仍为visit3/attempt5入口、路径[1..7]。当前原生文件完整fingerprint `ACCAEC74DD9CDDE0DDBCDB292CAA65336F95B7AC04A4C17100E675DBF41BF218` 精确匹配point7，金币117、无白星；不凭界面或用户未点前进假定存盘位置。root生产读取/checksum与选中路线资源连续性通过；root实际1,005,441 bytes，在16MB上限内。
+- r5封存16数据文件，51当前文件4,380,277 bytes补存`RUN002-post-r5-current-20261101-000042`；原生latest.mcr、current_run/save.backup及settings.backup共4项正常变化、无缺失，game0、无restore/自行启动。证据`runtime-verification-r5.json`、`collection-r5.json`、`checks/r5/run-production-read.json`。旧r4缺输入的严格FAIL及原件保持。
+- 下一步只观看同一b0d06809，从第2层首战锚点Auto至宝箱白星领取终点；应完整播完领取动画、自动关闭Auto并留场等待手动Stop。需核新Load上下文在原生入房前应用、raw13/14操作上下文归属与严格资源/RNG相等，以及Stop/原context恢复；不用再Continue或重录。通过后才做不拿分支与后战；本包仍IN_PROGRESS，商店/问号等仍待。
+
+## 003：严格账户上下文修复与候选安装
 
 - D-139选严格上下文修复，不放宽discovered_*比较：实际Continue的Progress写入带Attempt/BeforeOperation的可选RunContinuation.Progress；新非战斗语义操作Begin另存实际Operation.Progress，覆盖Continue之后提示/悬停造成的输入变化。旧字段缺失不假补，旧raw3/4尝试及r4不追改通过。
 - 观看投影只保留选中尝试的上下文。未完成房间入口Load的环境安排在前一地图操作之后、原生房间生成之前；该Load比保留的旧地图操作更晚，其Progress覆盖旧地图操作的输入上下文。完成战斗Load仍保留原生历史收束，首战自身Load可作初始内存环境；各操作输入在执行前作用于同一隔离manager.Progress。没有重建Run/manager、覆盖player/金币/遗物/RNG、从expected反推，严格资源比对不变。
