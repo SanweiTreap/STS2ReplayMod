@@ -1,7 +1,15 @@
 # RUN-001：整局外壳与第一条非战斗录播链
 
-## 最新摘要 · 2026-10-31 · r4胜利后按钮衔接FAIL，005已安装待测
+## 最新摘要 · 2026-10-31 · 005/r5首条原生链通过，包内剩余分支待测
 
+- 当前RUN-001/build-005保持安装，DLL `DD563F456E5A693E9139F669B3C7E9B95ECFB11D6096A32A79F6EE82E89CF1FA`，收据`preparation/build-005-ba46e13d.json`。r5用户确认效果正常；本段通过，不标RUN-001整包完成。
+- 同一原片0cdfdef2两轮整链：一轮全程`>`细进，一轮`>>`整项。各自首战8项胜利→金币→选CARD.HEMOKINESIS→原生地图→营火升级Bash→地图→后战完整初态/RNG核对→原生Defend+→Stop。后战只录了一项中断前缀，不是后战胜利；没有载入后场checkpoint/注入expected。
+- 日志378事件，18项原生战斗操作、14项战外操作、2次后战初态核对与2次run Complete=true；0 observer-error。`>`在奖励页完整出现后等待约5秒才领取，选择页面与选中/确认均逐阶段推进；地图投票及派生移动4对都归属正确。两轮各14个登记任务全部收束，无取消/故障；Stop后原manager与所比较Continue/Progress恢复通过。
+- 383原始数据文件已封存，当前51文件4,389,898 bytes补存`RUN001-post-r5-current-20261031-182557`；相对r4仅settings.save.backup变化，正常游玩新增进度保持，game0，无restore/自行启动。关键证据本地`runtime-verification-r5.json`、`collection-r5.json`。r1漏记、r3地图拒绝、r4按钮吞点击等失败原件均保留。
+- 剩余：Auto整链、奖励/营火选择中Stop、HEAL、卡牌奖励跳过、合法保存点真正退出/新进程Continue；本轮不能把手动两条链冒充这些分支通过。下一步同005补Auto及选择中Stop，再合并一份短录制覆盖跳卡/休息和合法Continue，不重跑五角色/长战斗。
+- 稳定能力说明已补README；本段结果交PM合并状态，无产品范围变化或逐候选审批请求。新非战斗Back/跨房间Seek仍禁用，普通战斗Back保持，其他房间/难度/多人仍不在本包。
+
+## r3/r4：地图派生动作及胜利后按钮衔接失败，修复安装历史
 - 用户正常游玩结束后，确认game0及原账号，补存当前51文件4,389,898 bytes至`RUN001-pre004-current-20261031-181559`，相对r2有5文件变化，无缺失；实际新进度位于modded1，原账号unmodded1当前save leaves亦纳入检查。安装004后51文件复核，仅settings.save配置改写，进度文件未变，无旧档恢复/自行启动。备份与核对收据：`preparation/pre-004-new-progress-backup.json`、`post-004-progress-check.json`。
 - 当前安装RUN-001/build-005，DLL `DD563F456E5A693E9139F669B3C7E9B95ECFB11D6096A32A79F6EE82E89CF1FA`，manifest保持。收据`preparation/build-005-ba46e13d.json`，004/003 pair和安装前配置保留；仅ReplayMod、modded1，沿用本批Cloud关闭确认，尚无005游戏结论。005构建0警告0错误，安装后51文件复核，进度未变；未恢复/自行启动。
 - r4/004：整链入口首战及多次Back/重做到胜利，之后未发出任何run-control/phase；另开同片单场8项胜利通过。没有observer-error，两次观看退出的原manager/所比较Continue和Progress恢复通过。UI每帧先按单场终点禁用`>`/`>>`/Auto，再按整链续播启用，原生Button禁用清掉held press，导致无法释放点击。005仅将三按钮最终Disabled状态各赋值一次，保留其他播放逻辑；不判004奖励/地图修复已通过。

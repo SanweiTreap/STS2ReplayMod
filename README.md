@@ -4,9 +4,11 @@
 
 目前为开发原型，固定目标 **STS2 public-beta v0.111.0**。**CONTENT-005五角色基础战斗支持已按代表样本阶段验收**：自动录制、独立原生回放、选择界面、已访问操作点恢复和原生续播；已测储君资源/可变牌、球、Osty首次创建/死亡重召及Doom结算。
 
-已验收基线CONTENT-005：开场可见地自然进入选择，支持精细/整段推进及整体Back；所测EndTurn在途Back五次总到达约0.56–0.65秒，非发布性能保证。CONTENT-006已有猎人后续普通弱怪/群怪录制、资源承接、已完成房间写后Continue及第4场中断/新attempt录制；format10短片/完整片的独立原生观看、生成小刀后Back与胜利续播/退出均有实测，GrandFinale该样本体验修复通过。未完战斗跨进程与敌方召援仍待验证，整包未完成，具体版本/边界见项目状态。
+已验收基线CONTENT-005：开场可见地自然进入选择，支持精细/整段推进及整体Back；所测EndTurn在途Back五次总到达约0.56–0.65秒，非发布性能保证。CONTENT-006已有后续普通弱怪/群怪录制、资源承接、真正退出后的Continue与新attempt、代表敌方召援及原生观看/Back/退出实测，按代表样本阶段验收，具体边界见项目状态。
 
-实际运行验证以A0首幕首排普通战斗的已支持机制为基线；尚未完成整局、全部内容/难度、一般敌方召唤/多阶段、任意文件点恢复或可移植导入。公开的是开发快照，不是正式发布包。当前状态/版本边界见[项目状态](project-management/CURRENT_STATUS.md)、[已验收报告](project-management/investigation-reports/CONTENT-005-report.md)与[当前任务报告](project-management/investigation-reports/CONTENT-006-report.md)。
+RUN-001已有铁甲A0首幕的第一条整局片段实测：同一观看会话以`>`或`>>`原生顺播普通战斗胜利、领奖/选牌、地图选路、营火升级与下一普通战斗的一项操作；下一战初态及RNG由中间流程自然产生并核对。Auto整链、休息/跳卡、选择中Stop和本链跨进程Continue尚待验证，战外Back/跨房间Seek暂未开放。
+
+尚未完成完整整局通关、全部内容/难度、所有敌方召唤/多阶段、任意文件点恢复或可移植导入。公开的是开发快照，不是正式发布包。当前状态/版本边界见[项目状态](project-management/CURRENT_STATUS.md)、[战斗录制报告](project-management/investigation-reports/CONTENT-006-report.md)与[当前任务报告](project-management/investigation-reports/RUN-001-report.md)。
 
 ## 目录
 
