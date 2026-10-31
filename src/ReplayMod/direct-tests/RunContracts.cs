@@ -4,6 +4,20 @@ using ReplayMod;
 
 internal static class RunContracts
 {
+    internal static void Verify(string output,string root,string id)
+    {
+        var path=Path.Combine(root,id+".json");var before=File.ReadAllBytes(path);var run=new RunStore(root).Read(id);
+        Codec.Require(run.Id==id,"run-id-mismatch");
+        var gaps=RunStore.ResourceDiscontinuities(run);var anchor=run.Operations.FirstOrDefault(o=>o.Kind=="battle"&&o.Status=="complete");
+        Codec.Require(anchor is not null,"run-has-no-complete-battle-anchor");
+        Codec.Require(!gaps.Any(s=>s>anchor!.Sequence),"run-has-missing-resource-transition-after-anchor");
+        Codec.Require(File.ReadAllBytes(path).SequenceEqual(before),"run-read-mutated-original");
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
+        File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_ACTUAL_RUN_PRODUCTION_READ_NOT_NATIVE_PLAYBACK",run.Id,run.Format,
+            OriginalSHA256=Codec.Hash(before),Visits=run.Visits.Count,Operations=run.Operations.Count,StartSequence=anchor!.Sequence,
+            ResourceDiscontinuities=gaps,OriginalUnchanged=true,NativeRuntimeNotExecutedByThisCheck=true}));
+        Console.WriteLine("PASS_ACTUAL_RUN_PRODUCTION_READ_NOT_NATIVE_PLAYBACK");
+    }
     internal static void Run(string output)
     {
         var folder=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(output))!,"runs-"+Guid.NewGuid().ToString("N"));
