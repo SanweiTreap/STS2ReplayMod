@@ -185,7 +185,14 @@ internal static class Patches
             CombatIndex=NetCombatCardDb.Instance.TryGetCardId(r.cardAdded,out var id)?(uint?)id:null,
             TargetPile=r.targetPile.ToString(),ActualPile=r.cardAdded.Pile?.Type.ToString(),Fingerprint=LiveState.Fingerprint(LiveState.CardDetails(r.cardAdded))}).ToArray(),
         NativeFactoriesAndEffectsUnchanged=true});
-    private static void RelicMembership(){if(Observing)Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-relic-membership-change"));}
+    private static void RelicMembership(Player __instance,RelicModel __0,MethodBase __originalMethod)
+    {
+        if(!Observing)return;
+        if(__originalMethod.Name=="AddRelicInternal"&&RunTreasures.OwnsRelicAdd(__instance,__0))
+        {Runtime.Log("run-owned-relic-membership",new{Operation=RunPlayback.Current?.Sequence,SourceSequence=RunPlayback.Current?.SourceSequence,
+            Model=__0.Id.ToString(),NativeObtain=true,ExactInstance=true});return;}
+        Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-relic-membership-change"));
+    }
     private static bool FlowerVisuals(HappyFlower __instance,ref Task __result)
     {
         if(!PlayerLoop.Active)return true;
