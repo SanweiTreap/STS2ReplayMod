@@ -1,6 +1,15 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r11商店原生观看通过，待入口SL改选及后战
+## 最新摘要 · 2026-11-01 · r12商店入口SL改选及后战录制通过，待观看
+
+- 保持RUN-002/build-004，无换版。r12会话ff3a0336共57事件、0 observer-error：真实Continue精确匹配point5商店入口，visit3新attempt4(parent3/restoredSave5)，旧13操作及原首战片均逐项/逐hash不变。新raw14开货架、15只购买另一张牌、16关货架、17前进、18地图、19后战均complete；默认最终路线[1..6,14..19]，旧会员卡/愤怒/药水/删牌仍保留事实而不选。
+- 恢复后原生库存及原价与首次入口整串相同，删牌价恢复75，无旧会员卡折扣；新购CARD.BOLAS花178，1012→834金币。后战4929f45a共8步胜利，真实checkpoint为834金币/13张牌/5张打击，无会员卡、愤怒或力量药水，明确排除了旧交易和旧删牌，而非仅推断投影正确。
+- 两次商店入口完整资源唯一差异为players[0].discovered_cards：首次有PROLONG/BOLAS，本次为空；库存、其他资源及RNG均相同。本次实际Continue.Progress已seen两牌，提供“房间生成前应用新环境”的判别样本；没有从expected改玩家发现列表或忽略字段。录制有证，观看该环境的应用与结果尚待验证。
+- 新point6仍为商店入口，point7为下一战入口，point8为第4层完成未领奖。当前原生完整fingerprint精确匹配point8（PreFinished=true），834金币/13张牌；完整指纹、原件保留与资源细节见`runtime-verification-r12.json`。root及新后战生产读取/checksum、选中路线连续性通过，root实际2,646,712 bytes，在16MB上限内。
+- 封存62数据文件，51当前文件4,396,358 bytes补存`RUN002-post-r12-current-20261101-014651`；latest.mcr、current_run及backup、Progress及backup共5项正常变化，无缺失，game0、无restore/自行启动。证据`runtime-verification-r12.json`、`collection-r12.json`、`checks/r12/`。
+- 下一步同一82beed25从第2层Auto，核商店只执行新购BOLAS和原生离开、旧交易不播放，新房间生成时正确使用Continue环境，后战初态/资源/RNG自然匹配并到胜利终点，Auto关闭后Stop/正常退出；不用正常Continue或重录。之后仍有商店删牌窗口Stop/重开短测、问号/事件内部战斗等，本包IN_PROGRESS。
+
+## r11：商店原生观看通过
 
 - 保持RUN-002/build-004，无换版/重录。r11会话2c05ba77共170事件、0 observer-error/资源差异：82beed25首战8步原生胜利，随后11项非战斗操作严格资源/RNG匹配，其中包括商店库存/现价、会员卡确切实例原生领取、原生买愤怒/力量药水，以及删牌窗口取消和确认。未复制库存、发牌/改钱或手写折扣。
 - 各操作实际Progress按正确SourceSequence/Attempt只应用到隔离manager；会员卡新增归属日志核确切Player和Entry.Model实例。r10实际记录中的折扣、库存变化及取消不扣钱/确认扣37均在观看后资源比较通过，不能仅凭UI动画判成功。
