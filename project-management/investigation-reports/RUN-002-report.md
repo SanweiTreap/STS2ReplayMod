@@ -1,6 +1,15 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r9选择中Stop/重开通过，宝箱首增量代表样本收束
+## 最新摘要 · 2026-11-01 · 商店首增量004已安装，待首次录制
+
+- 宝箱首增量r6/r8/r9代表结论经PM接受，旧r4严格FAIL不追改；原文CURRENT_STATUS/TODO独立提交aae3318。RUN-002仍IN_PROGRESS，沿原授权继续商店/问号，不重跑宝箱旧矩阵。
+- 当前RUN-002/build-004，DLL `1C02153EFE00347294CBAADB2789ECDD304CCE495EE5C3C34FDB549047909A8F`，manifest仍`69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-004-14623129.json`。显式兼容003原首战后战及旧root，001/002/003 pair均保留。主构建0警告0错误，9项分支/上下文与8项文件/位置合同、当前root和003后战生产读取通过，尚无004商店游戏结论。
+- 原生NMerchantRoom打开/关闭库存/前进、NMerchantSlot.OnSelected与MerchantEntry及删牌独立Wrapper已接录制/播放；确认/取消结果和最终选牌沿共用NDeckCardSelectScreen，等待原生购买、Hook和UI任务。商店原生库存虽不在入口save内，加入严格资源快照核模型/卡牌详情/现价/库存；按索引和整库存定位后调用原生入口，不复制库存、改钱/发牌或忽略RNG。遗物新增只准当前已归属购买的确切Entry.Model和本地Player实例，其他增删保护保持。
+- 实际Continue及操作Begin的账户Progress输入继续按既有因果边界只应用于隔离manager。商品自动套购/嵌套购买、非可取消特殊删牌和首次商人教程阻断离开会明确缺口，普通原生游戏仍继续；其他商店遗物特殊选择/效果不预认覆盖。问号/事件内部战斗仍未接。
+- 新默认关闭准备入口`RUN-002 商店SL短路线`只消费下一新铁甲A0：录制checkpoint前准备40HP、1000金币、三张原防御+与两张新增全身撞击+先天保留，真实连接普通→商店→普通，首两普通为弱双蛞蝓；Continue/观看不再次准备。通过人工普通首战进入商店，合并买卡/药水/被动遗物、删牌取消及确认后保存退出；先核成功存盘真实位置，再做相同/不同交易的恢复尝试和原生观看，不预设购买持久化边界。
+- 安装前最新恢复点`RUN002-post-r9-current-20261101-002534`保留；安装后51文件核验只有允许的settings.save配置变化、无缺失/进度变化，game0、无restore/自行启动，见`preparation/post-004-progress-check.json`。原正常测试局仍在第4层完成未领奖point10；新局由用户手动开启，原片和已封存证据不删。
+
+## r9：选择中Stop/重开通过，宝箱首增量代表样本收束
 
 - 保持RUN-002/build-003，DLL `1AD070C28A881D7E9ACA8A7F13EFFD5F975F56217C6ECB8A43F8672AECB15C08`，无换版/重录。r9会话bd4ca1a6共183事件、0 observer-error/资源差异：先完成raw15原生开箱，在projected9待跳过前关闭Auto并Stop，未执行raw16；用户确认白星仍待选。10登记任务收束（1取消/0故障），原manager及所比较Continue/Progress恢复true。
 - 同进程重开同一root，首战Step到Position1后再次Stop，0悬挂登记任务/故障，Error=null、原context恢复true。两次Complete/AllOperationsMatched=false均为计划内提前退出，不作整段失败或胜利。整段领取与不拿后战播放的PASS分别见r6/r8。

@@ -188,7 +188,7 @@ internal static class Patches
     private static void RelicMembership(Player __instance,RelicModel __0,MethodBase __originalMethod)
     {
         if(!Observing)return;
-        if(__originalMethod.Name=="AddRelicInternal"&&RunTreasures.OwnsRelicAdd(__instance,__0))
+        if(__originalMethod.Name=="AddRelicInternal"&&(RunTreasures.OwnsRelicAdd(__instance,__0)||RunMerchants.OwnsRelicAdd(__instance,__0)))
         {Runtime.Log("run-owned-relic-membership",new{Operation=RunPlayback.Current?.Sequence,SourceSequence=RunPlayback.Current?.SourceSequence,
             Model=__0.Id.ToString(),NativeObtain=true,ExactInstance=true});return;}
         Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-relic-membership-change"));

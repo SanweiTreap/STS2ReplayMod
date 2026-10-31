@@ -24,7 +24,10 @@ internal static class RunResources
             result[key]=save[key]?.DeepClone();
         var acts=save["acts"]?.DeepClone();
         if(acts is JsonArray array)foreach(var act in array.OfType<JsonObject>())act.Remove("saved_map");
-        result["acts"]=acts;return result.ToJsonString(Codec.Json);
+        result["acts"]=acts;
+        if(RunManager.Instance.DebugOnlyGetState()?.CurrentRoom is MerchantRoom)
+            result["merchant_inventory"]=JsonNode.Parse(RunMerchants.Offer());
+        return result.ToJsonString(Codec.Json);
     }
 }
 
@@ -39,7 +42,7 @@ internal static class RunRecording
     private static bool _restoredEntry,_unknownLoad;
     internal sealed record SaveLocation(string Run,int Visit,int Attempt,int[] Path);
     internal static bool Enabled=>_run is not null&&!PlayerLoop.Active;
-    internal static bool Choosing=>Enabled&&Pending?.Kind is "reward" or "rest" or "treasure-pick";
+    internal static bool Choosing=>Enabled&&Pending?.Kind is "reward" or "rest" or "treasure-pick" or "merchant-buy" or "merchant-remove";
     internal static void Attach(bool continuation,SerializableRun? save=null,string? loadedJson=null)
     {
         if(PlayerLoop.Active||Runtime.Journal.CurrentRun is not {} id)return;
@@ -118,7 +121,7 @@ internal static class RunRecording
         {
             _run.Visits[index]=visit with{Subrooms=(visit.Subrooms??[]).Append(room.RoomType+":"+room.ModelId).ToArray(),Gap="本轮未支持嵌套房间"};Save();return;
         }
-        var supported=room.RoomType==RoomType.Monster&&visit.MapType=="Monster"||room.RoomType==RoomType.RestSite&&visit.MapType=="RestSite"||room.RoomType==RoomType.Treasure;
+        var supported=room.RoomType==RoomType.Monster&&visit.MapType=="Monster"||room.RoomType==RoomType.RestSite&&visit.MapType=="RestSite"||room.RoomType is RoomType.Treasure or RoomType.Shop;
         _run.Visits[index]=visit with{RoomType=room.RoomType.ToString(),Model=room.ModelId?.ToString(),Status="entered",
             Gap=supported?visit.Gap:"本轮未支持的实际房间"};Save();
     }
