@@ -115,6 +115,14 @@ internal static class Ui
             RecordedState.Armed=false;shops.Text=TestEncounter.Armed==TestPreparation.RunShops?"RUN-002 商店SL短路线：已启用（下一新局）":"RUN-002 商店SL短路线：关闭";
             Runtime.Status="下一新铁甲A0：首普通→商店→普通；初始1000金币，40HP，三防御+／两全身撞击+先天保留；只准备新局，不修改Continue";
         });
+        var events=Button(box,"RUN-002 事件SL短路线：关闭",()=>{});
+        events.Pressed+=()=>Runtime.Guard(()=>
+        {
+            Runtime.CheckEnvironment();
+            TestEncounter.Armed=TestEncounter.Armed==TestPreparation.RunEvents?TestPreparation.None:TestPreparation.RunEvents;
+            RecordedState.Armed=false;events.Text=TestEncounter.Armed==TestPreparation.RunEvents?"RUN-002 事件SL短路线：已启用（下一新局）":"RUN-002 事件SL短路线：关闭";
+            Runtime.Status="下一新铁甲A0：普通→问号浴场→问号光暗之门→普通；40HP，五牌先天保留；checkpoint前准备事件顺序/当前概率，观看仍原生掷房间";
+        });
         const string hunterReference="1d5346b085b04635ab3e00b43fe9190c";
         try{_ =Runtime.ReadClip(hunterReference);Button(box,"打开已有猎人样本 · 完整27项",()=>TaskHelper.RunSafely(PlayerLoop.Open(hunterReference,entry:"hunter-reference")));}catch{/* Optional reference, not the production input. */}
         const string continuousSample="fc6432b4c0af41d69defda73f1770824";

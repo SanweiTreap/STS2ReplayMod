@@ -1,4 +1,5 @@
 using MegaCrit.Sts2.Core.Map;
+using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Saves.Managers;
 using HarmonyLib;
@@ -16,12 +17,14 @@ internal static class Recorder
     private static string? _loadedJson;
     private static readonly List<Operation> Operations=[];
     private static Task? _entry;
+    private static bool _unknownEntry;
+    private static string? _unknownJson,_unknownSource,_unknownProgress;
     internal static bool CollectingChoices=>_waiting||Active;
     internal static int ChoiceBoundary=>_waiting?0:ActionMonitor.Pending is not null?Operations.Count+1:throw new InvalidDataException("choice-outside-initial-or-current-operation");
 
     private static void ResetSegment(bool preserveAuthority=false)
     {
-        Active=false;_waiting=false;_captureEntry=false;_release=false;_clip=null;_entry=null;Operations.Clear();
+        Active=false;_waiting=false;_captureEntry=false;_release=false;_clip=null;_entry=null;_unknownEntry=false;_unknownJson=null;_unknownSource=null;_unknownProgress=null;Operations.Clear();
         ActionMonitor.Reset();ChoiceTape.Clear();RecordingClock.Reset();OrbState.Reset();if(!preserveAuthority)RecordedState.Release();
     }
     internal static void NewRun(bool fresh=true)
@@ -94,11 +97,11 @@ internal static class Recorder
         if(Active||_waiting)Interrupt();
         ResetSegment(preserveAuthority:true);_attempted=false;
         var run=LiveState.Run;
-        if(preFinished||run.CurrentActIndex!=0||run.AscensionLevel!=0||run.Modifiers.Count!=0||run.CurrentMapPoint?.PointType!=MapPointType.Monster)
+        if(preFinished||run.CurrentActIndex!=0||run.AscensionLevel!=0||run.Modifiers.Count!=0||run.CurrentMapPoint?.PointType is not (MapPointType.Monster or MapPointType.Unknown))
         {
             _continueSave=null;Runtime.Status="本房间不录制；进入下一场受支持的首幕普通战斗时自动恢复";return;
         }
-        _captureEntry=true;
+        _captureEntry=true;_unknownEntry=run.CurrentMapPoint?.PointType==MapPointType.Unknown;
         if(!saveGame)
         {
             var json=_continueSave;_continueSave=null;
@@ -106,7 +109,8 @@ internal static class Recorder
             var parsed=JsonSerializationUtility.FromJson<SerializableRun>(json);
             Codec.Require(parsed.Success&&parsed.SaveData is not null&&parsed.SaveData.PreFinishedRoom is null&&
                 parsed.SaveData.VisitedMapCoords.LastOrDefault().Equals(coord),"continue-checkpoint-not-current-unfinished-room");
-            Capture(parsed.SaveData!,Runtime.Journal.ContinueMatched?"continue-known":"continue-unmatched");
+            var source=Runtime.Journal.ContinueMatched?"continue-known":"continue-unmatched";
+            if(_unknownEntry){_unknownJson=json;_unknownSource=source;_unknownProgress=RunResources.Progress();}else Capture(parsed.SaveData!,source);
         }
         else _continueSave=null;
     }
@@ -115,11 +119,26 @@ internal static class Recorder
     {
         if(PlayerLoop.Active||!_enabled)return;
         Runtime.Journal.Observe(JsonSerializationUtility.ToJson(save));
-        if(_captureEntry&&!_waiting&&save.PreFinishedRoom is null&&LiveState.Run.CurrentRoom is null)Capture(save,"map");
+        if(_captureEntry&&!_waiting&&save.PreFinishedRoom is null&&LiveState.Run.CurrentRoom is null)
+        {
+            if(_unknownEntry){_unknownJson=JsonSerializationUtility.ToJson(save);_unknownSource="map";_unknownProgress=RunResources.Progress();}
+            else Capture(save,"map");
+        }
     }
-    private static void Capture(SerializableRun save,string source)
+    internal static void RoomTypeChosen(MapPointType point,RoomType actual)
     {
-        RunRecording.EntryContext();
+        if(PlayerLoop.Active||!_enabled||point!=MapPointType.Unknown||!_unknownEntry)return;
+        var json=_unknownJson;var source=_unknownSource;var progress=_unknownProgress;_unknownEntry=false;_unknownJson=null;_unknownSource=null;_unknownProgress=null;_captureEntry=false;
+        if(actual!=RoomType.Monster)return; // Never turn an event's inputs into a pending combat recording.
+        if(json is null||source is null){RunRecording.MissingOperation("unknown-combat","缺少掷房间前的原生checkpoint或来源");return;}
+        var read=JsonSerializationUtility.FromJson<SerializableRun>(json);
+        Codec.Require(read.Success&&read.SaveData is not null,"unknown-combat-checkpoint-invalid");
+        Capture(read.SaveData!,source,progress);
+        Runtime.Log("recording-unknown-combat-bound",new{_clip!.Id,ActualRoomType=actual.ToString(),CheckpointFrozenBeforeNativeRoll=true,RoomTypeForced=false});
+    }
+    private static void Capture(SerializableRun save,string source,string? progress=null)
+    {
+        RunRecording.EntryContext(progress);
         _captureEntry=false;_attempted=true;LiveState.Format=RecordedState.Recording?3:10;LiveState.Supported();Runtime.CheckEnvironment();
         if(LiveState.Format>=5)RecordingClock.Start();else RecordingClock.Reset();
         var run=LiveState.Run;var coord=run.CurrentMapCoord!.Value;

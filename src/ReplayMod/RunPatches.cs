@@ -60,6 +60,7 @@ internal static class RunPatches
         {var method=AccessTools.DeclaredMethod(type,name)??throw new MissingMethodException(type.Name,name);
             h.Patch(method,before is null?null:new HarmonyMethod(typeof(RunPatches),before),after is null?null:new HarmonyMethod(typeof(RunPatches),after));}
         Patch(typeof(RunManager),"EnterRoomInternal",after:nameof(Room));
+        Patch(typeof(RunManager),"RollRoomTypeFor",after:nameof(RoomTypeChosen));
         Patch(typeof(NMapScreen),"SetMap",before:nameof(GeneratedMap));
         Patch(typeof(NMapScreen),"OnMapPointSelectedLocally",before:nameof(Map));
         Patch(typeof(RunManager),"EnterMapCoord",after:nameof(EnteredMap));
@@ -77,7 +78,14 @@ internal static class RunPatches
         RunChoices.Install(h);
         RunTreasures.Install(h);
         RunMerchants.Install(h);
+        RunEvents.Install(h);
     }
+    private static void RoomTypeChosen(MapPointType __0,RoomType __result)=>Runtime.Guard(()=>
+    {
+        if(__0==MapPointType.Unknown)Runtime.Log("run-unknown-room-resolved",new{MapType=__0.ToString(),ActualRoomType=__result.ToString(),
+            Playback=RunPlayback.Active,NativeRollExecuted=true,RoomTypeForced=false});
+        Recorder.RoomTypeChosen(__0,__result);
+    });
     private static void GeneratedMap(ActMap __0)=>Runtime.Guard(()=>TestEncounter.ConfigureRunRoute(__0));
     private static void Room(AbstractRoom __0,ref Task __result)
     {var native=__result;__result=Finish();async Task Finish(){await native;Runtime.Guard(()=>RunRecording.Room(__0));}}
@@ -98,6 +106,8 @@ internal static class RunPatches
     {
         if(RunRecording.Enabled||RunPlayback.Active)RewardsScreen=__result;
         if(RunPlayback.Active&&RunPlayback.Current?.Kind=="treasure-open")Runtime.Guard(()=>throw new InvalidDataException("treasure-extra-reward-screen-not-yet-supported"));
+        if(RunRecording.Pending is {Kind:"event-choice"})Runtime.Guard(()=>RunRecording.Unsupported("event-rewards","事件内额外领奖页仍待接入"));
+        if(RunPlayback.Active&&RunPlayback.Current?.Kind=="event-choice")Runtime.Guard(()=>throw new InvalidDataException("event-extra-reward-screen-not-yet-supported"));
     }
     private static void RewardBefore(Reward __0,out RunOperation? __state)
     {
