@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r7不拿分支及下一战录制通过，待整段观看
+## 最新摘要 · 2026-11-01 · r8不拿分支至后战观看通过，待选择中Stop短测
+
+- 保持RUN-002/build-003，DLL `1AD070C28A881D7E9ACA8A7F13EFFD5F975F56217C6ECB8A43F8672AECB15C08`，无换版/重录。r8会话08122d67共260事件、0 observer-error/资源差异：旧首战8步和第4层新战7步均原生胜利与原胜利投影匹配；8项非战斗操作严格资源/RNG匹配，宝箱采用attempt6的raw15/16/17，只开箱/跳过，不串入旧领取。
+- Load上下文在projected7原生入房前应用，随后三项操作用各自实际Progress；下一战`run-next-battle-initial-verified`通过，InitialAndRngMatched=true、CheckpointLoaded=false、ExpectedStateInjected=false。结合r7的163金币/无白星真实checkpoint，本代表样本证实最终路线从原生中间操作自然延续，不靠后战checkpoint覆盖结果。
+- 用户确认胜利终点Auto关闭。Stop日志Operation11、NonCombat=false、AtRecordedEnd=true；12登记任务收束（1取消/0故障），两场共15步执行，AllOperationsMatched/Complete/VictoryReached=true、Error=null。原manager及所比较Continue/Progress恢复true，root逐hash不变。
+- 265数据文件封存，51当前文件4,395,380 bytes补存`RUN002-post-r8-current-20261101-001207`，相对r7全部逐hash不变、无缺失，game0、无restore/自行启动。证据`runtime-verification-r8.json`、`collection-r8.json`。r4严格FAIL、r6领取观看及r8不拿后战观看分别保留，不外推其他遗物/附加奖励。
+- 宝箱核心领取/不拿、连续真实Load产生独立同内容与不同选择尝试、最终路线不重复资源、后战状态/RNG已有代表证据；尚需在原生白星待选时Stop再重开短测，验证本包新增选择退出边界。之后接同包商店/问号及内部战斗等，RUN-002仍IN_PROGRESS，不作整包收束。
+
+## r7：不拿分支及下一战录制通过
 
 - 保持RUN-002/build-003，无换版。r7会话0dfdf7c2共51事件、0 observer-error：Continue精确匹配宝箱入口point7，同visit3新增attempt6(parent5/restoredSave7)。新raw15开箱、16跳过前进、17地图、18第4层战斗均complete；没有新treasure-pick。选中路线[1..7,15..18]，旧raw1..14逐项与原首战片逐hash不变，4访问/7尝试，宝箱访问entries4。
 - 开箱金币117→163，跳过后仍163且无白星。真实下一战ENCOUNTER.CORPSE_SLUGS_WEAK，片8218896a共7步胜利；其原生checkpoint为163金币且无白星，不是仅从选中路线推测没带入旧领取。原首战/新后战及root生产读取/checksum、选中路线资源连续性通过；尚未观看不拿分支。
