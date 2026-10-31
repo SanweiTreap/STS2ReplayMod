@@ -219,9 +219,12 @@ internal static class Ui
             if(NativeSeek.Enabled)
             {
                 _inputBlock.MouseFilter=NativeSeek.Ready?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
-                _step!.Disabled=!NativeSeek.CanStep;_step.Text=NativeSeek.Opening?">> 完成开场":">> 完整操作";_fine!.Disabled=!NativeSeek.CanFine;
-                _auto!.Disabled=PlayerLoop.Loading&&!NativeSeek.Opening||NativeSeek.Finished||NativeSeek.Stopping||NativeSeek.Restoring;_auto.Text=NativeSeek.Auto?"Auto：开启":"Auto：关闭";
-                if(RunPlayback.Active&&NativeSeek.Finished&&RunPlayback.HasFollowing&&!NativeSeek.Stopping){_step.Disabled=false;_fine.Disabled=false;_auto.Disabled=false;_step.Text=">> 继续路线";}
+                // Compute the final state once. Disabling then enabling a Godot
+                // button each frame clears its held press before release.
+                var continueRoute=RunPlayback.Active&&NativeSeek.Finished&&RunPlayback.HasFollowing&&!NativeSeek.Stopping&&!NativeSeek.Restoring;
+                _step!.Disabled=!(continueRoute||NativeSeek.CanStep);_step.Text=continueRoute?">> 继续路线":NativeSeek.Opening?">> 完成开场":">> 完整操作";
+                _fine!.Disabled=!(continueRoute||NativeSeek.CanFine);
+                _auto!.Disabled=!continueRoute&&(PlayerLoop.Loading&&!NativeSeek.Opening||NativeSeek.Finished||NativeSeek.Stopping||NativeSeek.Restoring);_auto.Text=NativeSeek.Auto?"Auto：开启":"Auto：关闭";
                 _seekCover!.Visible=NativeSeek.Covered;
                 _back!.Disabled=!NativeSeek.CanBack;_back.Text="Back · 撤回整项";
                 _stop!.Disabled=NativeSeek.Stopping||PlayerLoop.TearingDown;
