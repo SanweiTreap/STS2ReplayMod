@@ -11,11 +11,13 @@ internal static class RunContracts
         var gaps=RunStore.ResourceDiscontinuities(run);var anchor=run.Operations.FirstOrDefault(o=>o.Kind=="battle"&&o.Status=="complete");
         Codec.Require(anchor is not null,"run-has-no-complete-battle-anchor");
         Codec.Require(!gaps.Any(s=>s>anchor!.Sequence),"run-has-missing-resource-transition-after-anchor");
+        var continuations=run.Continuations.Where(c=>c.PreFinished&&c.Visit>=anchor!.Visit)
+            .Select(c=>new{c.Visit,BeforeOperation=RunStore.ContinueBefore(run,c),LegacyVisitBoundary=c.BeforeOperation is null}).ToArray();
         Codec.Require(File.ReadAllBytes(path).SequenceEqual(before),"run-read-mutated-original");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
         File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_ACTUAL_RUN_PRODUCTION_READ_NOT_NATIVE_PLAYBACK",run.Id,run.Format,
             OriginalSHA256=Codec.Hash(before),Visits=run.Visits.Count,Operations=run.Operations.Count,StartSequence=anchor!.Sequence,
-            ResourceDiscontinuities=gaps,OriginalUnchanged=true,NativeRuntimeNotExecutedByThisCheck=true}));
+            ResourceDiscontinuities=gaps,Continuations=continuations,OriginalUnchanged=true,NativeRuntimeNotExecutedByThisCheck=true}));
         Console.WriteLine("PASS_ACTUAL_RUN_PRODUCTION_READ_NOT_NATIVE_PLAYBACK");
     }
     internal static void Run(string output)
@@ -38,6 +40,38 @@ internal static class RunContracts
         });
         Test("incomplete-operation-is-never-promoted-to-complete-on-read",()=>
         {var read=store.Read(id);Need(read.Operations[^1].Status=="pending"&&read.Operations[^1].After is null,"incomplete-operation-falsified");});
+        Test("recorded-continue-position-is-preserved-instead-of-moving-it-to-first-reward",()=>
+        {
+            var point=new RunContinuation(DateTimeOffset.UtcNow,1,true,"native-save","native-continue",3);
+            var continued=run with{Id=Guid.NewGuid().ToString("N"),Visits=[run.Visits[0] with{Entries=2}],
+                Operations=run.Operations.Take(3).ToList(),Continuations=[point]};
+            store.Save(continued);var read=store.Read(continued.Id);
+            Need(read.Continuations.Single().BeforeOperation==3&&RunStore.ContinueBefore(read,read.Continuations.Single())==3,"explicit-continue-position-lost");
+        });
+        Test("legacy-continue-position-is-derived-only-for-one-completed-battle-and-one-reentry",()=>
+        {
+            var point=new RunContinuation(DateTimeOffset.UtcNow,1,true,"native-save","native-continue");
+            var continued=run with{Id=Guid.NewGuid().ToString("N"),Visits=[run.Visits[0] with{Entries=2}],
+                Operations=run.Operations.Take(3).ToList(),Continuations=[point]};
+            store.Save(continued);var read=store.Read(continued.Id);
+            Need(RunStore.ContinueBefore(read,point)==2&&!System.Text.Encoding.UTF8.GetString(Codec.Bytes(read)).Contains("BeforeOperation"),"legacy-continue-format-or-position-changed");
+            var ambiguous=continued with{Visits=[continued.Visits[0] with{Entries=3}],Continuations=[point,point with{At=point.At.AddSeconds(1)}]};
+            var rejected=false;try{_=RunStore.ContinueBefore(ambiguous,point);}catch(InvalidDataException){rejected=true;}
+            Need(rejected,"ambiguous-legacy-continue-was-guessed");
+        });
+        Test("invalid-continue-positions-are-rejected-without-rejecting-unknown-legacy-origins",()=>
+        {
+            var rejected=0;
+            foreach(var position in new[]{0,6,4})
+            {
+                var bad=run with{Id=Guid.NewGuid().ToString("N"),Continuations=[new(DateTimeOffset.UtcNow,1,true,"save","native-continue",position)]};
+                try{store.Save(bad);}catch(InvalidDataException){rejected++;}
+            }
+            Need(rejected==3,"invalid-or-wrong-visit-continue-accepted");
+            var unknown=run with{Id=Guid.NewGuid().ToString("N"),Visits=[],Operations=[],
+                Continuations=[new(DateTimeOffset.UtcNow,0,false,"save","native-continue",1)]};
+            store.Save(unknown);Need(store.Read(unknown.Id).Continuations.Single().Visit==0,"unknown-native-origin-was-invented-or-rejected");
+        });
         Test("unrecorded-resource-change-is-diagnosed-without-inventing-a-choice-or-mutating-history",()=>
         {
             var steps=run.Operations.ToList();steps[2]=steps[2] with{Before="unrecorded-claim"};var gap=run with{Operations=steps};

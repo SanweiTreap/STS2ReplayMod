@@ -11,13 +11,34 @@ public sealed record RunOperation(int Sequence,int Visit,string Kind,RunArgument
 public sealed record RoomVisit(int Id,int Act,int Floor,int Row,int Col,string MapType,string? RoomType,string? Model,
     int Entries,string Status,string? Gap,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string[]? Subrooms=null);
-public sealed record RunContinuation(DateTimeOffset At,int Visit,bool PreFinished,string SaveKey,string Status);
+public sealed record RunContinuation(DateTimeOffset At,int Visit,bool PreFinished,string SaveKey,string Status,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? BeforeOperation=null);
 public sealed record RunDocument(int Format,string Id,string GameHash,string ModHash,string Scope,string Character,
     DateTimeOffset Created,List<RoomVisit> Visits,List<RunOperation> Operations,List<RunContinuation> Continuations);
 public sealed record RunEnvelope(string SHA256,RunDocument Data);
 
 internal sealed class RunStore(string root)
 {
+    internal static int ContinueBefore(RunDocument run,RunContinuation point)
+    {
+        Codec.Require(point.PreFinished&&point.Status=="native-continue"&&run.Visits.Any(v=>v.Id==point.Visit&&v.RoomType=="Monster"),"run-unsupported-continue-boundary");
+        if(point.BeforeOperation is {} recorded)
+        {
+            Codec.Require(recorded>=1&&recorded<=run.Operations.Count+1&&
+                (recorded>run.Operations.Count||run.Operations[recorded-1].Visit==point.Visit),"run-invalid-continue-operation");
+            return recorded;
+        }
+        // Early RUN-001 files identify a completed-room Continue only by visit.
+        // There is one unambiguous supported legacy case: one completed battle,
+        // one re-entry, followed by that battle's first rewards. Never infer a
+        // position from expected resource values or silently place repeated SLs.
+        var battles=run.Operations.Where(o=>o.Visit==point.Visit&&o.Kind=="battle").ToArray();
+        Codec.Require(run.Visits.Single(v=>v.Id==point.Visit).Entries==2&&run.Continuations.Count(c=>c.Visit==point.Visit)==1&&
+            battles is [{Status:"complete",Clip:not null}],"run-legacy-continue-boundary-ambiguous");
+        var next=run.Operations.FirstOrDefault(o=>o.Sequence>battles[0].Sequence);
+        Codec.Require(next is not null&&next.Visit==point.Visit&&next.Status=="complete"&&next.Kind is "reward" or "proceed","run-legacy-continue-boundary-ambiguous");
+        return next!.Sequence;
+    }
     internal static int[] ResourceDiscontinuities(RunDocument run)=>run.Operations.Zip(run.Operations.Skip(1))
         .Where(pair=>pair.First is {Status:"complete",After:not null}&&pair.Second is {Status:"complete",Before:not null}&&pair.First.After!=pair.Second.Before)
         .Select(pair=>pair.Second.Sequence).ToArray();
@@ -41,5 +62,8 @@ internal sealed class RunStore(string root)
         Codec.Require(run.Format==1&&Regex.IsMatch(run.Id,"^[a-f0-9]{32}$")&&run.Visits.Count<=256&&run.Operations.Count<=2048,"unsupported-run-file");
         Codec.Require(run.Operations.Select(o=>o.Sequence).SequenceEqual(Enumerable.Range(1,run.Operations.Count)),"run-operation-order");
         Codec.Require(run.Operations.All(o=>run.Visits.Any(v=>v.Id==o.Visit)),"run-operation-visit-missing");
+        Codec.Require(run.Continuations.All(c=>(c.Visit==0||run.Visits.Any(v=>v.Id==c.Visit))&&
+            (c.BeforeOperation is null||c.BeforeOperation>=1&&c.BeforeOperation<=run.Operations.Count+1&&
+             (c.Visit==0||c.BeforeOperation>run.Operations.Count||run.Operations[c.BeforeOperation.Value-1].Visit==c.Visit))),"run-continuation-position");
     }
 }

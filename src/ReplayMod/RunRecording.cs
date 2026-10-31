@@ -51,7 +51,7 @@ internal static class RunRecording
             var unfinished=_run.Operations.LastOrDefault();
             if(unfinished is {Status:"pending"})Replace(unfinished with{Status="missing"});
             _run.Continuations.Add(new(DateTimeOffset.UtcNow,_visit,save?.PreFinishedRoom is not null,
-                save is null?"":RecordingJournal.SaveKey(JsonSerializationUtility.ToJson(save)),"native-continue"));
+                save is null?"":RecordingJournal.SaveKey(JsonSerializationUtility.ToJson(save)),"native-continue",_run.Operations.Count+1));
             if(save?.PreFinishedRoom is null&&_run.Visits.LastOrDefault()?.RoomType=="Monster")
                 Gap("未完战斗从原生开场重进；前次操作不拼接");
         }

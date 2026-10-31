@@ -1,7 +1,15 @@
 # RUN-001：整局外壳与第一条非战斗录播链
 
-## 最新摘要 · 2026-10-31 · 005/r8真正重启Continue与后续领奖归属通过
+## 最新摘要 · 2026-10-31 · r9非预期退出已定位，006已安装待同片Auto复测
 
+- 当前RUN-001/build-006，DLL `392B6DEB1899B1D5D9E71325382F2999D049CC16E0A9568A9B08951017D4E9DB`，收据`preparation/build-006-d8862042.json`；005原pair保留。安装后51文件核对无进度变化，game0，不restore/自行启动。006未有游戏结论，整包仍IN_PROGRESS。
+- r9两会话696事件，四次打开：旧路线胜利处Stop；新9946446b实际奖励选牌窗口中Stop通过（6任务收束、3选择取消、0故障，用户确认前段正常）；两次新路线Auto都在seq11领取第二战金币前失败退出。四次原manager及所比较Continue/Progress恢复通过。此次“自动Stop”是`run-resources-or-rng-mismatch-11-before`保护退出，不是设计终点行为。
+- 两次Auto均已通过首战跳卡、营火HEAL80→85、后战完整初态/RNG和第二战8项胜利。结构化差异仅当前房间map_point_history/player_stats的current_gold、current_hp、max_hp：Continue录制期为112/85/85，连续回放仍为0/0/0；真实players资源、RNG及其他所有叶值相同。不将Continue后第二场领奖记通过。
+- 原生EnterMapPointInternal在恢复完成房间前调用UpdatePlayerStatsInMapPointHistory；顺播漏掉了记录中的这一Continue副作用。006新增可选BeforeOperation记录精确位置，旧文件只在“一个完成战斗、一次重进、首个奖励”无歧义时推导；真实旧9946446b定位到visit4/seq11。回放在该点复用原生history函数，值取自当前实际RunState，不读expected来覆盖、不重载后场checkpoint，保留全部核对；歧义旧SL不猜测。
+- 主工程/DirectContracts构建均0警告0错误；8项文件/位置合同通过，含显式位置不移到首奖、歧义旧重进拒绝、未知来源保留及非法位置拒绝。原root在新模型生产读取/checksum匹配、原件未改，继续显式兼容005录制hash。新增终点/Stop事件区分Auto关闭等待与故障退出；这些不代替原生复测。
+- 704数据文件及失败原件封存；当前51文件4,384,674 bytes补存`RUN001-post-r9-current-20261031-200627`，相对r8仅原生progress.save.backup变化，无缺失。关键本地证据`runtime-verification-r9.json`、`collection-r9.json`、`checks/r9/`、`preparation/post-006-progress-check.json`。下一步只用9946446b从第2层锚点Auto到最终地图，预期Auto关闭且留画面等待手动Stop，再正常退出；不重录/再次Continue/重复选择中Stop。
+
+## r8：真正重启Continue与后续领奖归属通过
 - 保持RUN-001/build-005，无换版。r8是不同启动时刻的新进程，原生加载表示Key精确匹配r7已观察存盘，MatchedObservedSave=true、PreFinished=true、ChangedBeforeSetup=false；用户回到第二场胜利奖励页，无重打。RunId仍9946446b，不靠seed/坐标猜局。
 - 四次房间访问保持；第二场所在visit4 Entries由1到2，新增一条native-continue说明重进，未增加房间/战斗。原两份8步胜利片hash及前10项操作逐项原封不动，只有seq11金币、seq12跳卡、seq13离开追加，均complete。11事件、0 observer-error；生产RunStore读回完整且无资源断点。
 - r7已录首战跳卡索引3/4及营火HEAL，HP80→85/max85；r8第二场亦跳卡索引3/4。两场胜利及后续领奖现已同局关联，仍须实际播放此新链，不能仅凭记录/文件读取判跳卡与休息回放通过。
