@@ -1,7 +1,15 @@
 # RUN-001：整局外壳与第一条非战斗录播链
 
-## 最新摘要 · 2026-10-31 · r9非预期退出已定位，006已安装待同片Auto复测
+## 最新摘要 · 2026-10-31 · 006/r10代表链全部通过，提交PM收束
 
+- 当前RUN-001/build-006保持安装，DLL `392B6DEB1899B1D5D9E71325382F2999D049CC16E0A9568A9B08951017D4E9DB`，收据`preparation/build-006-d8862042.json`。用户确认“一切顺利”；Implementation本包代表样本闭环，建议DONE_WITH_LIMITATIONS，交PM合并状态，不再派发必需补测。
+- r10同局9946446b从第2层首战锚点Auto完整顺播：两场各8项胜利，首战跳卡、营火HEAL80→85、真实地图进入后战且完整初态/RNG匹配，再消费真正Continue后记录的第二战金币/跳卡/回地图。16项战斗＋10项战外操作全部核对，273事件、0 observer-error、0资源差异；没有加载后场checkpoint/注入expected。
+- visit4/seq11原生Continue历史结算一次完成，r9三处历史摘要差异消除，旧失败不追改。seq13终点明确Auto=false、SceneKeptOpen=true、AwaitingStop=true；2.38秒后收到手动Stop。15登记任务全部收束，0取消/0故障，原manager与所比较Continue/Progress恢复通过。
+- 合并验收入口：r5两条`>`/`>>`升级/领卡链，r6 Auto升级链/营火选牌Stop/重开，r7跳卡/休息/双胜利录制，r8真正重启Continue精确关联、前10项及两片不变、visit4重进而不增房间/战斗，r9奖励选牌Stop（3取消任务正确收束），r10新链完整原生播放及最终手动Stop。都是固定v0.111.0、铁甲A0首幕短普通路线样本，不外推全部组合。
+- r10共278数据文件封存，当前51文件4,384,674 bytes补存`RUN001-post-r10-current-20261031-202352`，相对r9仅settings.save.backup变化；主Continue/progress与原新进度保留，game0，无restore/自行启动。关键本地证据`runtime-verification-r10.json`、`collection-r10.json`；r1/r3/r4/r9真实失败、所有原片/旧pair与用户新进度恢复点保留。
+- 限制：只有普通战斗→领奖/选路→HEAL/SMITH→普通战斗及上述合法完成保存点；不承诺任意界面续接、歧义旧多次SL、所有遗物/难度/角色组合、其他房间、跨幕/多人。006新录Continue有明确BeforeOperation；旧文件仅支持单完成战斗/一次重进/首奖的无歧义边界，否则拒绝。新战外Back/跨房间Seek仍禁用，原战斗Back保持。下一阶段由PM与用户讨论后派发，不自动扩scope或恢复/卸载。
+
+## r9：Continue后的历史核对失败及006修复，失败原件保留
 - 当前RUN-001/build-006，DLL `392B6DEB1899B1D5D9E71325382F2999D049CC16E0A9568A9B08951017D4E9DB`，收据`preparation/build-006-d8862042.json`；005原pair保留。安装后51文件核对无进度变化，game0，不restore/自行启动。006未有游戏结论，整包仍IN_PROGRESS。
 - r9两会话696事件，四次打开：旧路线胜利处Stop；新9946446b实际奖励选牌窗口中Stop通过（6任务收束、3选择取消、0故障，用户确认前段正常）；两次新路线Auto都在seq11领取第二战金币前失败退出。四次原manager及所比较Continue/Progress恢复通过。此次“自动Stop”是`run-resources-or-rng-mismatch-11-before`保护退出，不是设计终点行为。
 - 两次Auto均已通过首战跳卡、营火HEAL80→85、后战完整初态/RNG和第二战8项胜利。结构化差异仅当前房间map_point_history/player_stats的current_gold、current_hp、max_hp：Continue录制期为112/85/85，连续回放仍为0/0/0；真实players资源、RNG及其他所有叶值相同。不将Continue后第二场领奖记通过。
