@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r10商店交易录制通过，待首次观看
+## 最新摘要 · 2026-11-01 · r11商店原生观看通过，待入口SL改选及后战
+
+- 保持RUN-002/build-004，无换版/重录。r11会话2c05ba77共170事件、0 observer-error/资源差异：82beed25首战8步原生胜利，随后11项非战斗操作严格资源/RNG匹配，其中包括商店库存/现价、会员卡确切实例原生领取、原生买愤怒/力量药水，以及删牌窗口取消和确认。未复制库存、发牌/改钱或手写折扣。
+- 各操作实际Progress按正确SourceSequence/Attempt只应用到隔离manager；会员卡新增归属日志核确切Player和Entry.Model实例。r10实际记录中的折扣、库存变化及取消不扣钱/确认扣37均在观看后资源比较通过，不能仅凭UI动画判成功。
+- 到Operation13关闭货架终点Auto=false、AwaitingStop=true、SceneKeptOpen=true，手动Stop AtRecordedEnd=true；15登记任务全部完成、0取消/故障，AllOperationsMatched/Complete/VictoryReached=true、Error=null，原manager及所比较Continue/Progress恢复true，root逐hash不变。
+- 封存174数据文件，51当前文件4,375,351 bytes补存`RUN002-post-r11-current-20261101-013906`。相对r10有Progress.save.backup和settings.backup两项变化，无缺失；主Progress与current_run均逐hash不变，Progress.backup现与r10已保存主Progress完全相同（原backup是首战入口旧上下文），不宣称全部51文件未变。game0、无restore/自行启动。证据`runtime-verification-r11.json`、`collection-r11.json`。
+- 下一步正常Continue同局，应回point5商店入口；只买另一张牌（不买会员卡/愤怒/药水，不删牌），关闭货架并前进到所连第4层最左普通战斗，获胜后暂不领奖、保存退出正常关游戏。核实际成功load锚点/独立尝试、库存及原价生成、旧raw7..13事实保留而不选、下一战不带入旧交易，再观看最终路线。本包IN_PROGRESS，删牌窗口Stop/重开及商店后战/问号等仍待。
+
+## r10：商店交易录制通过
 
 - 保持RUN-002/build-004，无换版。r10会话ea71b598共68事件、0 observer-error，真实新局82beed25，首战c7998d15共8步胜利自动封存。13项原始操作均complete，3访问/3尝试；首战领奖/跳卡、进入连接的第3层商店、开关货架和交易都已记录，无merchant-proceed，尚未SL或播放商店。
 - 实际交易顺序是会员卡228金币、愤怒24金币、力量药水25金币，随后删牌取消和确认。会员卡原生折扣使删牌现价75→37，商店库存/价格快照已包含前后变化；金币1012→784→760→735→735→698。取消Selected=[]、Success=false，完整资源前后不变；确认Selected=[3]对应未升级打击、Success=true，扣37金币，牌组13→12。未自行模拟折扣或删牌。
