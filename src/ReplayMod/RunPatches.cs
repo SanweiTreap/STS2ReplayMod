@@ -5,6 +5,9 @@ using MegaCrit.Sts2.Core.Entities.RestSite;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
+using MegaCrit.Sts2.Core.Nodes.Rewards;
+using MegaCrit.Sts2.Core.Nodes.RestSite;
+using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Rewards;
@@ -20,6 +23,8 @@ internal static class RunPatches
     internal static RewardsSet? Rewards;
     internal static NRewardsScreen? RewardsScreen;
     internal static Task? Travel;
+    internal static Task? UiTask,ProceedTask,RestAnimation;
+    internal static Task<bool>? ResultTask;
     private static RunOperation? Record(string kind,Func<RunOperation?> begin)
     {
         try{return begin();}
@@ -60,6 +65,11 @@ internal static class RunPatches
         Patch(typeof(RunManager),"EnterMapCoord",after:nameof(EnteredMap));
         Patch(typeof(RewardsSetSynchronizer),"BeginRewardsSet",before:nameof(RewardsBegan));
         Patch(typeof(NRewardsScreen),"ShowScreen",after:nameof(RewardsShown));
+        Patch(typeof(NCombatUi),"ShowRewards",after:nameof(OwnedTask));
+        Patch(typeof(NCombatUi),"ProceedWithoutRewards",after:nameof(OwnedTask));
+        Patch(typeof(NRewardButton),"GetReward",after:nameof(ButtonTask));
+        Patch(typeof(NRestSiteButton),"SelectOption",after:nameof(ButtonTask));
+        Patch(typeof(NRestSiteRoom),"AfterSelectingOptionAsync",after:nameof(RestAnimationTask));
         Patch(typeof(RewardsSetSynchronizer),"SelectLocalReward",before:nameof(RewardBefore),after:nameof(RewardAfter));
         Patch(typeof(RunManager),"ProceedFromTerminalRewardsScreen",before:nameof(ProceedBefore),after:nameof(ProceedAfter));
         Patch(typeof(RestSiteSynchronizer),"ChooseLocalOption",before:nameof(RestBefore),after:nameof(RestAfter));
@@ -77,6 +87,7 @@ internal static class RunPatches
     private static void EnteredMap(ref Task __result)
     {
         Travel=__result;
+        if(RunPlayback.Active)RunPlayback.Track(__result);
         if(RunRecording.Pending is {Kind:"map"} operation)__result=RunRecording.Wrap(__result,operation,compareAfter:false);
     }
     private static void RewardsBegan(RewardsSet __0)
@@ -90,17 +101,25 @@ internal static class RunPatches
         if(index<0)return;
         __state=Record("reward",()=>RunRecording.Begin("reward",new(RewardIndex:index,RewardKey:RewardKey(__0))));
     }
-    private static void RewardAfter(ref Task<bool> __result,RunOperation? __state)=>__result=RunRecording.Wrap(__result,__state);
+    private static void RewardAfter(ref Task<bool> __result,RunOperation? __state)
+    {__result=RunRecording.Wrap(__result,__state);if(RunPlayback.Active){ResultTask=__result;RunPlayback.Track(__result);}}
     private static void ProceedBefore(out RunOperation? __state)=>__state=Record("proceed",()=>RunRecording.Begin("proceed",new()));
-    private static void ProceedAfter(ref Task __result,RunOperation? __state)=>__result=RunRecording.Wrap(__result,__state);
+    private static void ProceedAfter(ref Task __result,RunOperation? __state)
+    {__result=RunRecording.Wrap(__result,__state);if(RunPlayback.Active){ProceedTask=__result;RunPlayback.Track(__result);}}
     private static void RestBefore(RestSiteSynchronizer __instance,int __0,out RunOperation? __state)
     {
         __state=null;if(!RunRecording.Enabled)return;
         var option=__instance.GetLocalOptions()[__0];
         __state=Record("rest",()=>RunRecording.Begin("rest",new(Option:option.OptionId)));
     }
-    private static void RestAfter(ref Task<bool> __result,RunOperation? __state)=>__result=RunRecording.Wrap(__result,__state);
+    private static void RestAfter(ref Task<bool> __result,RunOperation? __state)
+    {__result=RunRecording.Wrap(__result,__state);if(RunPlayback.Active){ResultTask=__result;RunPlayback.Track(__result);}}
+    private static void ButtonTask(Task __result)
+    {if(RunPlayback.Active){UiTask=__result;RunPlayback.Track(__result);}}
+    private static void RestAnimationTask(Task __result)
+    {if(RunPlayback.Active){RestAnimation=__result;RunPlayback.Track(__result);}}
+    private static void OwnedTask(Task __result)=>RunPlayback.Track(__result);
     private static void RestProceedBefore(out RunOperation? __state)=>__state=Record("rest-proceed",()=>RunRecording.Begin("rest-proceed",new()));
     private static void RestProceedAfter(RunOperation? __state){if(__state is not null)Runtime.Guard(()=>RunRecording.Complete(__state));}
-    internal static void Clear(){Rewards=null;RewardsScreen=null;Travel=null;}
+    internal static void Clear(){Rewards=null;RewardsScreen=null;Travel=null;UiTask=null;ProceedTask=null;ResultTask=null;RestAnimation=null;}
 }

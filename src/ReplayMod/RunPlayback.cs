@@ -1,10 +1,14 @@
 using System.Diagnostics;
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.GameActions;
+using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
+using MegaCrit.Sts2.Core.Nodes.Rewards;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
+using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -17,7 +21,17 @@ internal static class RunPlayback
     private static int _index,_decision,_fine,_wholeRequests;
     private static bool _auto,_whole,_stop,_continuation,_allowRewards;
     private static CombatRoom? _rewardsRoom;
-    private static Task? _pending;
+    private static readonly HashSet<Task> OwnedTasks=[];
+    private static RunState? _mapRun;
+    private static MapCoord _mapDestination;
+    private static int _mapGeneration;
+    private static bool _mapVoted;
+    private static MoveToMapCoordAction? _mapMove;
+    private static Task? _mapTask;
+    private static long _phaseAt;
+    // This exact recording build has the same run/clip format and native inputs.
+    internal const string RecordingBuild="145E3A3DE8A918CBD8AE90EBF4EFE1D7413E3F46911A1A5C26298266828F66EC";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild;
     internal static RunOperation? Current;
     internal static bool HasFollowing=>Active&&_index+1<_run.Operations.Count&&_run.Operations[_index+1].Status=="complete"&&_run.Operations[_index+1].Kind!="gap";
     internal static bool WantsNext=>HasFollowing&&(_auto||_continuation);
@@ -29,22 +43,29 @@ internal static class RunPlayback
     internal static int StartIndex(RunDocument run)=>run.Operations.FindIndex(o=>o.Kind=="battle"&&o.Status=="complete"&&o.Clip is not null);
     internal static void Begin(RunDocument run,int? startSequence=null)
     {
-        Codec.Require(run.GameHash==Runtime.GameHash&&run.Scope==Runtime.Scope&&run.ModHash==Runtime.ModHash,"run-environment-or-build-mismatch");
+        Codec.Require(run.GameHash==Runtime.GameHash&&run.Scope==Runtime.Scope&&Compatible(run.ModHash),"run-environment-or-build-mismatch");
         _index=startSequence is {} sequence?run.Operations.FindIndex(o=>o.Sequence==sequence):StartIndex(run);
         Codec.Require(_index>=0&&run.Operations[_index] is {Kind:"battle",Status:"complete",Clip:not null},"run-has-no-recorded-battle-start");
         Codec.Require(!RunStore.ResourceDiscontinuities(run).Any(s=>s>run.Operations[_index].Sequence),"run-has-unrecorded-resource-transition");
         _run=run;Active=true;NonCombat=false;Driving=false;_auto=false;_whole=false;_stop=false;_continuation=false;
-        _fine=0;_wholeRequests=0;_decision=0;_rewardsRoom=null;Current=run.Operations[_index];RunPatches.Clear();
+        _fine=0;_wholeRequests=0;_decision=0;_phaseAt=0;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;Current=run.Operations[_index];RunPatches.Clear();
     }
-    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;_pending=null;RunPatches.Clear();}
+    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();}
+    internal static void Track(Task task)
+    {
+        if(!Active||!OwnedTasks.Add(task))return;
+        _=task.ContinueWith(t=>{_ =t.Exception;},TaskContinuationOptions.OnlyOnFaulted);
+    }
     internal static async Task DrainAfterSceneExit()
     {
-        if(!Active||_pending is not {} task)return;
+        if(!Active)return;
         var at=Stopwatch.GetTimestamp();
-        while(!task.IsCompleted)
+        while(OwnedTasks.Any(t=>!t.IsCompleted))
         {Codec.Require(Stopwatch.GetElapsedTime(at).TotalSeconds<5,"run-native-action-did-not-retire");await Runtime.NextFrame();}
-        try{await task;}catch(OperationCanceledException) when(_stop){}
-        Runtime.Log("run-native-action-retired",new{Completed=true,task.IsCanceled,BeforeOriginalManagerRestored=true});_pending=null;
+        // Faults have already been observed by the operation or its fault observer.
+        // A settled failure must not prevent restoring the original manager.
+        Runtime.Log("run-native-action-retired",new{Completed=true,Tasks=OwnedTasks.Count,Canceled=OwnedTasks.Count(t=>t.IsCanceled),Faulted=OwnedTasks.Count(t=>t.IsFaulted),BeforeOriginalManagerRestored=true});
+        OwnedTasks.Clear();
     }
     internal static void Control(string command)
     {
@@ -63,19 +84,26 @@ internal static class RunPlayback
     internal static bool DeferRewards(CombatRoom room)
     {if(!Active||_allowRewards)return false;_rewardsRoom=room;return true;}
     internal static void Native(Action action)
-    {Driving=true;try{action();}finally{Driving=false;}}
-    internal static void CheckStop(){if(_stop||PlayerLoop.TearingDown)throw new OperationCanceledException();PlayerLoop.RequireHealthy();}
+    {var prior=Driving;Driving=true;try{action();}finally{Driving=prior;}}
+    internal static void CheckStop()
+    {
+        if(_stop||PlayerLoop.TearingDown)throw new OperationCanceledException();PlayerLoop.RequireHealthy();
+        if(OwnedTasks.FirstOrDefault(t=>t.IsFaulted) is {} failed)throw new InvalidDataException("run-native-owned-task-failed",failed.Exception);
+    }
     internal static async Task TakePhase(string label)
     {
         Runtime.Status=label;
         while(true)
         {
             CheckStop();
-            if(_auto||_whole)return;
-            if(_wholeRequests>0){_wholeRequests--;_whole=true;return;}
-            if(_fine>0){_fine--;return;}
+            if(_auto&&_phaseAt!=0&&Stopwatch.GetElapsedTime(_phaseAt).TotalSeconds<.65){await Runtime.NextFrame();continue;}
+            if(_auto||_whole)break;
+            if(_wholeRequests>0){_wholeRequests--;_whole=true;break;}
+            if(_fine>0){_fine--;break;}
             await Runtime.NextFrame();
         }
+        _phaseAt=Stopwatch.GetTimestamp();
+        Runtime.Log("run-playback-phase",new{Operation=Current?.Sequence,Label=label,Auto=_auto,Whole=_whole});
     }
     internal static RunDecision Decision(string kind,string[] options)
     {
@@ -90,10 +118,9 @@ internal static class RunPlayback
     }
     private static async Task Await(Task task)
     {
-        _pending=task;
-        _=task.ContinueWith(t=>{_ =t.Exception;},TaskContinuationOptions.OnlyOnFaulted);
+        Track(task);
         while(!task.IsCompleted){CheckStop();await Runtime.NextFrame();}
-        await task;_pending=null;
+        await task;
     }
     internal static async Task<bool> Run()
     {
@@ -110,16 +137,21 @@ internal static class RunPlayback
                     Codec.Require(NativeSeek.Finished&&HasFollowing,"run-battle-transition-without-complete-result");
                     NativeSeek.Clear();ChoiceTape.Clear();ActionMonitor.Reset();NonCombat=true;PlayerLoop.Loading=false;
                     _continuation=false;
-                    if(_rewardsRoom is {} room)
-                    {
-                        _allowRewards=true;
-                        try{AccessTools.Method(typeof(NCombatUi),"OnCombatWon").Invoke(NCombatRoom.Instance!.Ui,[room]);}
-                        finally{_allowRewards=false;_rewardsRoom=null;}
-                    }
                     _index++;continue;
                 }
                 Codec.Require(Current.Status=="complete"&&Current.Kind!="gap","run-recording-gap");
                 NonCombat=true;_whole=false;_decision=0;
+                if(_rewardsRoom is {} room)
+                {
+                    Codec.Require(Current.Kind is "reward" or "proceed","run-missing-reward-operation");
+                    await TakePhase("显示战斗奖励");
+                    _allowRewards=true;
+                    try{Native(()=>AccessTools.Method(typeof(NCombatUi),"OnCombatWon").Invoke(NCombatRoom.Instance!.Ui,[room]));}
+                    finally{_allowRewards=false;_rewardsRoom=null;}
+                    await RewardsReady(requireVisible:true);
+                    // Give the fully presented page a readable Auto interval.
+                    _phaseAt=Stopwatch.GetTimestamp();
+                }
                 await Execute(Current);
                 Codec.Require(_decision==Current.Decisions.Length,"run-recorded-choice-not-consumed");
                 if(Current.After is {} expected)Compare(Current.Sequence,"after",expected,RunResources.Capture());
@@ -140,27 +172,44 @@ internal static class RunPlayback
     }
     private static async Task Execute(RunOperation operation)
     {
-        if(operation.Kind is "reward" or "proceed")await Wait(()=>RunPatches.Rewards is not null&&RunPatches.RewardsScreen is { } screen&&GodotObject.IsInstanceValid(screen)&&screen.IsNodeReady(),"run-reward-screen-not-ready");
-        if(operation.Kind=="map")await Wait(()=>NMapScreen.Instance is {IsOpen:true,IsTravelEnabled:true},"run-map-not-ready");
+        if(operation.Kind is "reward" or "proceed")await RewardsReady(requireVisible:false);
+        if(operation.Kind=="map")await Wait(()=>NMapScreen.Instance is {IsOpen:true,IsTravelEnabled:true} map&&!TweenRunning(map,"_tween")&&!TweenRunning(map,"_actAnimTween"),"run-map-not-ready");
         if(operation.Kind=="rest")await Wait(()=>NRestSiteRoom.Instance is not null,"run-rest-site-not-ready");
         await TakePhase(operation.Kind switch{"reward"=>"领取奖励","map"=>"地图选路","rest"=>"营火选择","proceed" or "rest-proceed"=>"离开房间",_=>operation.Kind});
         if(operation.Before is {} expected)Compare(operation.Sequence,"before",expected,RunResources.Capture());
-        Task task;
         switch(operation.Kind)
         {
             case "reward":
                 var rewards=RunPatches.Rewards!;var index=operation.Argument.RewardIndex??-1;
                 Codec.Require(index>=0&&index<rewards.Rewards.Count,"run-reward-index");var reward=rewards.Rewards[index];
                 Codec.Require(RunPatches.RewardKey(reward)==operation.Argument.RewardKey,"run-reward-content-mismatch");
-                task=RunManager.Instance.RewardsSetSynchronizer.SelectLocalReward(reward);await Await(task);
-                Codec.Require(((Task<bool>)task).Result==operation.Success,"run-reward-result-mismatch");break;
+                var buttons=(IEnumerable<Control>)RunPatches.Field(RunPatches.RewardsScreen!,"_rewardButtons")!;
+                var button=buttons.OfType<NRewardButton>().SingleOrDefault(b=>ReferenceEquals(b.Reward,reward));
+                Codec.Require(button is not null,"run-reward-button-missing");
+                RunPatches.UiTask=null;RunPatches.ResultTask=null;
+                Native(()=>AccessTools.Method(typeof(NRewardButton),"OnRelease").Invoke(button,[]));
+                Codec.Require(RunPatches.UiTask is not null&&RunPatches.ResultTask is not null,"run-reward-native-handler-not-started");
+                await Await(RunPatches.UiTask!);
+                Codec.Require(RunPatches.ResultTask!.Result==operation.Success,"run-reward-result-mismatch");break;
             case "rest":
                 Codec.Require(operation.Argument.Option is "HEAL" or "SMITH","run-rest-option-unsupported");
                 var options=RunManager.Instance.RestSiteSynchronizer.GetLocalOptions();var option=options.ToList().FindIndex(o=>o.OptionId==operation.Argument.Option);
                 Codec.Require(option>=0&&options[option].IsEnabled,"run-rest-option-unavailable");
-                task=RunManager.Instance.RestSiteSynchronizer.ChooseLocalOption(option);await Await(task);
-                Codec.Require(((Task<bool>)task).Result==operation.Success,"run-rest-result-mismatch");break;
-            case "proceed":await Await(RunManager.Instance.ProceedFromTerminalRewardsScreen());break;
+                var restButton=NRestSiteRoom.Instance!.GetButtonForOption(options[option]);
+                Codec.Require(restButton is not null,"run-rest-button-missing");
+                await Wait(()=>restButton!.Modulate.A>=.99f,"run-rest-button-not-presented");
+                RunPatches.UiTask=null;RunPatches.ResultTask=null;RunPatches.RestAnimation=null;
+                Native(()=>AccessTools.Method(restButton!.GetType(),"OnRelease").Invoke(restButton,[]));
+                Codec.Require(RunPatches.UiTask is not null&&RunPatches.ResultTask is not null,"run-rest-native-handler-not-started");
+                await Await(RunPatches.UiTask!);
+                Codec.Require(RunPatches.ResultTask!.Result==operation.Success,"run-rest-result-mismatch");
+                if(RunPatches.RestAnimation is {} animation)await Await(animation);break;
+            case "proceed":
+                await Wait(()=>((MegaCrit.Sts2.Core.Nodes.CommonUi.NProceedButton)RunPatches.Field(RunPatches.RewardsScreen!,"_proceedButton")!).IsEnabled,"run-reward-proceed-disabled");
+                RunPatches.ProceedTask=null;
+                Native(()=>AccessTools.Method(RunPatches.RewardsScreen!.GetType(),"OnProceedButtonPressed").Invoke(RunPatches.RewardsScreen,[null]));
+                await Wait(()=>RunPatches.ProceedTask is not null,"run-native-proceed-not-started");
+                await Await(RunPatches.ProceedTask!);break;
             case "rest-proceed":
                 await Wait(()=>NRestSiteRoom.Instance?.ProceedButton.IsEnabled==true,"run-rest-animation-pending");
                 Native(()=>AccessTools.Method(typeof(NRestSiteRoom),"OnProceedButtonReleased").Invoke(NRestSiteRoom.Instance,[null]));break;
@@ -172,10 +221,18 @@ internal static class RunPlayback
                 async Task Enter()
                 {
                     RunPatches.Clear();
+                    _mapRun=run;_mapDestination=coord;_mapGeneration=RunManager.Instance.MapSelectionSynchronizer.MapGenerationCount;
+                    _mapVoted=false;_mapMove=null;_mapTask=null;
                     var screen=NMapScreen.Instance??throw new InvalidDataException("run-map-screen-missing");
                     var dictionary=(System.Collections.IDictionary)RunPatches.Field(screen,"_mapPointDictionary")!;
-                    Native(()=>screen.OnMapPointSelectedLocally((NMapPoint)dictionary[coord]!));
-                    await Wait(()=>RunPatches.Travel is not null,"run-native-travel-not-started");await Await(RunPatches.Travel!);
+                    try
+                    {
+                        Native(()=>screen.OnMapPointSelectedLocally((NMapPoint)dictionary[coord]!));
+                        await Wait(()=>_mapTask is not null,"run-native-travel-not-started");
+                        await Await(_mapTask!);
+                        Codec.Require(RunPatches.Travel is not null,"run-native-room-entry-not-started");await Await(RunPatches.Travel!);
+                    }
+                    finally{_mapRun=null;}
                 }
                 if(point.PointType==MapPointType.Monster)
                 {
@@ -188,4 +245,33 @@ internal static class RunPlayback
             default:throw new InvalidDataException("run-operation-unsupported-"+operation.Kind);
         }
     }
+    private static bool TweenRunning(object owner,string name)=>RunPatches.Field(owner,name) is Tween tween&&GodotObject.IsInstanceValid(tween)&&tween.IsRunning();
+    private static async Task RewardsReady(bool requireVisible)
+    {
+        await Wait(()=>RunPatches.Rewards is not null&&RunPatches.RewardsScreen is {} screen&&GodotObject.IsInstanceValid(screen)&&screen.IsNodeReady()&&screen.IsVisibleInTree()&&
+            ReferenceEquals(NOverlayStack.Instance?.Peek(),screen)&&!TweenRunning(screen,"_fadeTween")&&
+            ((!requireVisible&&screen.IsComplete)||((Control)RunPatches.Field(screen,"_rewardsWindow")!).Modulate.A>=.99f),"run-reward-screen-not-presented");
+        // Node readiness and tween completion can precede this frame's draw.
+        await Runtime.NextFrame();CheckStop();await Runtime.NextFrame();
+    }
+    internal static bool MapAction(GameAction action)
+    {
+        if(!Active||action is not (VoteForMapCoordAction or MoveToMapCoordAction))return false;
+        if(_stop||PlayerLoop.TearingDown)return false;
+        Codec.Require(_mapRun is not null&&ReferenceEquals(_mapRun,LiveState.Run)&&action.OwnerId==LiveState.Player.NetId&&
+            RunManager.Instance.MapSelectionSynchronizer.MapGenerationCount==_mapGeneration,"run-map-action-outside-recorded-transition");
+        if(action.ToNetAction() is NetVoteForMapCoordAction vote)
+        {
+            Codec.Require(Driving&&!_mapVoted&&vote.source==_mapRun!.MapLocation&&vote.destination is {} target&&target.coord.Equals(_mapDestination)&&target.mapGenerationCount==_mapGeneration,"run-map-vote-mismatch");
+            _mapVoted=true;
+        }
+        else if(action.ToNetAction() is NetMoveToMapCoordAction move)
+        {
+            Codec.Require(_mapVoted&&_mapMove is null&&move.destination.Equals(_mapDestination),"run-map-move-mismatch");
+            _mapMove=(MoveToMapCoordAction)action;
+        }
+        Runtime.Log("run-native-map-action-owned",new{Operation=Current?.Sequence,Action=action.GetType().Name,Generation=_mapGeneration});return true;
+    }
+    internal static void MapTask(MoveToMapCoordAction action,Task task)
+    {if(Active&&ReferenceEquals(action,_mapMove)){_mapTask=task;Track(task);}}
 }
