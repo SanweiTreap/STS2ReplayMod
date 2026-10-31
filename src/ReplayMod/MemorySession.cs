@@ -3,6 +3,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Saves.Managers;
 using MegaCrit.Sts2.Core.Saves.Test;
+using MegaCrit.Sts2.Core.Saves.Validation;
 
 namespace ReplayMod;
 
@@ -44,6 +45,15 @@ internal sealed class MemorySession
         return JsonSerializationUtility.ToJson(progress);
     }
     private static string? FileHash(string p)=>File.Exists(p)?Codec.Hash(File.ReadAllBytes(p)):null;
+    internal static void ApplyRecordedProgress(string json)
+    {
+        Codec.Require(PlayerLoop.Active&&ReferenceEquals(SaveManager.Instance,PlayerLoop.IsolatedManager),"run-progress-context-owner");
+        var read=JsonSerializationUtility.FromJson<SerializableProgress>(json);
+        Codec.Require(read.Success&&read.SaveData is not null,"run-progress-context-invalid");
+        // An external input to native discovery/FTUE logic, never a RunState or
+        // expected-resource restore. The original manager remains detached.
+        SaveManager.Instance.Progress=ProgressState.FromSerializable(read.SaveData!,new DeserializationContext());
+    }
     internal void Install(){Codec.Require(!_installed&&ReferenceEquals(SaveManager.Instance,Original),"save-context-owner");SaveManager.MockInstanceForTesting(Isolated);_installed=true;}
     internal async Task Drain(){if(Isolated.CurrentRunSaveTask is {} task)await task;}
     // Called only after the old run and its saves have drained. The original manager stays detached.

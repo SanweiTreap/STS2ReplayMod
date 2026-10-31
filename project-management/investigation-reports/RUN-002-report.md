@@ -1,6 +1,20 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-10-31 · r3领取被旧保护误报FAIL，002已安装待原片复测
+## 最新摘要 · 2026-10-31 · r4严格FAIL保留，003已安装待新短尝试
+
+- D-139选严格上下文修复，不放宽discovered_*比较：实际Continue的Progress写入带Attempt/BeforeOperation的可选RunContinuation.Progress；新非战斗语义操作Begin另存实际Operation.Progress，覆盖Continue之后提示/悬停造成的输入变化。旧字段缺失不假补，旧raw3/4尝试及r4不追改通过。
+- 观看投影只保留选中尝试的上下文。未完成房间入口Load的环境安排在前一地图操作之后、原生房间生成之前；该Load比保留的旧地图操作更晚，其Progress覆盖旧地图操作的输入上下文。完成战斗Load仍保留原生历史收束，首战自身Load可作初始内存环境；各操作输入在执行前作用于同一隔离manager.Progress。没有重建Run/manager、覆盖player/金币/遗物/RNG、从expected反推，严格资源比对不变。
+- 当前RUN-002/build-003，DLL `1AD070C28A881D7E9ACA8A7F13EFFD5F975F56217C6ECB8A43F8672AECB15C08`，manifest仍`69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-003-5ddc2d68.json`。主程序及合同程序均0警告0错误，9项尝试/上下文合同与8项文件/位置合同通过，当前root/旧首战production read通过，均不替代原生播放。显式兼容001/002，旧pair保留。
+- 安装后对r4的51当前文件核验，只有允许的settings.save配置变化，Continue/Progress无变化、无缺失，game0、无restore/自行启动，见`preparation/post-003-progress-check.json`。003尚无游戏结论。下一步复用现局正常Continue宝箱入口，再开箱领白星、等动画结算、不前进、保存退出正常关游戏；应新增attempt5与真实上下文，不重录首战。先核新账户环境含白星而旧首战不含、精确Load归属及当前路径，再做同root观看；当前旧attempt4缺关键输入，不再让用户反复测旧路径。
+- 本包仍IN_PROGRESS；新领取严格通过后才继续不拿分支及下一战、商店/问号/事件内部战斗。本轮不建逐悬停事件流，不承诺操作内部所有账户副作用时序；低频完整Progress快照须关注真实文件大小，16MB上限保持显式失败。
+
+## r4：原生领取已执行，缺账户发现输入导致严格FAIL
+
+- r4在002观看同一b0d06809，原生领取白星的确切实例通过归属保护，11个登记任务收束（1取消/0故障）、0 observer-error；仍在projected9/source12领取后保护退出，未到正常终点，不能判通过。唯一叶级差异为`players[0].discovered_relics`：记录为空，观看为WHITE_STAR；其他完整资源/RNG字段相同。不是再次触发旧AddRelic保护。
+- 原生ProgressSaveManager仅在账户第一次seen且模型属于本地玩家时向Player.DiscoveredRelics追加；NHoverTipSet展示提示也会MarkRelicAsSeen，未归属模型可先改账户seen而不改玩家统计。battle.Progress尚无白星，raw9和12.After都没有玩家新发现，r1封存的原生profile1 Progress已有白星。故缺失账户上下文可能在首次领取前的提示/悬停已出现，不能只归因SL或从expected反推已发现集合。已交PM核定元上下文及旧片兼容原则，尚未忽略该差异或改写原片。
+- r4共147事件、151原始数据文件封存；51当前文件4,379,881 bytes补存`RUN002-post-r4-current-20261031-235123`，相对r3仅settings.save.backup正常变化、无缺失，原manager及所比较Continue/Progress恢复true，game0，无restore。证据`runtime-verification-r4.json`、`collection-r4.json`。当前仍002；以下r3与安装结论保留为历史，002不再标记未测。
+
+## r3：旧保护修复与002安装
 
 - 当前RUN-002/build-002，DLL `0DE66D1936532107143E6AE9B42E80CC94A6D5884A7C2FD5939C51EBDEE25B3E`，收据`preparation/build-002-ed3ed5d9.json`；001和006 pair保留。构建0警告0错误，显式兼容001原片/root，尚无002游戏结论。当前51文件安装后无进度变化，game0，无restore/自行启动。
 - r3原生观看b0d06809：首战与三项领奖、真实地图入宝箱、开箱和生成白星均资源/RNG匹配；日志明确执行的是sourceSequence11/attempt4，旧raw8/9/10没有串入。到projected9/source12领取时，原Player.AddRelicInternal保护报告`incomplete-unsupported-relic-membership-change`，自动保护退出，整条领取回放FAIL，不误判正常终点。

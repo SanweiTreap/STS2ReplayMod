@@ -101,7 +101,7 @@ internal static class PlayerLoop
             if(nativeSeek){DecisionRoute.Clear();NativeSeek.Start(clip);}else DecisionRoute.Start(clip);
             Runtime.Status="加载回放：独立内存会话";Ui.Playback();ActionMonitor.Reset();ChoiceTape.Play(clip);
             if(SaveManager.Instance.CurrentRunSaveTask is {} saving)await saving;
-            memory=new(chain is null?null:RunPlayback.Current?.Progress);memory.Install();IsolatedManager=memory.Isolated;
+            memory=new(chain is null?null:RunPlayback.InitialProgress());memory.Install();IsolatedManager=memory.Isolated;
             if(nativeSeek)
             {
                 var restartMemory=false;
