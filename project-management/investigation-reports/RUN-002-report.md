@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r6原生领取观看与上下文修复通过
+## 最新摘要 · 2026-11-01 · r7不拿分支及下一战录制通过，待整段观看
+
+- 保持RUN-002/build-003，无换版。r7会话0dfdf7c2共51事件、0 observer-error：Continue精确匹配宝箱入口point7，同visit3新增attempt6(parent5/restoredSave7)。新raw15开箱、16跳过前进、17地图、18第4层战斗均complete；没有新treasure-pick。选中路线[1..7,15..18]，旧raw1..14逐项与原首战片逐hash不变，4访问/7尝试，宝箱访问entries4。
+- 开箱金币117→163，跳过后仍163且无白星。真实下一战ENCOUNTER.CORPSE_SLUGS_WEAK，片8218896a共7步胜利；其原生checkpoint为163金币且无白星，不是仅从选中路线推测没带入旧领取。原首战/新后战及root生产读取/checksum、选中路线资源连续性通过；尚未观看不拿分支。
+- 新成功存盘point8仍宝箱入口，point9是下一战入口，point10是下一战已完成/未领奖，当前原生完整fingerprint精确匹配point10，163金币且无白星，PreFinished=true，所选路径保留至raw18。原始完整指纹见`runtime-verification-r7.json`；root实际1,575,034 bytes，16MB上限内。
+- 56数据文件封存，51当前文件4,395,380 bytes补存`RUN002-post-r7-current-20261101-000940`；原生latest.mcr、current_run及backup、Progress及backup共5项正常变化，无缺失，game0、无restore/自行启动。证据`runtime-verification-r7.json`、`collection-r7.json`、`checks/r7/`。r4旧FAIL与r6领取观看PASS均保持。
+- 下一步主菜单同一b0d06809从第2层Auto至第4层胜利，观察只开箱/跳过一次、不领取白星、能继续进入后战，终点Auto关闭后Stop并正常退出。先核最终路线原生结果及退出隔离，不做正常Continue/领奖，以免把其他操作混入本短样本。本包仍IN_PROGRESS，宝箱其他Stop/细分覆盖以及商店/问号等未结项。
+
+## r6：原生领取观看与上下文修复通过
 
 - 保持RUN-002/build-003，DLL `1AD070C28A881D7E9ACA8A7F13EFFD5F975F56217C6ECB8A43F8672AECB15C08`，无换版/重录。r6会话4e0ae469共151事件、0 observer-error、0资源差异；旧首战8步原生胜利，后三项领奖/前进/地图/宝箱开箱和领取共7项非战斗操作均严格资源/RNG匹配。执行的是attempt5的raw13/14，没有重放已放弃的8/9/10或11/12。
 - Load.Progress于projected7地图操作、原生生成宝箱房间前应用；开箱/领取的Operation.Progress分别于projected8/9应用，三个hash都与r5实际记录一致（`29BF8B34E957473DA31981E996EDF3955C9E3C9D79BF861E2ABE7EE78AE0DDC3`）。该环境与旧首战未seen白星具有判别差异；只更新隔离Progress，没有覆盖局内资源/RNG或expected。D-139本代表样本的修复有实际运行证据，其他账户副作用时序仍不外推。
