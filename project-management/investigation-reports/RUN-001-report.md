@@ -1,9 +1,11 @@
 # RUN-001：整局外壳与第一条非战斗录播链
 
-## 最新摘要 · 2026-10-31 · r3整链FAIL，004已安装待测
+## 最新摘要 · 2026-10-31 · r4胜利后按钮衔接FAIL，005已安装待测
 
 - 用户正常游玩结束后，确认game0及原账号，补存当前51文件4,389,898 bytes至`RUN001-pre004-current-20261031-181559`，相对r2有5文件变化，无缺失；实际新进度位于modded1，原账号unmodded1当前save leaves亦纳入检查。安装004后51文件复核，仅settings.save配置改写，进度文件未变，无旧档恢复/自行启动。备份与核对收据：`preparation/pre-004-new-progress-backup.json`、`post-004-progress-check.json`。
-- 当前安装RUN-001/build-004，DLL `35B04F01FA3DD39DC052CD781A972CCA972C130B7AC9E6E85E3E83D4384AE08A`，manifest保持。收据`preparation/build-004-91d00d0e.json`，原003 pair和安装前配置保留；已配置仅ReplayMod、modded1，沿用本批Cloud关闭确认，尚无004游戏结论。
+- 当前安装RUN-001/build-005，DLL `DD563F456E5A693E9139F669B3C7E9B95ECFB11D6096A32A79F6EE82E89CF1FA`，manifest保持。收据`preparation/build-005-ba46e13d.json`，004/003 pair和安装前配置保留；仅ReplayMod、modded1，沿用本批Cloud关闭确认，尚无005游戏结论。005构建0警告0错误，安装后51文件复核，进度未变；未恢复/自行启动。
+- r4/004：整链入口首战及多次Back/重做到胜利，之后未发出任何run-control/phase；另开同片单场8项胜利通过。没有observer-error，两次观看退出的原manager/所比较Continue和Progress恢复通过。UI每帧先按单场终点禁用`>`/`>>`/Auto，再按整链续播启用，原生Button禁用清掉held press，导致无法释放点击。005仅将三按钮最终Disabled状态各赋值一次，保留其他播放逻辑；不判004奖励/地图修复已通过。
+- r4会话524事件＋root/2片/journal/日志共529文件封存；当前51文件4,389,898 bytes补存`RUN001-post-r4-current-20261031-182133`，相对pre004仅两settings文件变化，正常新进度保持。证据`runtime-verification-r4.json`、`collection-r4.json`及`preparation/post-005-progress-check.json`。继续原路线0cdfdef2，先手动胜利后`>`显示奖励并停住，再Auto完整链。
 - r3同片0cdfdef2两次原生播放：首战各8项及胜利通过；金币、选牌和离开各自资源/RNG核对通过。两次均在随后地图原生派生MoveToMapCoordAction被旧战斗保护拒绝，自动关闭观看；整链FAIL，未到营火/后战。两次原manager/所比较Continue和Progress恢复通过，不据此声称全部文件零写入。
 - 奖励页跳过是呈现门控问题：IsNodeReady早于原生淡入完成，Auto同帧领奖/打开选牌。另查出直接调用奖励/营火同步器绕过原生按钮收尾，已一并改为原生按钮入口，保留原生奖励行移除、选择及营火动画。奖励展示成为首项奖励操作内的细阶段，`>`可只展示停住；Auto等原生展示完成并给共同0.65秒可读间隔，不按牌模拟效果。
 - 地图投票与派生移动现在只在当前记录操作作用域放行，核对RunState、owner、目标、地图generation及一次投票/一次移动。等待完整Move任务/原生房间进入，所有已登记UI/业务/选择/营火收尾任务在恢复原manager前收束；不扩大成战外动作通用放行。此修复尚无游戏实证。
