@@ -1,7 +1,15 @@
 # RUN-001：整局外壳与第一条非战斗录播链
 
-## 最新摘要 · 2026-10-31 · 005/r6 Auto整链、营火选择中Stop及重开通过
+## 最新摘要 · 2026-10-31 · 005/r7跳卡/休息双胜利录制通过，合法保存点已核
 
+- 保持RUN-001/build-005。新路线9946446b，两场普通战斗各8项胜利，4次真实访问（涅奥缺口→普通→营火→普通）、10项操作全部complete；生产RunStore/ClipStore校验读回匹配且原件未改。r5手动升级链及r6 Auto/营火选择Stop结论保持，本新链尚未原生播放。
+- 首战卡牌候选3张＋跳过，最终索引3/4，native Success=false表示未领取卡牌、符合主动跳过，不是失败。营火原生HEAL成功，HP 80→85（max85），金币112保持；第二战真实获胜，尚未领取其任何奖励。99事件，0 observer-error、无缺失操作；未支持涅奥只在合法战斗起点之前，不补造。
+- 当前原生current_run.save确为第4层第二场monster已完成（is_pre_finished=true），StartTime匹配本局；原始SaveKey及原生已观察的加载表示Key都绑定RunId9946446b。只读核验，没有重构/启动游戏；真正新进程Continue仍未测。详细`checks/r7/current-save-binding.json`，两片及root生产读取在`checks/r7/`。
+- 104数据文件封存，当前51文件4,396,487 bytes补存`RUN001-post-r7-current-20261031-192959`。相对r6是本次正常录制的5个native replay/current_run/progress文件变化，无缺失，game0，无restore/自行启动。关键本地证据`runtime-verification-r7.json`、`collection-r7.json`。
+- 下一步只做真正重启Continue：应回第二战胜利奖励页，不重打；领取金币、卡牌仍跳过，离开到地图后不选下一节点，保存退出并正常关游戏。核同Run/同visit重进、原两战不重复与奖励后续录制，再用此新链验证跳卡/HEAL完整播放及奖励选牌窗口中Stop。005无需换版/重录。
+- 本包仍IN_PROGRESS。奖励选牌Stop上轮实际停在胜利处，用户已确认可能记错，不判通过/不记bug；原生暂停菜单只回菜单，当前合法存盘来自第二次CombatManager完成战斗时SaveRun(preFinishedRoom)，不声称任意界面保存/跨房间Seek支持。
+
+## r6：Auto整链、营火选择中Stop与重开通过
 - 保持RUN-001/build-005（DLL `DD563F456E5A693E9139F669B3C7E9B95ECFB11D6096A32A79F6EE82E89CF1FA`），不换版、不重录旧片。r5两条手动升级链已通过；r6同片0cdfdef2的Auto原生链至后战初态/RNG及Defend+、终点Stop通过。后战仍为一项前缀，不是胜利。
 - r6共四次打开：Auto全链；首战胜利处Stop；营火升级选牌窗口中Stop；重开一项后Stop。492事件，26项战斗操作、11项战外操作核对，0 observer-error；四次原manager与所比较Continue/Progress恢复通过。Auto全链14任务收束；营火中止11任务收束，其中3个原生选择取消、0故障，重开正常。
 - 奖励选牌Stop本轮未覆盖：第二次观看没有进入reward phase，停在首战8/8胜利。已向用户核对，答“可能停在胜利画面了”；仅记为胜利处Stop，不判奖励选择中止通过，也不记新bug。下一短样本播放时补这一点，不重测已过的Auto/营火Stop。
