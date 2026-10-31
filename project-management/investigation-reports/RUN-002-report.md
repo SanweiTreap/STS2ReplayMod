@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r13商店SL最终路线至后战观看通过
+## 最新摘要 · 2026-11-01 · r14货架待购买Stop/重开通过，商店代表样本收束
+
+- 保持RUN-002/build-004，DLL `1C02153EFE00347294CBAADB2789ECDD304CCE495EE5C3C34FDB549047909A8F`。r14会话18db040e共190事件、0 observer-error/资源差异：先完成attempt4的raw14开货架，关闭Auto，在projected8待购买前Stop，未执行raw15购买；用户确认商品待选。9登记任务全部完成、0取消/故障，Error=null、原manager及所比较Continue/Progress恢复true。
+- 同进程重开同一录像，首战Step到Position1后再次Stop，0登记任务/故障，原context恢复true。两次Complete/AllOperationsMatched=false均为计划内提前退出；整段原交易/删牌播放及SL改选后战PASS见r11/r13，不把短测当作整段胜利。
+- 封存195数据文件，51当前文件4,396,386 bytes补存`RUN002-post-r14-current-20261101-015622`，相对r13全部逐hash不变、无缺失，root亦不变，game0、无restore/自行启动。证据`runtime-verification-r14.json`、`collection-r14.json`。当前原生测试进度仍为第4层完成未领奖point8，原宝箱/商店尝试及旧失败保留。
+- 商店首增量按代表范围收束：真实商品/会员卡折扣、买卡/药水/遗物、删牌取消/确认、严格库存/价格/资源/RNG、入口SL改选后自然衔接后战、终点Auto关闭留场、货架待买Stop/重开均已有证据。README已同步稳定能力。删牌窗口中途Stop未单独覆盖，不用货架Stop代替该结论；首次商人教程、特殊遗物选择/嵌套自动购买、全部库存/价格组合等保持限制。
+- RUN-002仍IN_PROGRESS，剩余问号实际房型、原生事件多阶段/选牌、内部战斗及返回和相关SL；不重跑宝箱/商店旧矩阵。阶段事实与剩余边界交接PM，不为普通后续候选追加审批。
+
+## r13：商店SL最终路线至后战观看通过
 
 - 保持RUN-002/build-004，无换版/重录。r13会话16826d3a共280事件、0 observer-error/资源差异，9项非战斗操作严格匹配资源/RNG/商店库存及价格，商店只执行attempt4的raw14..18，未执行旧raw7..13的会员卡/愤怒/药水/删牌。首战与后战各8步均原生胜利并匹配原胜利投影。
 - 实际Continue.Progress的hash A8BEC876…88449在projected6、原生商店生成前应用到隔离manager，随后各操作用其实际Progress。r12首次/恢复入口的discovered_cards判别差异在严格比较中通过，没有忽略字段或改玩家列表。后战`InitialAndRngMatched=true`、`CheckpointLoaded=false`、`ExpectedStateInjected=false`，证实从中间实际新交易自然延续。
