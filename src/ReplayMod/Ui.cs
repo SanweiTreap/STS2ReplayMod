@@ -35,6 +35,8 @@ internal static class Ui
                 var run=RunRecording.Store.Read(runId);var start=RunPlayback.StartIndex(run);
                 box.AddChild(Label($"对局 {run.Id[..8]} · {run.Character.Replace("CHARACTER.","")}\n"+
                     string.Join(" → ",run.Visits.Select(v=>$"{v.Floor}:{v.RoomType??v.MapType}{(v.Gap is null?"":"（缺口）")}"))));
+                var discontinuities=RunStore.ResourceDiscontinuities(run);
+                if(discontinuities.Length>0)box.AddChild(Label("路线存在未记录的资源变化：第"+string.Join("、",discontinuities)+"项之前"));
                 if(start<0)box.AddChild(Label("尚无可播放起点"));
                 foreach(var anchor in run.Operations.Where(o=>o.Kind=="battle"&&o.Status=="complete"&&o.Clip is not null))
                 {
@@ -42,6 +44,7 @@ internal static class Ui
                     var play=Button(box,$"从第{visit.Floor}层战斗／尝试{anchor.Battle?.Attempt??0}顺播路线",()=>
                         TaskHelper.RunSafely(PlayerLoop.Open(anchor.Clip!,entry:"run-list",chain:run,chainStart:anchor.Sequence)));
                     play.TooltipText="从该记录起点原生顺播；遇到未支持或中断处停止。战外Back与跨房间Seek暂禁用";
+                    play.Disabled=run.ModHash!=Runtime.ModHash||discontinuities.Any(s=>s>anchor.Sequence);
                 }
             }
             catch(Exception ex){box.AddChild(Label($"路线 {runId[..8]} 暂不可用：{ex.GetType().Name}"));}

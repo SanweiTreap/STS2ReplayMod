@@ -32,6 +32,7 @@ internal static class RunPlayback
         Codec.Require(run.GameHash==Runtime.GameHash&&run.Scope==Runtime.Scope&&run.ModHash==Runtime.ModHash,"run-environment-or-build-mismatch");
         _index=startSequence is {} sequence?run.Operations.FindIndex(o=>o.Sequence==sequence):StartIndex(run);
         Codec.Require(_index>=0&&run.Operations[_index] is {Kind:"battle",Status:"complete",Clip:not null},"run-has-no-recorded-battle-start");
+        Codec.Require(!RunStore.ResourceDiscontinuities(run).Any(s=>s>run.Operations[_index].Sequence),"run-has-unrecorded-resource-transition");
         _run=run;Active=true;NonCombat=false;Driving=false;_auto=false;_whole=false;_stop=false;_continuation=false;
         _fine=0;_wholeRequests=0;_decision=0;_rewardsRoom=null;Current=run.Operations[_index];RunPatches.Clear();
     }
