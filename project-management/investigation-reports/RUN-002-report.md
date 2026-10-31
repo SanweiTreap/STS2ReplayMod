@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r8不拿分支至后战观看通过，待选择中Stop短测
+## 最新摘要 · 2026-11-01 · r9选择中Stop/重开通过，宝箱首增量代表样本收束
+
+- 保持RUN-002/build-003，DLL `1AD070C28A881D7E9ACA8A7F13EFFD5F975F56217C6ECB8A43F8672AECB15C08`，无换版/重录。r9会话bd4ca1a6共183事件、0 observer-error/资源差异：先完成raw15原生开箱，在projected9待跳过前关闭Auto并Stop，未执行raw16；用户确认白星仍待选。10登记任务收束（1取消/0故障），原manager及所比较Continue/Progress恢复true。
+- 同进程重开同一root，首战Step到Position1后再次Stop，0悬挂登记任务/故障，Error=null、原context恢复true。两次Complete/AllOperationsMatched=false均为计划内提前退出，不作整段失败或胜利。整段领取与不拿后战播放的PASS分别见r6/r8。
+- 188数据文件封存，51当前文件4,395,380 bytes补存`RUN002-post-r9-current-20261101-002534`；相对r8全部逐hash不变、无缺失，root亦逐hash不变，game0、无restore/自行启动。证据`runtime-verification-r9.json`、`collection-r9.json`。旧r3/r4失败及旧候选/原片保持。
+- 宝箱首增量可按代表样本收束：入口存盘/真实连续Load、相同选择独立尝试与改选不拿、最终路线不重复领取/金币、账户发现输入与严格资源/RNG比较、下一战自然衔接、终点Auto关闭、待选Stop/重开均已有证据。白星之外遗物、领取附加奖励/嵌套选牌、多玩家/所有箱子组合仍未测；非战斗Back/跨房间Seek及完整经历模式未开放。
+- 已同步稳定能力README；本包仍IN_PROGRESS，后续同包接商店购物/删牌/取消与SL、问号实际房型、事件多阶段/选牌/内部战斗及返回，不要求重复本轮首战长测。原生当前进度保留在第4层已完成未领奖point10，后续准备前继续补存，不自动还原旧局。
+
+## r8：不拿分支至后战观看通过
 
 - 保持RUN-002/build-003，DLL `1AD070C28A881D7E9ACA8A7F13EFFD5F975F56217C6ECB8A43F8672AECB15C08`，无换版/重录。r8会话08122d67共260事件、0 observer-error/资源差异：旧首战8步和第4层新战7步均原生胜利与原胜利投影匹配；8项非战斗操作严格资源/RNG匹配，宝箱采用attempt6的raw15/16/17，只开箱/跳过，不串入旧领取。
 - Load上下文在projected7原生入房前应用，随后三项操作用各自实际Progress；下一战`run-next-battle-initial-verified`通过，InitialAndRngMatched=true、CheckpointLoaded=false、ExpectedStateInjected=false。结合r7的163金币/无白星真实checkpoint，本代表样本证实最终路线从原生中间操作自然延续，不靠后战checkpoint覆盖结果。
