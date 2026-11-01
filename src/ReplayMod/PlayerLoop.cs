@@ -277,7 +277,12 @@ internal static class PlayerLoop
             RunManager.Instance.Launch();Runtime.Game.RootSceneContainer.SetCurrentScene(NRun.Create(state));
             await RunManager.Instance.GenerateMap();RunPlayback.CheckStop();
             EventReturnPresentation.Begin(state);
-            await RunManager.Instance.LoadIntoLatestMapCoord(AbstractRoom.FromSerializable(save.PreFinishedRoom,state));RunPlayback.CheckStop();
+            var load=RunManager.Instance.LoadIntoLatestMapCoord(AbstractRoom.FromSerializable(save.PreFinishedRoom,state));
+            RunPlayback.Track(load);EventReturnPresentation.TestStopDuringLoad(load);
+            await load;
+            Runtime.Log("run-computed-event-load-settled",new{NativeLoadCompleted=load.IsCompletedSuccessfully,
+                StopRequested=Cursor?.StopRequested==true,PlayerLoop.Loading,SameIsolatedSaveManager=ReferenceEquals(manager,SaveManager.Instance)});
+            RunPlayback.CheckStop();
             await EventReturnPresentation.Finish();
             Codec.Require(ReferenceEquals(manager,IsolatedManager)&&ReferenceEquals(manager,SaveManager.Instance),"computed-load-replaced-save-manager");
         }

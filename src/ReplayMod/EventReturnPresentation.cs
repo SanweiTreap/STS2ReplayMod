@@ -13,6 +13,7 @@ namespace ReplayMod;
 // event's original Resume, RNG, upgrades and native VFX implementation stay intact.
 internal static class EventReturnPresentation
 {
+    internal static bool StopTestArmed;
     private static RunState? _run;
     private static TaskCompletionSource? _revealed;
     private static readonly List<Task> Upgrades=[];
@@ -29,6 +30,18 @@ internal static class EventReturnPresentation
     {
         Codec.Require(_run is null&&RunPlayback.Active&&PlayerLoop.Loading,"event-return-presentation-owner");
         _run=run;_revealed=new(TaskCreationOptions.RunContinuationsAsynchronously);_layout=null;_room=null;_started=0;_finished=0;Upgrades.Clear();
+    }
+    internal static void TestStopDuringLoad(Task load)
+    {
+        if(!StopTestArmed)return;
+        StopTestArmed=false;
+        var owner=ReferenceEquals(_run,RunManager.Instance.DebugOnlyGetState());
+        Codec.Require(owner&&PlayerLoop.Loading&&!load.IsCompleted,"event-load-stop-test-missed-in-flight-stage");
+        Runtime.Log("run-event-load-stop-test-request",new{NewRunBound=owner,PlayerLoop.Loading,NativeLoadCompleted=load.IsCompleted,
+            PublicControl="PlayerLoop.Control(stop)",OneShotConsumed=true});
+        PlayerLoop.Control("stop");
+        Runtime.Log("run-event-load-stop-test-accepted",new{Accepted=PlayerLoop.Cursor?.StopRequested==true&&PlayerLoop.ChoiceAbort,
+            NativeLoadCompleted=load.IsCompleted,WaitForSubmittedNativeLoad=true});
     }
     private static void Layout(NEventRoom __instance,Task __result)
     {

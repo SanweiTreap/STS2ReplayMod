@@ -1,6 +1,13 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r30快速队列/胜利Back重做/重开Stop通过
+## 最新摘要 · 2026-11-01 · 011准备唯一剩余的切房间在途Stop检查
+
+- PM已核r29/r30及010关键diff，接受自然后战、内部Back和快速原生队列修复的代表结果；进入RUN-002收束，仅保留原计划一份D-140新Run/父事件重建期间Stop检查，通过后按DONE_WITH_LIMITATIONS提交终稿，不扩特殊事件/奖励或重复已答矩阵。PM管理原文CURRENT_STATUS/TODO已精确独立提交ea8dcec。
+- 新RUN-002/build-011，DLL `A91D084118A288EEFF21E7CE1D7AE47E68B6FA9942066AAC3F5A4C3B959F07E4`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-011-46e86183.json`。开发区新增默认关闭/单次消费的“下次事件SL切换途中自动点Stop”：在真正新Run绑定、原生LoadIntoLatestMapCoord已提交且Task未完成时调用与公开Stop按钮相同的PlayerLoop.Control(stop)，记录请求/接受及加载是否在途；原生任务仍直接await到安全完成，再沿现有Stop/任务与场景清理/原context恢复。登记该原生加载Task以便退出核对，没有新探针平台、强截原生业务或额外模拟场景。
+- 构建0警告0错误，diff检查通过；本轮测试入口/日志不新增镜像合同，实际是否准确命中及清理保持待游戏验证。安装前游戏0，r30完整补存保持；安装后51已知文件逐hash仅settings.save变化、无缺失/restore，见`preparation/post-011-progress-check.json`。010及失败原件/pair全部保留，原native仍point12。
+- 下一用户手动启动，开发区勾此一次性测试开关，从a51777b1第2层打开并Auto；预期内部战斗胜利后进入完成子战斗SL重建期间自动Stop回主菜单。不要抢点Stop；返回后重开同一路线，Step一步再手动Stop，正常退出。日志核真实在途接受、原生加载收尾/任务及scene/context恢复和重开；未达阶段不宣称通过。
+
+## r30：快速队列/胜利Back重做/重开Stop通过
 
 - 保持RUN-002/build-010（源码d0b93f8，DLL `6456E2F6E34654BFF8186CBDD801613C8431F965D7FA92AF1477FF0D4E5F7843`），无换版。r30会话27430a4c共317事件，0 observer-error/失败；3次打开首战，12次原生动作全部结果/RNG匹配，其中5次提前入队。3次明确重现旧失败条件：同一CombatId=2的原生目标位置由接受时1变执行时0，原生TargetId保持2，均正常继续至胜利；不是靠延迟入队避开问题。4次胜利投影及原生胜利任务通过，用户确认快速`>>`、胜利Back重做及重开正常。
 - 3次Back到1、0、2均状态/RNG匹配、无原生host重建，其中到2来自胜利并重新激活战斗，随后末击再次胜利。3次手动Stop均恢复原manager/context及所比较Continue/Progress。整局Complete=false/AtRecordedEnd=false来自计划内停在首战胜利、未继续后续房间，不覆盖已通过的战斗结果；r29两次完整路线/自然下一普通战斗、内部Back的独立证据保持。r29/009的两次快速队列失败原样保留。
