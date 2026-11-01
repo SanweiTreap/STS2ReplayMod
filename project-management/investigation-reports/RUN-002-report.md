@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r23内部战斗入口SL、胜利和原生返回录制通过
+## 最新摘要 · 2026-11-01 · r24内部战斗与返回升级原生观看通过，待战后阶段Continue
+
+- 保持RUN-002/build-007，无换版。r24会话917c3a29共167事件、0 observer-error/资源差异；a51777b1所选8项操作、保留10原始操作/4尝试，只执行新attempt4的raw8/9/10，未拼接旧中断片。首战3步及内部战斗6步均原生胜利/原胜利投影匹配；5项非战斗资源/RNG严格匹配，SourceSequence=[3,4,5,8,10]。
+- 实际Continue.Progress在入父事件的projected5应用于隔离manager，未恢复局内资源/RNG。第二档选项走原生同步器及嵌套入房，7b0ee85e初态InitialAndRngMatched=true、CheckpointLoaded=false/ExpectedStateInjected=false；原生event-return完成1个具体Resume任务，结束页、两次随机升级及事件/共享RNG均与录制After相同，无expected或子战斗checkpoint覆盖结果。
+- Operation8结束文字处Auto=false/AwaitingStop=true/SceneKeptOpen=true，用户确认留场，手动Stop AtRecordedEnd=true。12登记任务全部结束、0取消/故障，Complete/AllOperationsMatched/VictoryReached=true、Error=null；原manager与所比较Continue/Progress恢复true。原root逐hash不变，当前native完整fingerprint仍point7完成内部战斗、返回前的父事件保存位置。
+- 封存172数据文件及51已知当前文件4,389,744 bytes至`RUN002-post-r24-current-20261101-185802`；相对r23全部逐hash不变、无缺失，game0、无restore/自行启动。证据`runtime-verification-r24.json`、`collection-r24.json`。原生内部战斗完整顺播当前通过，战斗内Back、切换在途Stop及完成子战斗阶段SL尚未分别验证；不外推所有内部事件/额外奖励布局。
+- 下一仅正常Continue同局point7，观察原生已完成子战斗短暂恢复后自动返回父事件及两张升级，无须重新选档/喝药/战斗；停在事件结束文字，不点前进，保存退出正常关游戏。先取新attempt/实际返回前后状态与存盘证据，再接完成子战斗Continue的播放语义；007尚未支持把此新PreFinished Event访问按普通Monster规则观看，不让用户先测已知缺口。原路线/失败/进度保持，RUN-002仍IN_PROGRESS。
+
+## r23：内部战斗入口SL、胜利和原生返回录制通过
 
 - 保持RUN-002/build-007，无换版。r23会话7c995685共49事件、0 observer-error/缺口/未决存盘；真正Continue精确匹配point5，在visit3新建attempt4(parent3/restoredSave5)。旧7项raw操作逐项及首战9e3679e2/中断片664edd18逐hash不变，仍3访问/4尝试，最终选择[1..5,8,9,10]，不拼入旧喝药片段或虚增楼层。
 - raw8第二档选项/原生内部入房、raw9战斗、raw10原生event-return均complete，仍visit3/attempt4。新片7b0ee85e为Battle2/Attempt2、Entry=event、ParentEvent=BATTLEWORN_DUMMY/ResumeParent=true，6步胜利独立封存（喝能量药水、两岿然不动+、防御+、两全身撞击+）；不是用旧前缀凑胜利。返回复用原生Proceed/房间栈pop，1个具体模型Resume任务完成，VICTORY结束页；原生随机升级索引2的打击、索引8的防御，升级牌数5→7，事件Rng.counter=8、SharedPage=1/SharedRng.counter=1。
