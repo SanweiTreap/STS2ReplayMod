@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r18事件入口SL改选、暗门删牌与后战录制通过
+## 最新摘要 · 2026-11-01 · r19事件SL最终路线自然后战及胜利通过
+
+- 保持RUN-002/build-006，无换版。r19会话bae83532共418事件，其中先单独从battle-list播首战胜利并Stop，随后run-list最终路线部分282事件；不把前一次独立观看计为路线中的重复战斗。整会话0 observer-error/资源差异；选中13操作、保留17原始操作/6尝试，10项非战斗严格资源/RNG/事件状态匹配，SourceSequence=[3,4,5,6,11,12,13,14,15,16]，旧raw7..10未执行。
+- 实际Continue.Progress在projected6入浴场生成前应用，visit3/attempt4、IsolatedManagerOnly=true、RunResourcesOrRngRestored=false；后续操作再用各自实际Progress。两个Unknown均执行原生Roll，入房后核浴场和光暗门，RoomTypeForced=false。ABSTAIN、原生PROCEED、DARK共用删牌及前进均核资源匹配；后战753b8c88的InitialAndRngMatched=true、CheckpointLoaded=false、ExpectedStateInjected=false，证明状态从新分支和原生删牌自然承接。
+- 路线内首战和后战各8步均原生胜利、原胜利投影匹配。用户确认Auto在最终胜利关闭，终点driver Auto=false/Pending0/Outstanding=false；手动Stop为Operation13/NonCombat=false/AtRecordedEnd=true。19登记任务全部结束、0取消/故障，Complete/AllOperationsMatched/VictoryReached=true、Error=null，原manager及所比较Continue/Progress恢复true。
+- 封存423数据文件及51已知当前文件4,404,314 bytes至`RUN002-post-r19-current-20261101-133039`；相对r18全部逐hash不变、无缺失，root逐hash不变，原生完整fingerprint仍精确匹配point9后战完成未领奖，game0、无restore/自行启动。证据`runtime-verification-r19.json`、`collection-r19.json`。浴场原多页播放PASS见r17；旧r15失败及所有事实/pair保留。
+- 下一补当前路线暗门删牌窗口中途Stop及重开Step1/Stop，使用Auto关闭后的`> 精细前进`停在确认之前，验证事件选项持有原生选牌任务时退出。当前结果不替代该在途边界，也未单独覆盖浴场初始选项窗口Stop。之后保留Unknown战斗旧样本原生观看与同包事件内部战斗/返回/SL后续；RUN-002仍IN_PROGRESS，不重跑已接受宝箱/商店旧矩阵。
+
+## r18：事件入口SL改选、暗门删牌与后战录制通过
 
 - 保持RUN-002/build-006，无换版。r18会话6c222af1共62事件、0 observer-error/缺口/未决存盘；Continue冻结加载DTO精确匹配成功point5，visit3创建attempt4(parent3/restoredSave5)，原10项raw操作逐项及首战c69cb5b6逐hash不变。5访问/6尝试、17项原始操作，最终选择[1..6,11..17]，旧浸泡/两次停留/离开raw7..10完整保留而不选择。root/新后战生产读取/checksum、所选路线资源连续性通过，尚未观看改选路线。
 - 恢复后浴场入口完整资源与首次raw7.Before逐字相同。raw11选ABSTAIN，页INITIAL→ABSTAIN、80/80HP保持；raw12原生PROCEED，raw13进入下一个Unknown，实际原生Roll得到光暗门Event；raw14选DARK，原生deck-card选择Selected=[3]对应未升级打击，牌组12→11/打击5→4，页转DARK；raw15 PROCEED、raw16地图、raw17后战均complete。实际Continue.Progress绑定attempt4/BeforeOperation11，后续观看须核入浴场生成前的上下文归属。
