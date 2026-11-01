@@ -1,6 +1,13 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r16浴场多页录制通过，待原生观看
+## 最新摘要 · 2026-11-01 · r17浴场多页原生观看及终点Stop通过
+
+- 保持RUN-002/build-006，无换版。r17会话b6b6ee7d共160事件、0 observer-error/资源差异；9f37d2ec首战8步原生胜利、原胜利投影匹配，随后8项非战斗操作严格资源/RNG匹配，其中raw7..10四次浴场选择均执行原生业务且ExpectedStateInjected=false。原生Unknown Roll实际得到Event，入房后核为ABYSSAL_BATHS，RoomTypeForced=false；非战斗资源比较包含事件页/选项/动态值/事件RNG和原生历史，不只核画面。
+- raw10完成时Operation10、Auto=false、AwaitingStop=true、SceneKeptOpen=true；用户确认停在结束文字。手动Stop日志NonCombat=true、AtRecordedEnd=true；13登记任务全部结束、0取消/故障，AllOperationsMatched/VictoryReached/Complete=true、Error=null，原manager及所比较Continue/Progress恢复true。原root逐hash不变，当前native完整fingerprint与r16相同，仍成功point5浴场入口，无自动还原。
+- 封存164数据文件及51已知当前文件4,383,233 bytes至`RUN002-post-r17-current-20261101-131550`；相对r16只有settings.save.backup变化，主Progress/current_run及其他进度均逐hash不变，无缺失，game0、无restore/自行启动。证据`runtime-verification-r17.json`、`collection-r17.json`。r15定向失败及其原件保持，当前通过不追改旧失败。
+- 下一步正常Continue同局入口，浴场改选第二项ABSTAIN（不浸泡），结束后前进到连接的下一最左Unknown光暗门，选DARK并在原生删牌窗口确认一张未升级打击；结束后前进到连接最左普通战斗，获胜暂不领奖、保存退出正常关游戏。核精确恢复锚点/新attempt、旧raw7..10保留而不选、共用选牌与后战自然状态，再观看最终路线。不要求新开/重新启用准备；事件SL/共用选牌/后战当前尚未判通过，内部战斗及返回仍待，RUN-002保持IN_PROGRESS。
+
+## r16：浴场多页录制通过
 
 - 保持RUN-002/build-006，DLL `3902D4A1203D9A1CCA5248B972565348ED321745EA335D3A6F86569CED6DBDC8`，无换版。r16会话ea8932b3共67事件、0 observer-error/缺口/未决存盘，新root9f37d2ec共3访问/3尝试、10项complete操作；首战c69cb5b6共8步胜利自动封存。root/片生产读取、checksum、资源连续性通过，原件不改；尚未原生观看，不把录制通过当播放通过。
 - 定向准备修复有实际checkpoint证据：首战原生odds四项均-1，eventsVisited=1，下一普通事件索引1为ABYSSAL_BATHS、索引2为DOORS_OF_LIGHT_AND_DARK；第3层Unknown由原生Roll实际得到Event，未强制房型。实际浴场入口80/80HP（开场原生流程之后的值，不宣称仍为准备时40HP）。
