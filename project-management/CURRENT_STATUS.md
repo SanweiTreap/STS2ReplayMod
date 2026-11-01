@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-11-01。**RUN-002进行中，009/D-140完成子战斗SL及返回呈现按代表样本通过，后续普通房间衔接/内部导航待测。** Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)。范围见[工作包](handoffs/RUN-002.md)，版本/证据见[报告最新摘要](investigation-reports/RUN-002-report.md)；非整包验收。
+更新：2026-11-01。**RUN-002进行中，010快速队列回归、恢复后自然后战及内部Back已有证，切房间在途Stop待收束。** Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)。范围见[工作包](handoffs/RUN-002.md)，版本/证据见[报告最新摘要](investigation-reports/RUN-002-report.md)；尚未整包验收。
 
 ## 已确认的可用基础
 
@@ -12,18 +12,15 @@
 
 ## 当前RUN-002阶段结果
 
-- 宝箱r6/r8/r9已按白星样本验收：连续入口Load、相同/不同选择独立尝试与旧事实保留、最终领取/不拿、后战自然衔接及待选Stop/重开通过。D-139实际账户输入有判别验证，只更新隔离Progress、严格核局内资源/RNG；旧r4与首次seen来源未知保留。
-- 商店r11/r13/r14已按代表样本验收：购物/折扣、删牌取消确认、真实入口SL改购而不混旧交易、自然后战及货架Stop/重开通过。D-139上下文在生成前应用，严格核发现列表/库存/价格/资源/RNG；删牌窗口中途Stop未单测。
-- PM核报告及r17/r18/r19/r20关键证据，接受普通事件首增量：浴场多页/同名重复选项原生状态/RNG匹配，真实入口SL新尝试保留旧事实；ABSTAIN改选与DARK原生删牌自然产生后战初态/RNG及两场胜利，未载入后战checkpoint或注入expected。Unknown→Event走原生Roll，不强制房型。
-- r20暗门删牌未确认时Stop及同进程重开一步Stop通过，取消任务正常收束、原context恢复；Complete=false是计划内提前退出。浴场初始选项Stop、商店删牌在途Stop、特殊布局/私有事件状态/派生遗物与额外奖励仍未全测，不因后续内部战斗样本追认。
-- r21旧片Unknown→Monster及LIGHT随机升级已验证；r24假人第二档自然入战、6步胜利、原生返回/随机升级与资源/RNG通过，未用子战斗checkpoint/expected。内部战斗Back、切换在途Stop等细分边界尚未单测，不外推所有内部事件布局。
-- PM核r27关键证据，接受D-140窄分支：两轮先严格核战斗，再消费各自原生保存边界深冻结的自算快照，绑定真实保存/attempt6/source9，经原生Load重建Run与父事件栈，保持同一隔离manager；发现列表/历史/共享事件状态与返回升级严格匹配，未载入录制后战checkpoint/expected。
-- 009呈现已获用户接受：父事件布局/原生淡入完成后，两张原生升级及飞回牌组完整播放，终点关Auto/手动Stop，两轮任务全部结束、原context恢复。008/r26视觉FAIL保留；r27重开实际完成全程，不宣称已单测Position1早退。
-- 旧r15/r4等失败与原片保留。交接game0，原进度仍point9完成子战斗返回前；r27仅settings.backup变化，主Continue/Progress及root不变，已知文件/新进度补存保持、无restore。旧Progress.backup变化仍单列，恢复点见报告。
+- 宝箱/商店按代表样本通过：连续入口SL、相同/不同选择独立尝试、最终领取/不拿或改购、折扣/删牌确认取消、后战自然衔接及待选/货架Stop。D-139实际账户输入仅更新隔离Progress、严格核局内资源/RNG；旧r4与首次seen来源未知保留。
+- 普通事件的浴场多页/同名选项、入口SL改选、DARK删牌及后战、删牌未确认Stop通过；Unknown原生判定为Event/Monster、LIGHT随机升级各有证据。商店删牌在途Stop、浴场初始窗口Stop及特殊布局/额外奖励等仍未全测。
+- 内部战斗普通顺播与D-140已测窄SL分支通过：先核战斗，再用本次播放原生保存边界的深冻结自算快照重建Run/父栈，保持同一隔离manager与严格核对，不读录制后战checkpoint/expected。009原生淡入后升级/飞回呈现获接受，008/r26视觉FAIL保持。
+- PM核r29/r30及关键修复diff：r29/009两次完整路线自然进入下一普通战斗并胜利、内部三次Back/重做通过；其中快速队列两次FAIL保留。010将接受时列表位置与执行时位置分开，仍按同一原生TargetId/稳定CombatId严格核目标及结果/RNG，不禁原生排队/加卡名等待。r30三次实中旧重排条件、快速队列/胜利Back重做/重开Stop通过。
+- r30仅按计划首战胜利后Stop，Complete=false不否定对应战斗通过，也不当010全路线复测。切房间在途Stop仍待；交接game0，原进度point12下一普通战斗完成未领奖，root/4片和主Continue/Progress不变、仅settings.backup变化，当前恢复点已补存无restore。旧失败/备份变化保持各自报告边界。
 
 ## 随后的方向与主要缺口
 
-同包沿当前局正常Continue，原生返回事件后前进至下一普通战斗，核新attempt/event-proceed/map与自然后战，再观看并合并内部Back/切换在途Stop代表检查；这些尚未通过，不为补表重跑首战或已答旧矩阵。D-139账户输入与D-140世界Load分开处理，D-137最终路线先行；非战斗Back/跨房间Seek及完整经历模式仍未开放。其余规划见[整局规划](technical-notes/RUN-REPLAY-PLAN.md)。
+本包进入收束，沿原计划只取一份真实切房间在途Stop代表证据，优先新D-140重建路径；允许已提交业务在安全边界收尾，再核任务/场景退出与普通context恢复。不要求手工抢帧或补全切换类型矩阵，不追加特殊事件/跨幕/旧长路线；结束后整理代表样本终稿与明确限制供最终验收。D-137最终路线先行，非战斗Back/跨房间Seek及完整经历模式仍未开放。其余规划见[整局规划](technical-notes/RUN-REPLAY-PLAN.md)。
 
 用户留存的未来方向：[原始界面输入/简化等效与Auto节奏](technical-notes/PLAYBACK-MODES.md)。现有商店开关等操作记录更接近原始输入过程；暂按实现方便继续，不要求现在拆分模式/补时间线或加验收，不排为紧接下一包的必做任务。
 
