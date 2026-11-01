@@ -41,7 +41,7 @@ internal static class Ui
                 var discontinuities=RunStore.ResourceDiscontinuities(run);
                 if(discontinuities.Length>0)box.AddChild(Label("路线存在未记录的资源变化：第"+string.Join("、",discontinuities)+"项之前"));
                 if(start<0)box.AddChild(Label("尚无可播放起点"));
-                foreach(var anchor in run.Operations.Where(o=>o.Kind=="battle"&&o.Status=="complete"&&o.Clip is not null))
+                foreach(var anchor in run.Operations.Where(o=>o.Kind=="battle"&&o.Status=="complete"&&o.Clip is not null&&o.Battle?.Entry!="event"))
                 {
                     var visit=run.Visits.Single(v=>v.Id==anchor.Visit);
                     var play=Button(box,$"从第{visit.Floor}层战斗／尝试{anchor.Battle?.Attempt??0}顺播路线",()=>
@@ -67,7 +67,7 @@ internal static class Ui
         catch(Exception ex){info="片段暂不可打开："+(ex is InvalidDataException?ex.Message:ex.GetType().Name);}
         box.AddChild(Label(info));
         var open=Button(box,"打开最近片段 · 原生播放器",()=>{if(id is not null)TaskHelper.RunSafely(PlayerLoop.Open(id));});
-        var unavailable=clip is null?null:NativePlaybackSupport.Reason(clip);open.Disabled=clip is null||unavailable is not null;
+        var unavailable=clip is null?null:clip.Battle?.Entry=="event"?"事件内部战斗请从父事件之前的路线起点观看":NativePlaybackSupport.Reason(clip);open.Disabled=clip is null||unavailable is not null;
         if(unavailable is not null)box.AddChild(Label(unavailable));
         box.AddChild(Label("战斗列表 · 每场独立打开"));
         try
@@ -122,6 +122,14 @@ internal static class Ui
             TestEncounter.Armed=TestEncounter.Armed==TestPreparation.RunEvents?TestPreparation.None:TestPreparation.RunEvents;
             RecordedState.Armed=false;events.Text=TestEncounter.Armed==TestPreparation.RunEvents?"RUN-002 事件SL短路线：已启用（下一新局）":"RUN-002 事件SL短路线：关闭";
             Runtime.Status="下一新铁甲A0：普通→问号浴场→问号光暗之门→普通；40HP，五牌先天保留；checkpoint前准备事件顺序/当前概率，观看仍原生掷房间";
+        });
+        var eventCombat=Button(box,"RUN-002 事件内部战斗短路线：关闭",()=>{});
+        eventCombat.Pressed+=()=>Runtime.Guard(()=>
+        {
+            Runtime.CheckEnvironment();
+            TestEncounter.Armed=TestEncounter.Armed==TestPreparation.RunEventCombat?TestPreparation.None:TestPreparation.RunEventCombat;
+            RecordedState.Armed=false;eventCombat.Text=TestEncounter.Armed==TestPreparation.RunEventCombat?"RUN-002 事件内部战斗短路线：已启用（下一新局）":"RUN-002 事件内部战斗短路线：关闭";
+            Runtime.Status="下一新铁甲A0：普通→问号训练假人→普通；防御+、两岿然不动+、两全身撞击+先天保留，能量药水留给第二档假人";
         });
         const string hunterReference="1d5346b085b04635ab3e00b43fe9190c";
         try{_ =Runtime.ReadClip(hunterReference);Button(box,"打开已有猎人样本 · 完整27项",()=>TaskHelper.RunSafely(PlayerLoop.Open(hunterReference,entry:"hunter-reference")));}catch{/* Optional reference, not the production input. */}

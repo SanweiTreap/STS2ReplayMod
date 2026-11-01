@@ -113,6 +113,13 @@ internal static class RunRecording
         if(!Enabled||room.RoomType==RoomType.Map)return;
         if(_visit==0&&LiveState.Run.VisitedMapCoords.Count>0)Entry(LiveState.Run.VisitedMapCoords[^1],room.IsPreFinished,false);
         if(_visit==0)return;var index=_run!.Visits.FindIndex(v=>v.Id==_visit);var visit=_run.Visits[index];
+        if(room is CombatRoom {ParentEventId:not null,ShouldResumeParentEventAfterCombat:true} nested&&
+            visit.MapType=="Unknown"&&visit.Model==nested.ParentEventId.ToString())
+        {
+            _run.Visits[index]=visit with{Subrooms=(visit.Subrooms??[]).Append("Combat:"+nested.ModelId).ToArray()};Save();
+            Runtime.Log("run-event-subroom-entered",new{Visit=_visit,Attempt=CurrentAttempt,Parent=nested.ParentEventId.ToString(),
+                Encounter=nested.ModelId.ToString(),SameMapVisit=true,nested.IsPreFinished});return;
+        }
         var firstRoomInAttempt=false;
         if(_run.Branches is {ActiveAttempt:>0} branch)
         {

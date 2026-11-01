@@ -51,7 +51,8 @@ public static class Codec
         var victory=clip.Operations[^1].Victory;
         Require(clip.Format>=9?clip.Battle is {Battle:>0,Attempt:>0,Act:0,Floor:>0,RunStartTime:>0} battle&&
             Regex.IsMatch(battle.RunId,"^[a-f0-9]{32}$")&&battle.Floor==clip.Row+1&&
-            battle.Entry is "map" or "continue-known" or "continue-unmatched"&&battle.Completion==(victory?"victory":"interrupted"):clip.Battle is null,"battle-recording-metadata");
+            battle.Entry is "map" or "continue-known" or "continue-unmatched" or "event"&&battle.Completion==(victory?"victory":"interrupted")&&
+            (battle.Entry=="event"?battle.ParentEvent is {Length:>0}&&battle.ResumeParent==true:battle.ParentEvent is null&&battle.ResumeParent is null):clip.Battle is null,"battle-recording-metadata");
         Require(clip.Format!=1||!clip.Operations.Any(o=>o.Victory),"legacy-victory-marker");
         Require(clip.Format>=9||victory||clip.Operations.Any(o=>o.Kind==OperationKind.EndTurn),"incomplete-short-clip");
         for(var i=0;i<clip.Operations.Length;i++)

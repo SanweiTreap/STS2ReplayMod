@@ -108,6 +108,11 @@ internal static class RunPatches
         if(RunPlayback.Active&&RunPlayback.Current?.Kind=="treasure-open")Runtime.Guard(()=>throw new InvalidDataException("treasure-extra-reward-screen-not-yet-supported"));
         if(RunRecording.Pending is {Kind:"event-choice"})Runtime.Guard(()=>RunRecording.Unsupported("event-rewards","事件内额外领奖页仍待接入"));
         if(RunPlayback.Active&&RunPlayback.Current?.Kind=="event-choice")Runtime.Guard(()=>throw new InvalidDataException("event-extra-reward-screen-not-yet-supported"));
+        if(RunEventCombat.Returning)
+        {
+            if(RunPlayback.Active)Runtime.Guard(()=>throw new InvalidDataException("event-return-extra-reward-screen-not-yet-supported"));
+            else Runtime.Guard(()=>RunRecording.Unsupported("event-return-reward","返回事件的额外领奖页尚未支持"));
+        }
     }
     private static void RewardBefore(Reward __0,out RunOperation? __state)
     {
@@ -119,9 +124,15 @@ internal static class RunPatches
     }
     private static void RewardAfter(ref Task<bool> __result,RunOperation? __state)
     {__result=RunRecording.Wrap(__result,__state);if(RunPlayback.Active){ResultTask=__result;RunPlayback.Track(__result);}}
-    private static void ProceedBefore(out RunOperation? __state)=>__state=Record("proceed",()=>RunRecording.Begin(LiveState.Run.CurrentRoom is TreasureRoom?"treasure-proceed":"proceed",new()));
+    private static void ProceedBefore(out RunOperation? __state)
+    {
+        var returning=RunEventCombat.IsReturn;
+        if(returning)RunEventCombat.BeginReturn();
+        var kind=returning?"event-return":LiveState.Run.CurrentRoom is TreasureRoom?"treasure-proceed":"proceed";
+        __state=Record(kind,()=>RunRecording.Begin(kind,new()));
+    }
     private static void ProceedAfter(ref Task __result,RunOperation? __state)
-    {__result=RunRecording.Wrap(__result,__state);if(RunPlayback.Active){ProceedTask=__result;RunPlayback.Track(__result);}}
+    {__result=RunRecording.Wrap(RunEventCombat.ReturnBoundary(__result),__state);if(RunPlayback.Active){ProceedTask=__result;RunPlayback.Track(__result);}}
     private static void RestBefore(RestSiteSynchronizer __instance,int __0,out RunOperation? __state)
     {
         __state=null;if(!RunRecording.Enabled)return;
