@@ -58,6 +58,23 @@ internal static class RunRoutes
             "run-progress-context-room-entry-boundary-missing");
         return travel!.Sequence;
     }
+    // A completed nested combat belongs to the parent Event visit. Its load is
+    // evidenced by an actual save path, not inferred from its following text.
+    internal static RunOperation? CompletedEventBattle(RunDocument run,RunContinuation point)
+    {
+        if(!point.PreFinished||run.Visits.Single(v=>v.Id==point.Visit).RoomType!="Event")return null;
+        var attempt=run.Branches?.Attempts.SingleOrDefault(a=>a.Id==point.Attempt&&a.Visit==point.Visit);
+        var save=attempt?.RestoredSave is {} id?run.Branches!.Saves.SingleOrDefault(s=>s.Id==id&&s.Visit==point.Visit&&s.PreFinished):null;
+        var source=save?.Path.LastOrDefault();
+        var battle=source is >0?run.Operations.SingleOrDefault(o=>(o.SourceSequence??o.Sequence)==source):null;
+        var next=run.Operations.SingleOrDefault(o=>o.Sequence==point.BeforeOperation);
+        var visit=run.Visits.Single(v=>v.Id==point.Visit);
+        Codec.Require(battle is {Kind:"battle",Status:"complete",Clip:not null,Battle.Entry:"event",Battle.Completion:"victory",Battle.ResumeParent:true}&&
+            save!.Attempt==attempt!.Parent&&battle.Visit==point.Visit&&battle.Battle.ParentEvent==visit.Model&&
+            next is {Kind:"event-return"}&&next.Visit==point.Visit&&next.Attempt==point.Attempt,
+            "run-event-completed-load-anchor-missing");
+        return battle;
+    }
     internal static (RoomVisit Visit,string? Type,string? Model) Destination(RunDocument run,RunOperation map,RunOperation next)
     {
         var visit=run.Visits.Single(v=>v.Id==next.Visit);

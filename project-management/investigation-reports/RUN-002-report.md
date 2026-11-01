@@ -1,6 +1,15 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r24内部战斗与返回升级原生观看通过，待战后阶段Continue
+## 最新摘要 · 2026-11-01 · r25完成子战斗两次Load录制通过，008真实SL候选已安装
+
+- r25保持007，4284bb66会话23事件、0 observer-error/缺口/未决存盘，实际有两次完成子战斗Continue：point7→attempt5(parent4)、point8→attempt6(parent5)，均无重新选档/战斗，直接原生Resume返回升级。旧10项raw及3片逐hash/逐项不变，新增raw11/12两次独立event-return；Before/After逐字相同仍保留，不按内容去重。最终[1..5,8,9,12]，raw10/11保留不选，当前native完整fingerprint精确匹配point9/attempt6完成子战斗、返回前。证据`runtime-verification-r25.json`、`collection-r25.json`。
+- 实际Load与无Load返回有必要区别：原生CombatManager先SaveRun(room,false)，随后UpdateProgressAfterCombatWon；故r23同次胜利live有BATTLE_FRIEND_V2发现记录，保存/加载没有该项。Load还原生收束当前历史gold/hp/maxhp为115/80/80，重建父事件同步器，SharedPage/SharedRng.counter从1变为0；两次返回升级牌数均5→7，事件Rng.counter8，未累计为9。不能忽略这些严格差异或只重开页面。007/r24顺播通过保持，不追认新的SL分支已通过。
+- D-140经PM确认并独立提交8f2d930：仅在已证实完成子战斗Load边界重建Run/场景。008先按选中attempt及成功SavePoint.Path精确定位来源raw9，在该播放的原生RunSaveManager.SaveRun(AbstractRoom)调用点（进度更新前）使用原生ToSave深冻结自己的DTO字节；仅对后续确有Load消费者的战斗捕获。初态/各步/胜利先严格核完，才从这份自算快照调用原生FromSerializable/SetUpSavedSingleplayer/父事件栈加载。未读取录制后战checkpoint/expected，不在mismatch后抓状态补救；普通无SL顺播不重建。保持同一隔离SaveManager/store和D-139实际输入，原生reload写入只在隔离内；复用cleanup清理旧场景/任务/导航memento。恢复后的native Proceed入口严格核Before，返回后核After，不逐字段修发现/RNG。
+- 当前RUN-002/build-008，DLL `0C9EAC791A373AB641FBABFF66E26C48CD45363BD7F559F685A1A0E05413B2EB`，manifest仍`69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-008-c25563a4.json`；007/006和全部旧pair/失败/片保持，显式兼容007。构建0警告0错误，11项分支/恢复归属、8项文件及14项录制合同通过，真实root生产计划已定位projected8/attempt6→sourceBattle9且资源连续、只读；旧事件/商店root及007子战斗片生产读取通过，均不替代008原生运行。证据`checks/build-008/`。普通战斗奖励页式返回、额外奖励及自定义事件布局不外推此首个无奖励自动返回样本。
+- r25封存29数据文件及51已知当前文件4,385,228 bytes至`RUN002-post-r25-current-20261101-191007`；相对r24只有原生latest.mcr/current_run及backup变化，无缺失。008安装后51文件仅允许的settings.save变化，无进度变化，game0、无restore/自行启动，见`preparation/post-008-progress-check.json`。当前实际进度仍point9完成子战斗返回前，不自动恢复别的备份。
+- 下一仅复用a51777b1主菜单从第2层Auto：首战/第二档战斗只播一次，在实际记录的战后Load处原生重建并返回，升级两牌，结束文字Auto关闭留场；Stop后重开一步Stop，再正常退出。不Continue/重录；核computed-save捕获与消费hash、来源/严格前后资源RNG、原manager恢复及退出。008新恢复分支尚无游戏结论，RUN-002仍IN_PROGRESS；内部Back、切换中Stop及后续自然房间仍待代表检查。
+
+## r24：内部战斗与返回升级原生观看通过
 
 - 保持RUN-002/build-007，无换版。r24会话917c3a29共167事件、0 observer-error/资源差异；a51777b1所选8项操作、保留10原始操作/4尝试，只执行新attempt4的raw8/9/10，未拼接旧中断片。首战3步及内部战斗6步均原生胜利/原胜利投影匹配；5项非战斗资源/RNG严格匹配，SourceSequence=[3,4,5,8,10]。
 - 实际Continue.Progress在入父事件的projected5应用于隔离manager，未恢复局内资源/RNG。第二档选项走原生同步器及嵌套入房，7b0ee85e初态InitialAndRngMatched=true、CheckpointLoaded=false/ExpectedStateInjected=false；原生event-return完成1个具体Resume任务，结束页、两次随机升级及事件/共享RNG均与录制After相同，无expected或子战斗checkpoint覆盖结果。

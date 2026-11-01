@@ -12,7 +12,8 @@ internal static class RunContracts
         Codec.Require(anchor is not null,"run-has-no-complete-battle-anchor");
         Codec.Require(!gaps.Any(s=>s>anchor!.Sequence),"run-has-missing-resource-transition-after-anchor");
         var continuations=run.Continuations.Where(c=>c.PreFinished&&c.Visit>=anchor!.Visit)
-            .Select(c=>new{c.Visit,BeforeOperation=RunStore.ContinueBefore(run,c),LegacyVisitBoundary=c.BeforeOperation is null}).ToArray();
+            .Select(c=>new{c.Visit,c.Attempt,BeforeOperation=RunStore.ContinueBefore(run,c),LegacyVisitBoundary=c.BeforeOperation is null,
+                CompletedEventBattleSource=RunRoutes.CompletedEventBattle(run,c)?.SourceSequence}).ToArray();
         var destinations=run.Operations.Zip(run.Operations.Skip(1)).Where(p=>p.First.Kind=="map"&&p.First.Sequence>=anchor!.Sequence)
             .Select(p=>{var destination=RunRoutes.Destination(run,p.First,p.Second);
                 return new{Operation=p.First.Sequence,destination.Visit.Id,destination.Visit.MapType,destination.Type,destination.Model};}).ToArray();

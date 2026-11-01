@@ -23,6 +23,7 @@ internal static class PlayerLoop
     internal static string? Error;
     internal static PlaybackCursor? Cursor;
     internal static SaveManager? IsolatedManager;
+    private static MemorySession? _memory;
     internal static bool VictoryReached;
     internal static bool ChoiceAbort;
     private static int _opens;
@@ -103,7 +104,7 @@ internal static class PlayerLoop
             if(nativeSeek){DecisionRoute.Clear();NativeSeek.Start(clip);}else DecisionRoute.Start(clip);
             Runtime.Status="加载回放：独立内存会话";Ui.Playback();ActionMonitor.Reset();ChoiceTape.Play(clip);
             if(SaveManager.Instance.CurrentRunSaveTask is {} saving)await saving;
-            memory=new(chain is null?null:RunPlayback.InitialProgress());memory.Install();IsolatedManager=memory.Isolated;
+            memory=new(chain is null?null:RunPlayback.InitialProgress());memory.Install();IsolatedManager=memory.Isolated;_memory=memory;
             if(nativeSeek)
             {
                 var restartMemory=false;
@@ -200,7 +201,7 @@ internal static class PlayerLoop
                 Runtime.Log("playback-closed",new{Id=id,Entry=entry,Core=NativeSeek.Enabled?"native-actions":nativeSeek?"not-started":"legacy-tool",TotalOperations=_playingClip?.Operations.Length,
                     Checks=checks,Position=NativeSeek.Enabled?(int?)NativeSeek.Position:Cursor?.Rebuilding==true?(int?)null:Cursor?.Position,Opening=NativeSeek.Enabled&&NativeSeek.Opening,AllOperationsMatched=complete,VictoryReached,Error,NativeSeek=NativeSeek.Enabled,OriginalManagerRestored=memory is not null&&ReferenceEquals(SaveManager.Instance,memory.Original),NormalContinueAndOriginalProgressUnchanged=restored,OriginalProgressFileIncluded=true,WallMilliseconds=Stopwatch.GetElapsedTime(started).TotalMilliseconds});
                 if(chain is not null)Runtime.Log("run-playback-closed",new{chain.Id,Complete=complete,Error,OriginalContextRestored=restored});
-                RunPlayback.Clear();Active=false;TearingDown=false;ChoiceAbort=false;Prequeuing=false;DispatchIndex=-1;_playingClip=null;Prequeued.Clear();Committed.Clear();IsolatedManager=null;Ui.ClosePlayback();ActionMonitor.Reset();ChoiceTape.Clear();NativeSeek.Clear();DecisionRoute.Clear();Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;
+                RunPlayback.Clear();Active=false;TearingDown=false;ChoiceAbort=false;Prequeuing=false;DispatchIndex=-1;_playingClip=null;Prequeued.Clear();Committed.Clear();IsolatedManager=null;_memory=null;Ui.ClosePlayback();ActionMonitor.Reset();ChoiceTape.Clear();NativeSeek.Clear();DecisionRoute.Clear();Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;
                 OrbState.Reset();await Runtime.FlushLog();
             }
             }
@@ -248,6 +249,34 @@ internal static class PlayerLoop
             Runtime.Log("run-next-battle-initial-verified",new{clip.Id,InitialAndRngMatched=true,CheckpointLoaded=false,ExpectedStateInjected=false});
         }
         Codec.Require(await NativeSeek.LoadOpening(Load,()=>throw new InvalidDataException("run-cross-room-opening-navigation-disabled")),"run-next-battle-opening-stopped");
+    }
+    // Re-enact an evidenced Load using this playback's OWN native save-boundary
+    // result. No recorded battle checkpoint or expected world state enters here.
+    internal static async Task LoadComputedContinuation(string json)
+    {
+        var memory=_memory??throw new InvalidDataException("computed-load-without-memory-session");
+        var manager=IsolatedManager;
+        Codec.Require(Active&&RunPlayback.Active&&ReferenceEquals(manager,SaveManager.Instance),"computed-load-save-owner");
+        var parsed=JsonSerializationUtility.FromJson<SerializableRun>(json);
+        Codec.Require(parsed.Success&&parsed.SaveData?.PreFinishedRoom is {IsPreFinished:true,ParentEventId:not null,ShouldResumeParentEvent:true},"computed-load-parent-stage");
+        var encounter=parsed.SaveData!.PreFinishedRoom!.EncounterId??throw new InvalidDataException("computed-load-encounter-missing");
+        Codec.Require(!ModelDb.GetById<EncounterModel>(encounter).ShouldGiveRewards,"computed-load-extra-reward-stage-unsupported");
+        Loading=true;
+        try
+        {
+            await ClearRoom(memory);RunPlayback.CheckStop();
+            _roster=null;_fileBindings=null;Checkpoints.Clear();Prequeued.Clear();Committed.Clear();OrbState.Reset();BattleEnd.Reset();
+            var save=parsed.SaveData!;var state=RunState.FromSerializable(save);
+            await RunManager.Instance.SetUpSavedSingleplayer(state,save);RunPlayback.CheckStop();
+            AccessTools.Property(typeof(RunManager),nameof(RunManager.ShouldSave)).SetValue(RunManager.Instance,false);
+            RunManager.Instance.CombatStateSynchronizer.IsDisabled=true;RunManager.Instance.CombatReplayWriter.IsEnabled=false;
+            await PreloadManager.LoadRunAssets(state.Players.Select(p=>p.Character));await PreloadManager.LoadActAssets(state.Act);RunPlayback.CheckStop();
+            RunManager.Instance.Launch();Runtime.Game.RootSceneContainer.SetCurrentScene(NRun.Create(state));
+            await RunManager.Instance.GenerateMap();RunPlayback.CheckStop();
+            await RunManager.Instance.LoadIntoLatestMapCoord(AbstractRoom.FromSerializable(save.PreFinishedRoom,state));RunPlayback.CheckStop();
+            Codec.Require(ReferenceEquals(manager,IsolatedManager)&&ReferenceEquals(manager,SaveManager.Instance),"computed-load-replaced-save-manager");
+        }
+        finally{Loading=false;}
     }
     internal static void ReleaseBattleForTravel()
     {

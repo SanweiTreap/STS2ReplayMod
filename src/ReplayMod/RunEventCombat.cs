@@ -7,6 +7,8 @@ using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Rewards;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.Saves;
+using MegaCrit.Sts2.Core.Saves.Managers;
 
 namespace ReplayMod;
 
@@ -18,13 +20,16 @@ internal static class RunEventCombat
     private static bool _reenter;
     private static Task? _entry,_ready;
     private static readonly List<Task> ResumeTasks=[];
+    private static readonly Dictionary<int,string> ComputedSaves=[];
+    private static Action? _restoredBefore;
     internal static bool Returning;
-    internal static void Clear(){_parent=null;_encounter=null;_entry=null;_ready=null;_reenter=false;Returning=false;ResumeTasks.Clear();}
+    internal static void Clear(){_parent=null;_encounter=null;_entry=null;_ready=null;_reenter=false;Returning=false;ResumeTasks.Clear();ComputedSaves.Clear();_restoredBefore=null;}
     internal static void Install(Harmony h)
     {
         h.Patch(AccessTools.Method(typeof(EventCombatSynchronizer),"ReadyToEnterCombat"),prefix:new HarmonyMethod(typeof(RunEventCombat),nameof(Ready)));
         h.Patch(AccessTools.Method(typeof(RunManager),"EnterRoomWithoutExitingCurrentRoom"),
             prefix:new HarmonyMethod(typeof(RunEventCombat),nameof(EnterBefore)),postfix:new HarmonyMethod(typeof(RunEventCombat),nameof(EnterAfter)));
+        h.Patch(AccessTools.DeclaredMethod(typeof(RunSaveManager),"SaveRun",[typeof(AbstractRoom)]),prefix:new HarmonyMethod(typeof(RunEventCombat),nameof(CaptureComputedSave)));
         foreach(var type in typeof(EventModel).Assembly.GetTypes().Where(t=>t.IsSubclassOf(typeof(EventModel))))
             if(AccessTools.DeclaredMethod(type,"Resume",[typeof(AbstractRoom)]) is {IsAbstract:false} method)
                 h.Patch(method,postfix:new HarmonyMethod(typeof(RunEventCombat),nameof(Resumed)));
@@ -88,6 +93,7 @@ internal static class RunEventCombat
     internal static bool IsReturn=>LiveState.Run.CurrentRoom is CombatRoom {ParentEventId:not null,ShouldResumeParentEventAfterCombat:true};
     internal static void BeginReturn()
     {
+        if(_restoredBefore is {} compare){_restoredBefore=null;compare();}
         Returning=true;ResumeTasks.Clear();
         if(!PlayerLoop.Active&&Recorder.Active)
         {
@@ -122,5 +128,40 @@ internal static class RunEventCombat
         Task? native=null;
         RunPlayback.Native(()=>native=NCombatRoom.Instance!.Ui.ProceedWithoutRewards());
         await RunPlayback.Await(native!);
+    }
+    private static void CaptureComputedSave(RunSaveManager __instance,AbstractRoom? __0)
+    {
+        if(!RunPlayback.Active||RunPlayback.Current is not {Kind:"battle",Battle.Entry:"event"} op||
+            __0 is not CombatRoom {IsPreFinished:true,ParentEventId:not null} room)return;
+        if(!RunPlayback.NeedsComputedSave(op.SourceSequence??op.Sequence))return;
+        Runtime.Guard(()=>
+        {
+            Codec.Require(ReferenceEquals(SaveManager.Instance,PlayerLoop.IsolatedManager)&&
+                ReferenceEquals(__instance,AccessTools.Field(typeof(SaveManager),"_runSaveManager").GetValue(PlayerLoop.IsolatedManager))&&
+                ReferenceEquals(room,LiveState.Run.CurrentRoom)&&room.ParentEventId.ToString()==op.Battle!.ParentEvent,"computed-save-owner-or-parent");
+            var save=RunManager.Instance.ToSave(room);save.SchemaVersion=SaveManager.Instance.GetLatestSchemaVersion<SerializableRun>();
+            var json=JsonSerializationUtility.ToJson(save);var source=op.SourceSequence??op.Sequence;
+            ComputedSaves[source]=json;
+            Runtime.Log("run-computed-event-save-captured",new{SourceSequence=source,Parent=room.ParentEventId.ToString(),
+                SnapshotSHA256=Codec.Hash(System.Text.Encoding.UTF8.GetBytes(json)),FromThisPlayback=true,
+                BeforeVictoryProgressUpdate=true,NativeSaveBoundary=true,OriginalSaveWritten=false});
+        });
+    }
+    internal static async Task RestoreCompletedReturn(RunContinuation point,RunOperation battle,RunOperation operation)
+    {
+        var source=battle.SourceSequence??battle.Sequence;
+        Codec.Require(RunPlayback.BattleVerified(source)&&ComputedSaves.TryGetValue(source,out _),"computed-event-save-missing-or-battle-unverified");
+        var json=ComputedSaves[source];
+        _restoredBefore=()=>RunPlayback.CompareBefore(operation);
+        try
+        {
+            await PlayerLoop.LoadComputedContinuation(json);
+            Codec.Require(_restoredBefore is null,"computed-event-load-did-not-reach-return");
+            Runtime.Log("run-computed-event-continuation",new{point.Visit,point.Attempt,RecordedLoadSaveKey=point.SaveKey,SourceSequence=source,
+                SnapshotSHA256=Codec.Hash(System.Text.Encoding.UTF8.GetBytes(json)),Source="native-ToSave-at-this-playback-save-boundary",
+                BattlePreviouslyVerified=true,RecordedCheckpointLoaded=false,ExpectedStateInjected=false,
+                NativeRunReconstructed=true,SameIsolatedSaveManager=true,NativeParentStackRestored=true});
+        }
+        finally{_restoredBefore=null;}
     }
 }
