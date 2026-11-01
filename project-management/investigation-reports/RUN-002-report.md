@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r19事件SL最终路线自然后战及胜利通过
+## 最新摘要 · 2026-11-01 · r20暗门删牌在途Stop/重开通过，普通事件首增量交接
+
+- 保持RUN-002/build-006，无换版。r20会话d0c5f75c共209事件、0 observer-error/资源差异：关闭Auto后精细推进至projected10/source14暗门选项持有原生删牌窗口，用户确认未确认删除；之前7项非战斗操作匹配，source14未完成/未写verified。Stop为Operation10/NonCombat=true/AtRecordedEnd=false，16登记任务全部结束（2取消/0故障），原manager和所比较Continue/Progress恢复true。
+- 同进程重开同root，首战Position1后再次Stop，0登记任务/故障，原context恢复true。两次Complete/AllOperationsMatched=false均是计划内提前退出，不作整段失败或胜利。完整最终路线播放PASS在r19，多页浴场原路线PASS在r17；本轮不替代商店删牌窗口在途Stop，也未单独测浴场初始选项窗口Stop。
+- 封存214数据文件及51已知当前文件4,404,314 bytes至`RUN002-post-r20-current-20261101-133836`；相对r19全部逐hash不变、无缺失，root逐hash不变，原生完整fingerprint仍point9后战完成未领奖，game0、无restore/自行启动。证据`runtime-verification-r20.json`、`collection-r20.json`；旧r15失败及全部尝试/片/pair保留。
+- 普通事件首增量按代表范围交接PM：r16/r17浴场多页及同名重复选项、r18真实入口SL新attempt和旧事实保留、ABSTAIN改选及DARK共用删牌、r19最终路线严格资源/RNG和自然后战/胜利、r20选择在途Stop及重开均有证。自定义布局、事件派生遗物/额外奖励页、全部事件私有状态及组合不外推；事件内部战斗/返回/阶段SL仍未接，RUN-002保持IN_PROGRESS。
+- 下一步无需新录，复用r15保留的666d7e32：其第一个Unknown实际为普通战斗、第二个为光暗门LIGHT，原记录/checksum仍保留；从第2层Auto至记录终点，核Unknown战斗原生入房/初态RNG、LIGHT事件随机升级及原生PROCEED，再Stop正常退出。此项尚未原生观看，不能把浴场Unknown→Event样本外推至Unknown→Monster；后续继续同包内部战斗及返回，不重跑旧矩阵。
+
+## r19：事件SL最终路线自然后战及胜利通过
 
 - 保持RUN-002/build-006，无换版。r19会话bae83532共418事件，其中先单独从battle-list播首战胜利并Stop，随后run-list最终路线部分282事件；不把前一次独立观看计为路线中的重复战斗。整会话0 observer-error/资源差异；选中13操作、保留17原始操作/6尝试，10项非战斗严格资源/RNG/事件状态匹配，SourceSequence=[3,4,5,6,11,12,13,14,15,16]，旧raw7..10未执行。
 - 实际Continue.Progress在projected6入浴场生成前应用，visit3/attempt4、IsolatedManagerOnly=true、RunResourcesOrRngRestored=false；后续操作再用各自实际Progress。两个Unknown均执行原生Roll，入房后核浴场和光暗门，RoomTypeForced=false。ABSTAIN、原生PROCEED、DARK共用删牌及前进均核资源匹配；后战753b8c88的InitialAndRngMatched=true、CheckpointLoaded=false、ExpectedStateInjected=false，证明状态从新分支和原生删牌自然承接。
