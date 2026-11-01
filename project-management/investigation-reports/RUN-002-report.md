@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · 内部战斗首候选007已安装，待短前缀录制
+## 最新摘要 · 2026-11-01 · r22内部战斗单步中断录制通过，实际存盘仍事件入口
+
+- 保持RUN-002/build-007，DLL `7B27D6217ACE4D1B66A0D43FCAC4AF67E9C4DE21BD15D584D4109531CC0F108D`，无换版。r22会话5ffc5e75共54事件、0 observer-error/缺口/未决存盘，新root a51777b1共3访问/3尝试、7项complete原始操作。首战9e3679e2共3步胜利自动封存，raw6第二档选项先在真实开场边界完成，raw7内部战斗仍属visit3/attempt3，外层Unknown/Event/BATTLEWORN_DUMMY不被改成普通房间。
+- 原生同步器请求V2/ResumeParent=true，实际EnterRoomWithoutExitingCurrentRoom和子房间进入均有日志；子战斗664edd18为Battle2/Attempt1、Entry=event、ParentEvent=BATTLEWORN_DUMMY，真实150HP战斗中仅1个完整EnergyPotion操作，Turn1/Energy3→5，Completion=interrupted/Victory=false。无出牌/结束回合或胜利拼接；生产checksum读取与父事件/仅路线观看标记通过，未独立冷加载或原生观看此片。
+- 当前原生完整fingerprint精确匹配成功point5：visit3/attempt3、PreFinished=false、Path[1..5]，尚未包含选档或内部战斗；115金币、80/80HP，能量药水仍在原生存档槽0。其余两瓶原生药水同样保留。证明本次中断后实际可恢复位置是事件入口，不凭普通战斗规则或界面推断；真正Continue后的新尝试尚待用户下一轮。
+- root/首战及内部单步前缀生产读取/checksum、资源连续性通过，root833,465 bytes。封存59数据文件及51已知当前文件4,380,119 bytes至`RUN002-post-r22-current-20261101-135920`；相对r21共6项正常录制/账户/backup变化，无缺失，game0、无restore/自行启动。证据`runtime-verification-r22.json`、`collection-r22.json`、`checks/r22/`；所有旧片、失败和007 pair保留。
+- 下一保持007正常Continue，应回事件入口，再选第二档、喝能量药水，依次两张岿然不动+、防御+、两张全身撞击+击败150HP假人；等原生自动返回事件及随机升级两牌完成，停在结束文字，不点前进，保存退出正常关游戏。核point5→新attempt/原单步前缀保留、胜利/原生event-return/升级及实际已完成存盘位置，再安排观看与战后阶段Continue；这些当前均未判通过。RUN-002保持IN_PROGRESS。
+
+## 007：内部战斗首候选安装
 
 - r21复用旧005录像的Unknown→Monster/光暗门LIGHT原生观看通过（下节），未改r15定向准备失败。当前RUN-002/build-007，DLL `7B27D6217ACE4D1B66A0D43FCAC4AF67E9C4DE21BD15D584D4109531CC0F108D`，manifest仍`69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-007-b5d43caf.json`。显式兼容006，全部旧pair/片/失败保留，尚无007内部战斗游戏结论，RUN-002保持IN_PROGRESS。
 - 沿原生EventCombatSynchronizer→EnterRoomWithoutExitingCurrentRoom挂接标准布局、单人、返回父事件且无入战额外奖励的普通内部战斗；事件选项启动原生入房任务，录制等待真实初始可操作边界，先封该选项的After再创建战斗操作。ParentEvent/ResumeParent可选元数据、独立phase日志计数绑定同visit/attempt，不改地图访问为Monster，不靠Subrooms字符串宣称播放。观看在原生入战前绑定既有战斗播放器，等待自然初态/RNG，未加载子战斗checkpoint或注入expected。
