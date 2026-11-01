@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r26真实SL逻辑两次通过但视觉失败，009调整呈现顺序已安装
+## 最新摘要 · 2026-11-01 · r27真实SL与返回呈现通过，准备验证后续普通战斗
+
+- 保持RUN-002/build-009，DLL `56163611CA0AA73A28D87CC2E2F3F33B5460AB8932D3A1CD23A62011688C1D99`，无换版。r27会话46b05763共349事件、0 observer-error/资源差异，两次完整路线/终点Stop，其中重开后有手动Step推进。两轮source9在原生保存边界各自捕获快照，消费hash各自相同、attempt6/真实SaveKey，原生重建父事件栈，未载入录制checkpoint或expected；首战/内部战斗初态、各步及胜利均严格通过，5项非战斗各轮匹配。
+- 两轮均先NativeLayoutComplete/NativeFadeComplete，再启动2个原生升级任务，Started=2/Finished=2/OriginalAnimationsCompleted=true；用户确认遮罩、两张升级与飞回牌组正常。Operation8终点Auto=false/留场，手动Stop AtRecordedEnd=true，15登记任务各轮全部结束、0取消故障，原manager及所比较Continue/Progress恢复true。用户报告重开一步Stop，日志实际重开后用Step/Auto亦完成整条路线；不另宣称Position1提前Stop已单独观察，也不要求为补表再跑。
+- 封存354数据文件及51已知当前文件4,385,228 bytes至`RUN002-post-r27-current-20261101-200414`；相对r26仅settings.save.backup变化，主Progress/current_run及root逐hash不变、无缺失，当前native完整fingerprint仍point9完成子战斗返回前，game0、无restore/自行启动。证据`runtime-verification-r27.json`、`collection-r27.json`。r26的008视觉FAIL保持，不因009通过追改；所有原件/pair保留。
+- D-140最窄恢复分支已有代表原生证据：未完子战斗入口SL/旧前缀保留、新尝试完整胜利、原生返回、连续完成子战斗Load、播放自身保存边界深冻结/验证后重建、正确发现列表/历史/共享事件状态与升级结果，以及呈现/终点Stop重开；普通顺播r24保持原有对象。向PM交接这段，不收束RUN-002整包；内部Back、切换在途Stop及恢复后自然下一房间仍待代表检查，额外奖励/自定义布局/所有事件不外推。
+- 下一保持009正常Continue，自动返回假人事件/升级完成后点前进，选相连最左普通战斗，获胜暂不领奖、保存退出正常关游戏。核新恢复尝试、event-proceed/map及下一战真实状态/checkpoint，再原生观看最终路线并合并内部Back/退出短测；不新开局/重新准备，不重复宝箱商店旧矩阵。
+
+## r26：真实SL逻辑两次通过但视觉失败，009呈现顺序调整
 
 - r26/008会话2348ae82共337事件，两次完整Auto观看/终点Stop，0 observer-error/资源差异。每次computed-save在source9原生保存边界捕获，消费时同hash、attempt6/真实SaveKey，先核两场胜利，再原生重建父事件栈；10项非战斗合计严格匹配、同一隔离manager，12登记任务各轮全部结束/0取消故障，原context恢复true。两次快照hash不同来自各自执行的时间字段，未跨观看复用；每次捕获与消费自身相等。未做原计划的重开一步Stop，两次均为整段，不替代该短测。
 - 用户两次均观察到视觉问题，整轮不按完整体验PASS：重建时未先遮住旧场景，新的prefinished CombatRoom可短暂露出左侧无HUD人物；原生EventModel.Resume在创建事件页及FadeIn之前同步升级/生成NCardUpgradeVfx，其动画已在遮罩下消耗开头，升级/飞回牌组观感异常。保留008失败事实，语义通过不代替视觉接受。证据`runtime-verification-r26.json`、`collection-r26.json`。
