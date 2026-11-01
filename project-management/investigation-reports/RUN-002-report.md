@@ -1,6 +1,15 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r15定向准备失败已定位，006已安装待新局验证
+## 最新摘要 · 2026-11-01 · r16浴场多页录制通过，待原生观看
+
+- 保持RUN-002/build-006，DLL `3902D4A1203D9A1CCA5248B972565348ED321745EA335D3A6F86569CED6DBDC8`，无换版。r16会话ea8932b3共67事件、0 observer-error/缺口/未决存盘，新root9f37d2ec共3访问/3尝试、10项complete操作；首战c69cb5b6共8步胜利自动封存。root/片生产读取、checksum、资源连续性通过，原件不改；尚未原生观看，不把录制通过当播放通过。
+- 定向准备修复有实际checkpoint证据：首战原生odds四项均-1，eventsVisited=1，下一普通事件索引1为ABYSSAL_BATHS、索引2为DOORS_OF_LIGHT_AND_DARK；第3层Unknown由原生Roll实际得到Event，未强制房型。实际浴场入口80/80HP（开场原生流程之后的值，不宣称仍为准备时40HP）。
+- raw7..10/attempt3的选项索引[0,0,0,1]：INITIAL→IMMERSE→LINGER1→LINGER2→EXIT_BATHS，最后IsFinished=true；两次同名LINGER独立保留。HP80→79→77→74→74，MaxHP80→82→84→86→86；历史正确累计伤害12/恢复6/上限增加6及4次选项。Damage动态值3→4→5→6，事件RNG状态保持counter0，符合这些选项不抽随机数的原生逻辑。没有event-proceed，也没有点下一节点。
+- 当前原生完整fingerprint精确匹配成功point5：visit3/attempt3浴场入口、PreFinished=false、Path[1..6]，117金币/80HP/80上限；录制末态74/86尚未写入入口save。不由用户“没点前进”推断位置，后续真实Continue应按已观察入口恢复并新建尝试，旧raw7..10保留。
+- 封存71数据文件及51已知当前文件4,383,233 bytes至`RUN002-post-r16-current-20261101-125503`；相对r15共6项正常录制/账户/backup变化，无缺失，game0、无restore/自行启动。证据`runtime-verification-r16.json`、`collection-r16.json`、`checks/r16/`，root1,319,576 bytes在16MB上限内。旧r15定向失败、旧Unknown战斗/光暗门及全部pair保留。
+- 下一步主菜单从9f37d2ec第2层Auto，原生播放首战至浴场结束文字，核四次选择/数值和终点Auto关闭留场，再手动Stop、正常退出；先不正常Continue/重录或手动前进。通过后接浴场入口SL改选、第二事件共用选牌及自然后战；内部战斗返回仍待，RUN-002保持IN_PROGRESS。
+
+## r15：定向准备失败已定位，006安装
 
 - 用户正确启用了事件短路线。r15会话f7e1bee7共112事件、0 observer-error，新root666d7e32保存12项complete操作、4访问/4尝试；首普通66720e1a和第一个Unknown实际普通战斗c18d089a均8步胜利封存。第二个Unknown为光暗门，原生选择LIGHT及PROCEED已记录。没有浴场多页样本，不把本轮判为事件矩阵通过；两片及root生产读取/checksum/资源连续性通过，尚未原生观看。
 - 两个定向准备错误均有实际存档和原生调用顺序证据：005在SetUpNewSingleplayer完成时写当前odds=-1，但随后SetActInternal.ResetToBase覆盖，首战及Unknown战斗checkpoint均为Monster0.1/Shop0.03/Treasure0.02；开场Ancient虽走PullAncient，也执行MarkVisited(Event)，首战checkpoint的eventsVisited已为1，故放在events[0]的浴场跳过、events[1]光暗门成为首次普通事件。不是用户选错入口，也不改本次实际房型为预期结果。
