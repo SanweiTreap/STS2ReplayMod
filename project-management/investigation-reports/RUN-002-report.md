@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r22内部战斗单步中断录制通过，实际存盘仍事件入口
+## 最新摘要 · 2026-11-01 · r23内部战斗入口SL、胜利和原生返回录制通过
+
+- 保持RUN-002/build-007，无换版。r23会话7c995685共49事件、0 observer-error/缺口/未决存盘；真正Continue精确匹配point5，在visit3新建attempt4(parent3/restoredSave5)。旧7项raw操作逐项及首战9e3679e2/中断片664edd18逐hash不变，仍3访问/4尝试，最终选择[1..5,8,9,10]，不拼入旧喝药片段或虚增楼层。
+- raw8第二档选项/原生内部入房、raw9战斗、raw10原生event-return均complete，仍visit3/attempt4。新片7b0ee85e为Battle2/Attempt2、Entry=event、ParentEvent=BATTLEWORN_DUMMY/ResumeParent=true，6步胜利独立封存（喝能量药水、两岿然不动+、防御+、两全身撞击+）；不是用旧前缀凑胜利。返回复用原生Proceed/房间栈pop，1个具体模型Resume任务完成，VICTORY结束页；原生随机升级索引2的打击、索引8的防御，升级牌数5→7，事件Rng.counter=8、SharedPage=1/SharedRng.counter=1。
+- 当前原生完整fingerprint精确匹配成功point7：visit3/attempt4、PreFinished=true、Path[1..5,8,9]，不包含event-return。原生pre_finished_room为V2 Monster，ParentEvent=BATTLEWORN_DUMMY、ShouldResumeParentEvent=true、RanOutOfTime=False；药水已消耗，但牌组只含返回前5张升级，尚无返回产生的两次升级。实际保存边界是“内部战斗已完成、返回父事件之前”，不能当事件入口或已持久化返回结果；该位置的真正Continue尚未测。
+- root/新完整内部战斗片生产读取/checksum及所选路线资源连续性通过，root1,302,085 bytes。封存55数据文件及51已知当前文件4,389,744 bytes至`RUN002-post-r23-current-20261101-140849`；相对r22共6项正常录制/账户/backup变化，无缺失，game0、无restore/自行启动。证据`runtime-verification-r23.json`、`collection-r23.json`、`checks/r23/`；所有原件/pair保持。
+- 下一同版主菜单a51777b1从第2层Auto，经假人第二档新尝试、喝药/完整战斗胜利及原生返回/两次升级，结束文字处Auto关闭留场后Stop正常退出。先不正常Continue/点前进/重录，核事件入战自然初态/RNG与返回前后严格资源；此项尚未原生观看。通过后再核point7的完成子战斗父事件栈/共享同步器恢复与阶段SL，未实现或未测不追判通过，RUN-002保持IN_PROGRESS。
+
+## r22：内部战斗单步中断录制通过，实际存盘仍事件入口
 
 - 保持RUN-002/build-007，DLL `7B27D6217ACE4D1B66A0D43FCAC4AF67E9C4DE21BD15D584D4109531CC0F108D`，无换版。r22会话5ffc5e75共54事件、0 observer-error/缺口/未决存盘，新root a51777b1共3访问/3尝试、7项complete原始操作。首战9e3679e2共3步胜利自动封存，raw6第二档选项先在真实开场边界完成，raw7内部战斗仍属visit3/attempt3，外层Unknown/Event/BATTLEWORN_DUMMY不被改成普通房间。
 - 原生同步器请求V2/ResumeParent=true，实际EnterRoomWithoutExitingCurrentRoom和子房间进入均有日志；子战斗664edd18为Battle2/Attempt1、Entry=event、ParentEvent=BATTLEWORN_DUMMY，真实150HP战斗中仅1个完整EnergyPotion操作，Turn1/Energy3→5，Completion=interrupted/Victory=false。无出牌/结束回合或胜利拼接；生产checksum读取与父事件/仅路线观看标记通过，未独立冷加载或原生观看此片。
