@@ -121,7 +121,14 @@ internal static class ActionMonitor
         {
             var index=LiveState.Player.PlayerCombatState!.Hand.Cards.ToList().FindIndex(c=>ReferenceEquals(c,card));
             Codec.Require(index>=0,"queued-card-left-hand-before-execution");
-            operation.Template=operation.Template with{Turn=LiveState.Turn,HandIndex=index,CardState=LiveState.CardIdentity(card)};
+            // A queued attack keeps the native combat target ID, while an earlier kill can
+            // remove an enemy and shift its list index. Record/verify the execution boundary
+            // just as we do for hand indices, rather than retaining the acceptance index.
+            var acceptedTarget=operation.Template.Target;
+            var target=LiveState.Target(((PlayCardAction)action).Target);
+            operation.Template=operation.Template with{Turn=LiveState.Turn,HandIndex=index,CardState=LiveState.CardIdentity(card),Target=target};
+            if(acceptedTarget!=target)Runtime.Log("native-input-target-reindexed",new{operation.PlaybackIndex,NativeActionId=action.Id,
+                AcceptedTarget=acceptedTarget,ExecutionTarget=target,NativeTargetId=((PlayCardAction)action).TargetId});
         }
         if(operation.Potion is {} potion)
         {
