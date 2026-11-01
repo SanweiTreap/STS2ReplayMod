@@ -90,6 +90,10 @@ internal static class Ui
         _menuStatus=Label(Runtime.Status);box.AddChild(_menuStatus);
         var development=new VBoxContainer{Visible=false};
         Button(box,"开发／旧样本与定向准备",()=>development.Visible=!development.Visible);box.AddChild(development);box=development;
+        var loadStop=new CheckBox{Text="RUN-002：下次事件SL切换途中自动点Stop（仅一次）",ButtonPressed=EventReturnPresentation.StopTestArmed};
+        loadStop.Toggled+=value=>{EventReturnPresentation.StopTestArmed=value;
+            Runtime.Status=value?"打开现有事件对局并Auto；在原生重建加载途中发送一次Stop，无需抢时机":"已取消事件切换Stop测试";};
+        box.AddChild(loadStop);
         var rats=Button(box,"CONTENT-006 三鼠召援：关闭",()=>{});
         void RatsText()=>rats.Text=TestEncounter.Armed==TestPreparation.EnemySummon?"CONTENT-006 三鼠召援：已启用（下一新局）":"CONTENT-006 三鼠召援：关闭";
         rats.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.EnemySummon?TestPreparation.None:TestPreparation.EnemySummon;
