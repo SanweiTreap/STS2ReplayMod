@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r17浴场多页原生观看及终点Stop通过
+## 最新摘要 · 2026-11-01 · r18事件入口SL改选、暗门删牌与后战录制通过
+
+- 保持RUN-002/build-006，无换版。r18会话6c222af1共62事件、0 observer-error/缺口/未决存盘；Continue冻结加载DTO精确匹配成功point5，visit3创建attempt4(parent3/restoredSave5)，原10项raw操作逐项及首战c69cb5b6逐hash不变。5访问/6尝试、17项原始操作，最终选择[1..6,11..17]，旧浸泡/两次停留/离开raw7..10完整保留而不选择。root/新后战生产读取/checksum、所选路线资源连续性通过，尚未观看改选路线。
+- 恢复后浴场入口完整资源与首次raw7.Before逐字相同。raw11选ABSTAIN，页INITIAL→ABSTAIN、80/80HP保持；raw12原生PROCEED，raw13进入下一个Unknown，实际原生Roll得到光暗门Event；raw14选DARK，原生deck-card选择Selected=[3]对应未升级打击，牌组12→11/打击5→4，页转DARK；raw15 PROCEED、raw16地图、raw17后战均complete。实际Continue.Progress绑定attempt4/BeforeOperation11，后续观看须核入浴场生成前的上下文归属。
+- 第5层原生后战753b8c88共8步胜利自动封存，真实checkpoint为117金币、80HP/80上限、11张牌/4张打击，明确排除旧浴场分支的86上限，保留新删牌结果。下一战尚未观看，不用记录checkpoint正确替代自然播放初态/RNG匹配。
+- 新成功point6为恢复浴场入口、point7光暗门入口、point8下一战入口、point9下一战完成未领奖；当前原生完整fingerprint精确匹配point9，PreFinished=true、Path[1..6,11..17]。封存67数据文件及51已知当前文件4,404,314 bytes至`RUN002-post-r18-current-20261101-132405`；相对r17仅latest.mcr/current_run及backup/Progress及backup共5项正常变化，无缺失，game0、无restore/自行启动。证据`runtime-verification-r18.json`、`collection-r18.json`、`checks/r18/`；root2,310,589 bytes在16MB限制内，所有旧事实/片/pair保持。
+- 下一步同一9f37d2ec从第2层Auto，确认浴场仅ABSTAIN、不播放旧停留，暗门原生选牌删未升级打击并自然进入后战，核下一战初态/RNG、胜利及Auto关闭，再Stop正常退出。不正常Continue/领奖/重录。通过后再做新增事件窗口在途Stop/重开等代表退出边界；Unknown战斗旧样本及内部战斗/返回等仍待，RUN-002保持IN_PROGRESS。
+
+## r17：浴场多页原生观看及终点Stop通过
 
 - 保持RUN-002/build-006，无换版。r17会话b6b6ee7d共160事件、0 observer-error/资源差异；9f37d2ec首战8步原生胜利、原胜利投影匹配，随后8项非战斗操作严格资源/RNG匹配，其中raw7..10四次浴场选择均执行原生业务且ExpectedStateInjected=false。原生Unknown Roll实际得到Event，入房后核为ABYSSAL_BATHS，RoomTypeForced=false；非战斗资源比较包含事件页/选项/动态值/事件RNG和原生历史，不只核画面。
 - raw10完成时Operation10、Auto=false、AwaitingStop=true、SceneKeptOpen=true；用户确认停在结束文字。手动Stop日志NonCombat=true、AtRecordedEnd=true；13登记任务全部结束、0取消/故障，AllOperationsMatched/VictoryReached/Complete=true、Error=null，原manager及所比较Continue/Progress恢复true。原root逐hash不变，当前native完整fingerprint与r16相同，仍成功point5浴场入口，无自动还原。
