@@ -1,6 +1,15 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r25完成子战斗两次Load录制通过，008真实SL候选已安装
+## 最新摘要 · 2026-11-01 · r26真实SL逻辑两次通过但视觉失败，009调整呈现顺序已安装
+
+- r26/008会话2348ae82共337事件，两次完整Auto观看/终点Stop，0 observer-error/资源差异。每次computed-save在source9原生保存边界捕获，消费时同hash、attempt6/真实SaveKey，先核两场胜利，再原生重建父事件栈；10项非战斗合计严格匹配、同一隔离manager，12登记任务各轮全部结束/0取消故障，原context恢复true。两次快照hash不同来自各自执行的时间字段，未跨观看复用；每次捕获与消费自身相等。未做原计划的重开一步Stop，两次均为整段，不替代该短测。
+- 用户两次均观察到视觉问题，整轮不按完整体验PASS：重建时未先遮住旧场景，新的prefinished CombatRoom可短暂露出左侧无HUD人物；原生EventModel.Resume在创建事件页及FadeIn之前同步升级/生成NCardUpgradeVfx，其动画已在遮罩下消耗开头，升级/飞回牌组观感异常。保留008失败事实，语义通过不代替视觉接受。证据`runtime-verification-r26.json`、`collection-r26.json`。
+- 009在重建前先await原生RoomFadeOut，旧战斗保留至遮罩完全覆盖；父事件原生ResumePreviousRoom负责唯一一次后续FadeIn，不自己再开第二遍。仅此恢复阶段的NCardUpgradeVfx.PlayAnimation延后：原生Resume/RNG/升级业务照常执行，原生事件SetupLayout与FadeIn完成、事件页可见绘制后，再调用原节点的原生动画任务；等待其升级及SwooshAway完成后才结束这项操作。非此恢复阶段的升级不改，不复制特效或按牌/事件手写效果；Stop/退出取消等待并沿原生节点CTS收束。新增开始/完成计数日志，不把节点提前消失当动画完整完成。
+- 当前RUN-002/build-009，DLL `56163611CA0AA73A28D87CC2E2F3F33B5460AB8932D3A1CD23A62011688C1D99`，manifest仍`69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-009-cecc0ef3.json`。构建0警告0错误，当前root/007子战斗片生产读取兼容通过（`checks/build-009/`）；本次为可逆视觉编排调整，不加镜像测试，不拿静态检查替代画面实测。008及所有旧pair/片保留，009尚无游戏结论。
+- r26封存342数据文件及51已知当前文件4,385,228 bytes至`RUN002-post-r26-current-20261101-194558`；相对r25仅settings.save.backup变化，主Continue/Progress及root逐hash不变、无缺失。009安装后51文件只有允许的settings.save变化，无进度变化，game0、无restore/自行启动，见`preparation/post-009-progress-check.json`。原生实际进度仍point9完成子战斗、返回前。
+- 下一同一a51777b1第2层Auto，重点观察假人死亡后只有一次连贯遮罩/不露空人物，事件结束页完全显示后两张原生升级及飞回牌组完整播放，终点Auto关闭留场；Stop、重开一步Stop、正常退出。不Continue/重录。D-140恢复语义保持，视觉新顺序及取消边界待009实测，RUN-002仍IN_PROGRESS。
+
+## r25：完成子战斗两次Load录制通过，008真实SL候选安装
 
 - r25保持007，4284bb66会话23事件、0 observer-error/缺口/未决存盘，实际有两次完成子战斗Continue：point7→attempt5(parent4)、point8→attempt6(parent5)，均无重新选档/战斗，直接原生Resume返回升级。旧10项raw及3片逐hash/逐项不变，新增raw11/12两次独立event-return；Before/After逐字相同仍保留，不按内容去重。最终[1..5,8,9,12]，raw10/11保留不选，当前native完整fingerprint精确匹配point9/attempt6完成子战斗、返回前。证据`runtime-verification-r25.json`、`collection-r25.json`。
 - 实际Load与无Load返回有必要区别：原生CombatManager先SaveRun(room,false)，随后UpdateProgressAfterCombatWon；故r23同次胜利live有BATTLE_FRIEND_V2发现记录，保存/加载没有该项。Load还原生收束当前历史gold/hp/maxhp为115/80/80，重建父事件同步器，SharedPage/SharedRng.counter从1变为0；两次返回升级牌数均5→7，事件Rng.counter8，未累计为9。不能忽略这些严格差异或只重开页面。007/r24顺播通过保持，不追认新的SL分支已通过。

@@ -264,6 +264,9 @@ internal static class PlayerLoop
         Loading=true;
         try
         {
+            // Keep the completed combat visible until the native cover is opaque.
+            // The native parent-room Resume owns the ONE subsequent fade-in.
+            await Runtime.Game.Transition.RoomFadeOut();RunPlayback.CheckStop();
             await ClearRoom(memory);RunPlayback.CheckStop();
             _roster=null;_fileBindings=null;Checkpoints.Clear();Prequeued.Clear();Committed.Clear();OrbState.Reset();BattleEnd.Reset();
             var save=parsed.SaveData!;var state=RunState.FromSerializable(save);
@@ -273,10 +276,12 @@ internal static class PlayerLoop
             await PreloadManager.LoadRunAssets(state.Players.Select(p=>p.Character));await PreloadManager.LoadActAssets(state.Act);RunPlayback.CheckStop();
             RunManager.Instance.Launch();Runtime.Game.RootSceneContainer.SetCurrentScene(NRun.Create(state));
             await RunManager.Instance.GenerateMap();RunPlayback.CheckStop();
+            EventReturnPresentation.Begin(state);
             await RunManager.Instance.LoadIntoLatestMapCoord(AbstractRoom.FromSerializable(save.PreFinishedRoom,state));RunPlayback.CheckStop();
+            await EventReturnPresentation.Finish();
             Codec.Require(ReferenceEquals(manager,IsolatedManager)&&ReferenceEquals(manager,SaveManager.Instance),"computed-load-replaced-save-manager");
         }
-        finally{Loading=false;}
+        finally{EventReturnPresentation.End();Loading=false;}
     }
     internal static void ReleaseBattleForTravel()
     {
