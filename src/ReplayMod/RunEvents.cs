@@ -24,6 +24,7 @@ internal static class RunEvents
     private static RunOperation? _recorded;
     private static Task? _task;
     private static readonly AsyncLocal<EventOption?> NativeChoice=new();
+    internal static bool OwnsNativeChoice=>_option is not null&&ReferenceEquals(NativeChoice.Value,_option);
     private static RelicModel? _addingRelic;
     private static Player? _addingPlayer;
     private sealed record ChoiceCall(EventOption? Prior,bool Owned);
@@ -40,7 +41,7 @@ internal static class RunEvents
         Patch(typeof(EventOption),"Chosen",nameof(ChosenBefore),nameof(ChosenAfter));
         Patch(typeof(NEventRoom),"SetupLayout",after:nameof(Owned));
         Patch(typeof(EventModel),"BeginEvent",after:nameof(Owned));
-        Patch(typeof(EventCombatSynchronizer),"ReadyToEnterCombat",nameof(UnsupportedCombat));
+        RunEventCombat.Install(h);
         h.Patch(AccessTools.DeclaredMethod(typeof(RelicCmd),"Obtain",[typeof(RelicModel),typeof(Player),typeof(int)]),
             new HarmonyMethod(typeof(RunEvents),nameof(ObtainBefore)),new HarmonyMethod(typeof(RunEvents),nameof(ObtainAfter)));
     }
@@ -108,6 +109,7 @@ internal static class RunEvents
             try
             {
                 await native;
+                await RunEventCombat.ChoiceBoundary();
                 // ChooseOptionForEvent appends history after calling Chosen.
                 // Even a synchronous option must finish that native call stack.
                 await Runtime.NextFrame();
@@ -128,12 +130,6 @@ internal static class RunEvents
     internal static bool OwnsRelicAdd(Player player,RelicModel relic)=>RunPlayback.Active&&RunPlayback.NonCombat&&
         RunPlayback.Current?.Kind=="event-choice"&&ReferenceEquals(NativeChoice.Value,_option)&&_option is not null&&
         ReferenceEquals(_addingPlayer,player)&&ReferenceEquals(_addingRelic,relic)&&ReferenceEquals(player,LiveState.Player);
-    private static bool UnsupportedCombat()
-    {
-        if(RunPlayback.Active){Runtime.Guard(()=>throw new InvalidDataException("event-internal-combat-not-yet-supported"));return false;}
-        if(RunRecording.Enabled)Runtime.Guard(()=>RunRecording.Unsupported("event-internal-combat","事件内部战斗仍待接入"));
-        return true;
-    }
     internal static async Task Play(RunOperation operation)
     {
         await RunPlayback.Wait(()=>NEventRoom.Instance is {} room&&GodotObject.IsInstanceValid(room)&&room.IsNodeReady()&&

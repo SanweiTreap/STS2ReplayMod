@@ -1,6 +1,15 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r21旧片Unknown战斗与LIGHT随机升级观看通过
+## 最新摘要 · 2026-11-01 · 内部战斗首候选007已安装，待短前缀录制
+
+- r21复用旧005录像的Unknown→Monster/光暗门LIGHT原生观看通过（下节），未改r15定向准备失败。当前RUN-002/build-007，DLL `7B27D6217ACE4D1B66A0D43FCAC4AF67E9C4DE21BD15D584D4109531CC0F108D`，manifest仍`69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-007-b5d43caf.json`。显式兼容006，全部旧pair/片/失败保留，尚无007内部战斗游戏结论，RUN-002保持IN_PROGRESS。
+- 沿原生EventCombatSynchronizer→EnterRoomWithoutExitingCurrentRoom挂接标准布局、单人、返回父事件且无入战额外奖励的普通内部战斗；事件选项启动原生入房任务，录制等待真实初始可操作边界，先封该选项的After再创建战斗操作。ParentEvent/ResumeParent可选元数据、独立phase日志计数绑定同visit/attempt，不改地图访问为Monster，不靠Subrooms字符串宣称播放。观看在原生入战前绑定既有战斗播放器，等待自然初态/RNG，未加载子战斗checkpoint或注入expected。
+- 内部战斗clip的Entry=event快照只作原生开场描述，禁止独立冷加载；列表与路线不把它当独立起点，须从父事件前的普通战斗锚点进入。旧元数据缺失字段不输出，已验证旧片/checksum保持。标准无奖励战斗的原生自动Proceed记录为event-return，等待父事件具体Resume任务后比较；观看通过原生ProceedWithoutRewards/房间栈pop返回，不手写战后升级。自定义/战斗式布局、不返回父事件、入战附加奖励及返回时额外领奖页仍明确缺口，正常游戏继续。
+- 新默认关闭准备`RUN-002 事件内部战斗短路线`只消费下一新铁甲A0：暗港，首普通→相连Unknown训练假人→普通；原生首两普通弱双蛞蝓，原防御一张升级并新增两岿然不动+、两全身撞击+，这五牌先天保留，能量药水保留给假人。事件模型为原生BattlewornDummy，三档及限时机制不改；建议第二档150HP，获胜后的原生Resume随机升级两牌且不另开额外奖励页。模型IsAllowed原生无幕限制；这是明示定向样本，不扩大所有事件/幕支持。
+- 主构建及合同程序集0警告0错误；14项录制格式/目录/尝试合同（含父事件元数据、冷开限制标记和同坐标子战斗独立计数）、10项路线分支/上下文与8项文件合同通过，两个真实事件root及006后战生产读取/checksum通过，均不替代原生运行。证据`checks/build-007/`。安装后对`RUN002-post-r21-current-20261101-134412`的51文件核验，仅允许的settings.save变化，无进度变化/缺失，game0、无restore/自行启动，见`preparation/post-007-progress-check.json`。
+- 下一短录制：启用新内部战斗准备、新铁甲A0；首战一张岿然不动+及两全身撞击+可击败双蛞蝓（药水留存），只领金币/跳卡，进入相连最左Unknown假人选第二档150HP；开战仅喝能量药水，等完成后不出牌/不结束回合，保存退出正常关游戏。先核内部战斗归属、完整单步中断前缀、实际成功存盘/load位置，再Continue实测同visit新attempt并完成战斗/返回；当前未声明阶段SL或任何内部战斗播放已通过。完成战斗的父事件栈恢复及共享事件同步器重建语义仍待实际样本核定，不预设等同普通完成房间Continue。
+
+## r21：旧片Unknown战斗与LIGHT随机升级观看通过
 
 - 保持RUN-002/build-006，无换版/重录。r21会话424156a7共279事件、0 observer-error/资源差异，复用005的666d7e32旧root；9项非战斗操作严格匹配，两场各8步原生胜利。第一个Unknown由原生Roll实际得到Monster，核为CORPSE_SLUGS_WEAK，下一战InitialAndRngMatched=true、CheckpointLoaded=false、ExpectedStateInjected=false；第二个Unknown为光暗门Event，LIGHT随机升级及PROCEED的资源/事件RNG均匹配，没有强制房型。
 - Operation12终点Auto=false/AwaitingStop=true/SceneKeptOpen=true，手动Stop AtRecordedEnd=true；11登记任务全部结束、0取消/故障，Complete/AllOperationsMatched/VictoryReached=true、Error=null，原manager及所比较Continue/Progress恢复true。原005root逐hash与r15相同；观看通过不追改r15“预期浴场未达”的真实准备失败。

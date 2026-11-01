@@ -97,7 +97,9 @@ internal static class PlayerLoop
         {
             Runtime.CheckEnvironment();Codec.Require(RunManager.Instance.DebugOnlyGetState() is null,"open-from-main-menu-only");
             if(chain is not null)RunPlayback.Begin(chain,chainStart);
-            var clip=Runtime.ReadClip(id);_playingClip=clip;LiveState.Format=clip.Format;Cursor=new(clip.Operations.Length);
+            var clip=Runtime.ReadClip(id);
+            Codec.Require(clip.Battle?.Entry!="event","event-battle-open-through-parent-route-only");
+            _playingClip=clip;LiveState.Format=clip.Format;Cursor=new(clip.Operations.Length);
             if(nativeSeek){DecisionRoute.Clear();NativeSeek.Start(clip);}else DecisionRoute.Start(clip);
             Runtime.Status="加载回放：独立内存会话";Ui.Playback();ActionMonitor.Reset();ChoiceTape.Play(clip);
             if(SaveManager.Instance.CurrentRunSaveTask is {} saving)await saving;

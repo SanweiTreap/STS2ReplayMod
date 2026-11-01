@@ -4,7 +4,9 @@ using System.Text.RegularExpressions;
 
 namespace ReplayMod;
 
-public sealed record BattleRecording(string RunId,int Battle,int Attempt,int Act,int Floor,long RunStartTime,string Entry,string Completion);
+public sealed record BattleRecording(string RunId,int Battle,int Attempt,int Act,int Floor,long RunStartTime,string Entry,string Completion,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? ParentEvent=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] bool? ResumeParent=null);
 public sealed record ClipListing(string Id,DateTimeOffset CreatedUtc,string Character,string Encounter,int Row,int Operations,bool Victory,BattleRecording? Battle,string? Problem=null);
 
 // This journal belongs to Replay. No identifier is written into the native run save.
@@ -96,9 +98,9 @@ public sealed class RecordingJournal(string path)
         _data=_data with{Corrections=_data.Corrections??new()};_data.Corrections.Add(alias,new(canonical,offset,evidence));
         if(CurrentRun==alias)CurrentRun=canonical;Save();
     }
-    public BattleRecording Begin(int act,int row,int col,int floor,long start,string entry)
+    public BattleRecording Begin(int act,int row,int col,int floor,long start,string entry,string? phase=null)
     {
-        Codec.Require(CurrentRun is not null,"recording-run-identity-missing");var run=_data.Runs[CurrentRun!];var key=$"{act}:{row}:{col}";
+        Codec.Require(CurrentRun is not null,"recording-run-identity-missing");var run=_data.Runs[CurrentRun!];var key=$"{act}:{row}:{col}"+(phase is null?"":":"+phase);
         if(!run.Battles.ContainsKey(key))run.Battles[key]=run.Battles.Count+1;
         var attempt=run.Attempts.GetValueOrDefault(key)+1;run.Attempts[key]=attempt;Save();
         return new(run.Id,run.Battles[key],attempt,act,floor,start,entry,"recording");
@@ -135,5 +137,6 @@ public static class RecordingLibrary
         }
         return rows.Select(r=>display is not null&&r.Battle is {} battle?r with{Battle=display(battle)}:r).OrderByDescending(r=>r.CreatedUtc).ToArray();
     }
-    public static ClipListing Describe(Clip clip)=>new(clip.Id,clip.CreatedUtc,clip.Character,clip.Encounter,clip.Row,clip.Operations.Length,clip.Operations.LastOrDefault()?.Victory==true,clip.Battle,NativePlaybackSupport.Reason(clip));
+    public static ClipListing Describe(Clip clip)=>new(clip.Id,clip.CreatedUtc,clip.Character,clip.Encounter,clip.Row,clip.Operations.Length,clip.Operations.LastOrDefault()?.Victory==true,clip.Battle,
+        clip.Battle?.Entry=="event"?"事件内部战斗：请从父事件之前的路线起点观看":NativePlaybackSupport.Reason(clip));
 }

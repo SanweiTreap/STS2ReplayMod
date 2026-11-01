@@ -41,7 +41,8 @@ internal static class RunPlayback
     internal const string AccountContextBuild="1AD070C28A881D7E9ACA8A7F13EFFD5F975F56217C6ECB8A43F8672AECB15C08";
     internal const string MerchantRecordingBuild="1C02153EFE00347294CBAADB2789ECDD304CCE495EE5C3C34FDB549047909A8F";
     internal const string EventRecordingBuild="B09A643DF2ECE027ECBDA8EB3EA437BCA6FF8086173B192AD3CA1E9CE7480C04";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild;
+    internal const string EventAcceptedBuild="3902D4A1203D9A1CCA5248B972565348ED321745EA335D3A6F86569CED6DBDC8";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild;
     internal static RunOperation? Current;
     internal static bool HasFollowing=>Active&&_index+1<_run.Operations.Count&&_run.Operations[_index+1].Status=="complete"&&_run.Operations[_index+1].Kind!="gap";
     internal static bool WantsNext=>HasFollowing&&(_auto||_continuation);
@@ -51,13 +52,22 @@ internal static class RunPlayback
     internal static string Display=>Active?$"\n路线 · 第{_run.Visits.Single(v=>v.Id==(Current?.Visit??_run.Operations[_index].Visit)).Floor}层 · 操作{_index+1}/{_run.Operations.Count}"+
         (Current?.Attempt is {} attempt?$" · 采用尝试#{attempt}（最终延续路线）":"")+
         (NonCombat?$" · {(_auto?"自动连续":"手动等待／执行")} · 待播{_fine+_wholeRequests}":""):"";
-    internal static int StartIndex(RunDocument run)=>run.Operations.FindIndex(o=>o.Kind=="battle"&&o.Status=="complete"&&o.Clip is not null);
+    internal static int StartIndex(RunDocument run)=>run.Operations.FindIndex(o=>o.Kind=="battle"&&o.Status=="complete"&&o.Clip is not null&&o.Battle?.Entry!="event");
+    internal static Clip EventBattle(string parent,string encounter)
+    {
+        Codec.Require(Current?.Kind=="event-choice"&&_index+1<_run.Operations.Count,"event-battle-without-parent-choice");
+        var op=_run.Operations[_index+1];
+        Codec.Require(op is {Kind:"battle",Status:"complete",Clip:not null}&&op.Visit==Current!.Visit&&
+            op.Attempt==Current.Attempt&&op.Battle is {Entry:"event",ResumeParent:true} b&&b.ParentEvent==parent,"event-battle-stage-or-owner-mismatch");
+        var clip=Runtime.ReadClip(op.Clip!);
+        Codec.Require(clip.Encounter==encounter&&clip.Battle==op.Battle,"event-battle-clip-mismatch");return clip;
+    }
     internal static void Begin(RunDocument run,int? startSequence=null)
     {
         _rawOperations=run.Operations.Count;run=RunRoutes.Playback(run);
         Codec.Require(run.GameHash==Runtime.GameHash&&run.Scope==Runtime.Scope&&Compatible(run.ModHash),"run-environment-or-build-mismatch");
         _index=startSequence is {} sequence?run.Operations.FindIndex(o=>(o.SourceSequence??o.Sequence)==sequence):StartIndex(run);
-        Codec.Require(_index>=0&&run.Operations[_index] is {Kind:"battle",Status:"complete",Clip:not null},"run-has-no-recorded-battle-start");
+        Codec.Require(_index>=0&&run.Operations[_index] is {Kind:"battle",Status:"complete",Clip:not null}&&run.Operations[_index].Battle?.Entry!="event","run-has-no-recorded-battle-start");
         Codec.Require(!RunStore.ResourceDiscontinuities(run).Any(s=>s>run.Operations[_index].Sequence),"run-has-unrecorded-resource-transition");
         var first=run.Operations[_index];
         _progressContexts=run.Continuations.Where(c=>c.Status=="native-continue"&&c.Progress is not null&&c.BeforeOperation>=first.Sequence)
@@ -69,7 +79,7 @@ internal static class RunPlayback
         _run=run;Active=true;NonCombat=false;Driving=false;_auto=false;_whole=false;_stop=false;_continuation=false;
         _fine=0;_wholeRequests=0;_decision=0;_phaseAt=0;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;Current=run.Operations[_index];RunPatches.Clear();
     }
-    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();}
+    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();}
     internal static string? InitialProgress()
     {
         if(!_progressContexts.Remove(_run.Operations[_index].Sequence,out var points))return Current?.Progress;
@@ -179,7 +189,7 @@ internal static class RunPlayback
                 Codec.Require(Current.Status=="complete"&&Current.Kind!="gap","run-recording-gap");
                 NonCombat=true;_whole=false;_decision=0;
                 ApplyContinuations(Current);
-                if(_rewardsRoom is {} room)
+                if(_rewardsRoom is {} room&&room.Encounter.ShouldGiveRewards)
                 {
                     Codec.Require(Current.Kind is "reward" or "proceed","run-missing-reward-operation");
                     await TakePhase("显示战斗奖励");
@@ -235,7 +245,7 @@ internal static class RunPlayback
         if(operation.Kind=="map")await Wait(()=>NMapScreen.Instance is {IsOpen:true,IsTravelEnabled:true} map&&!TweenRunning(map,"_tween")&&!TweenRunning(map,"_actAnimTween"),"run-map-not-ready");
         if(operation.Kind=="rest")await Wait(()=>NRestSiteRoom.Instance is not null,"run-rest-site-not-ready");
         await TakePhase(operation.Kind switch{"reward"=>"领取奖励","map"=>"地图选路","rest"=>"营火选择","treasure-open"=>"打开宝箱","treasure-pick"=>"领取遗物",
-            "merchant-open"=>"打开商店","merchant-close"=>"关闭商店","merchant-buy"=>"购买商品","merchant-remove"=>"商店删牌","event-choice"=>"事件选项",
+            "merchant-open"=>"打开商店","merchant-close"=>"关闭商店","merchant-buy"=>"购买商品","merchant-remove"=>"商店删牌","event-choice"=>"事件选项","event-return"=>"返回事件",
             "proceed" or "rest-proceed" or "treasure-proceed" or "merchant-proceed" or "event-proceed"=>"离开房间",_=>operation.Kind});
         if(operation.Progress is {} progress)
         {
@@ -254,6 +264,7 @@ internal static class RunPlayback
             case "merchant-open":case "merchant-close":case "merchant-proceed":case "merchant-buy":case "merchant-remove":
                 await RunMerchants.Play(operation);break;
             case "event-choice":case "event-proceed":await RunEvents.Play(operation);break;
+            case "event-return":_rewardsRoom=null;await RunEventCombat.PlayReturn();break;
             case "reward":
                 var rewards=RunPatches.Rewards!;var index=operation.Argument.RewardIndex??-1;
                 Codec.Require(index>=0&&index<rewards.Rewards.Count,"run-reward-index");var reward=rewards.Rewards[index];

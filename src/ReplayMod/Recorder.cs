@@ -19,17 +19,21 @@ internal static class Recorder
     private static Task? _entry;
     private static bool _unknownEntry;
     private static string? _unknownJson,_unknownSource,_unknownProgress;
+    private static TaskCompletionSource? _eventReady;
+    private static RunOperation? _eventOperation;
     internal static bool CollectingChoices=>_waiting||Active;
     internal static int ChoiceBoundary=>_waiting?0:ActionMonitor.Pending is not null?Operations.Count+1:throw new InvalidDataException("choice-outside-initial-or-current-operation");
 
     private static void ResetSegment(bool preserveAuthority=false)
     {
+        _eventReady?.TrySetCanceled();_eventReady=null;_eventOperation=null;
         Active=false;_waiting=false;_captureEntry=false;_release=false;_clip=null;_entry=null;_unknownEntry=false;_unknownJson=null;_unknownSource=null;_unknownProgress=null;Operations.Clear();
         ActionMonitor.Reset();ChoiceTape.Clear();RecordingClock.Reset();OrbState.Reset();if(!preserveAuthority)RecordedState.Release();
     }
     internal static void NewRun(bool fresh=true)
     {
         if(PlayerLoop.Active)return;
+        RunEventCombat.Clear();
         ResetSegment();_enabled=false;_attempted=false;_continueSave=null;
         if(fresh){_loadedSave=null;_loadedJson=null;Runtime.CheckEnvironment();Runtime.Journal.NewRun();RecordedState.NewRun();_enabled=true;RunRecording.Attach(false);}
         Runtime.Status="自动录制：五角色A0首幕普通战斗，每场胜利独立保存；支持保存退出后继续";
@@ -136,13 +140,22 @@ internal static class Recorder
         Capture(read.SaveData!,source,progress);
         Runtime.Log("recording-unknown-combat-bound",new{_clip!.Id,ActualRoomType=actual.ToString(),CheckpointFrozenBeforeNativeRoll=true,RoomTypeForced=false});
     }
-    private static void Capture(SerializableRun save,string source,string? progress=null)
+    internal static Task BeginEventBattle(CombatRoom room)
+    {
+        Codec.Require(!PlayerLoop.Active&&_enabled&&!Active&&!_waiting&&room.ParentEventId is not null,"event-recording-entry-owner");
+        ResetSegment(preserveAuthority:true);_eventReady=new(TaskCreationOptions.RunContinuationsAsynchronously);_eventOperation=RunRecording.Pending;
+        Capture(MegaCrit.Sts2.Core.Runs.RunManager.Instance.ToSave(null),"event",parent:room.ParentEventId!.ToString());
+        return _eventReady.Task;
+    }
+    internal static void EventEntryTask(Task task){if(!PlayerLoop.Active&&_clip?.Battle?.Entry=="event")_entry=task;}
+    private static void Capture(SerializableRun save,string source,string? progress=null,string? parent=null)
     {
         RunRecording.EntryContext(progress);
         _captureEntry=false;_attempted=true;LiveState.Format=RecordedState.Recording?3:10;LiveState.Supported();Runtime.CheckEnvironment();
         if(LiveState.Format>=5)RecordingClock.Start();else RecordingClock.Reset();
         var run=LiveState.Run;var coord=run.CurrentMapCoord!.Value;
-        var battle=LiveState.Format>=9?Runtime.Journal.Begin(run.CurrentActIndex,coord.row,coord.col,coord.row+1,save.StartTime,source):null;
+        var battle=LiveState.Format>=9?Runtime.Journal.Begin(run.CurrentActIndex,coord.row,coord.col,coord.row+1,save.StartTime,source,parent):null;
+        if(parent is not null)battle=battle! with{ParentEvent=parent,ResumeParent=true};
         _clip=new(LiveState.Format,Guid.NewGuid().ToString("N"),DateTimeOffset.UtcNow,Runtime.GameHash,Runtime.ModHash,Runtime.Scope,
             Runtime.Mods,LiveState.Player.Character.Id.ToString(),run.Rng.ToSerializable().Seed??"",coord.row,coord.col,"",
             JsonSerializationUtility.ToJson(save),"",[],TestEncounter.Preparation,RecordedState.Recording?"STATE001-first-Defend-v1":null,Battle:battle);
@@ -163,7 +176,11 @@ internal static class Recorder
         var ready=LiveState.Format>=5?new RecordingTiming("checkpoint-stopwatch-elapsed-realtime-v1",RecordingClock.Now,true,true,true):null;
         ChoiceTape.AssertBoundary(0);_clip=_clip! with{Encounter=((MegaCrit.Sts2.Core.Rooms.CombatRoom)LiveState.Run.CurrentRoom!).Encounter.Id.ToString(),Initial=LiveState.Capture(),Timing=ready};
         _waiting=false;Active=true;BattleEnd.Begin();RecordedState.Begin();
+        // Capture the parent option's result at this exact initial boundary,
+        // before any player input can change the newly playable combat state.
+        if(_eventOperation is {} parent){RunRecording.Complete(parent);_eventOperation=null;}
         RunRecording.BattleStarted(_clip);
+        if(_clip.Battle?.Entry=="event"){_eventReady?.TrySetResult();_eventReady=null;}
         Runtime.Status=RecordedState.Recording?"STATE录制中：请先打一张未升级的防御，再正常打赢首战":"本场录制中：0步。胜利自动保存，可正常领奖后继续下一场";
         Runtime.Log("recording-start",new{_clip.Id,_clip.Seed,_clip.Encounter,_clip.Preparation,_clip.Authority,_clip.Battle,Format=_clip.Format,InitialMechanics=LiveState.Mechanics()});
     }

@@ -52,6 +52,22 @@ internal static class RecordingContracts
             [new(1,OperationKind.Card,1,0,"CARD.DEFEND_IRONCLAD",null,projection,CardState:new(1,0,new string('A',64),"Self"),Timing:new(10,20))],Choices:[],
             Timing:new("checkpoint-stopwatch-elapsed-realtime-v1",0,true,true,true),Battle:new(Guid.NewGuid().ToString("N"),3,2,0,6,100,"continue-known","interrupted"));
         var root=Path.Combine(dir,"clips");var store=new ClipStore(root);
+        Test("event-battle-keeps-parent-and-cannot-masquerade-as-independent-map-entry",()=>
+        {
+            var native=clip with{Battle=clip.Battle! with{Entry="event",ParentEvent="EVENT.DUMMY",ResumeParent=true}};
+            Codec.Validate(native,"game","mod","scope");
+            var roundtrip=JsonSerializer.Deserialize<Clip>(Codec.Bytes(native),Codec.Json)!;
+            Need(roundtrip.Battle==native.Battle&&RecordingLibrary.Describe(roundtrip).Problem is not null,"event-parent-or-chain-only-marker-lost");
+            var rejected=0;
+            foreach(var bad in new[]{native with{Battle=native.Battle! with{ParentEvent=null}},native with{Battle=native.Battle! with{Entry="map"}}})
+                try{Codec.Validate(bad,"game","mod","scope");}catch(InvalidDataException){rejected++;}
+            Need(rejected==2,"event-room-context-accepted-as-map-checkpoint");
+            var phases=new RecordingJournal(Path.Combine(dir,"event-phases.json"));phases.NewRun();phases.Observe(save);
+            var map=phases.Begin(0,3,1,4,100,"map");var sub=phases.Begin(0,3,1,4,100,"event","EVENT.DUMMY");
+            phases=new RecordingJournal(Path.Combine(dir,"event-phases.json"));phases.Continue(save);
+            var retry=phases.Begin(0,3,1,4,100,"event","EVENT.DUMMY");
+            Need(sub.Battle!=map.Battle&&sub.Attempt==1&&retry.Battle==sub.Battle&&retry.Attempt==2,"nested-phase-merged-with-map-battle");
+        });
         Test("later-floor-completed-prefix-is-truthful-fragment-without-forced-endturn",()=>
         {
             Codec.Validate(clip,"game","mod","scope");store.Seal(clip);var read=store.Read(clip.Id,"game","new-mod","scope","mod");
