@@ -32,6 +32,9 @@ internal static class RunPlayback
     private static Dictionary<int,RunContinuation[]> _continuations=[];
     private static Dictionary<int,RunContinuation[]> _progressContexts=[];
     private static int _rawOperations;
+    private static readonly HashSet<int> VerifiedBattles=[];
+    private static readonly HashSet<int> NeededComputedSaves=[];
+    private static (RunContinuation Point,RunOperation Battle)? _eventLoad;
     // This exact recording build has the same run/clip format and native inputs.
     internal const string RecordingBuild="145E3A3DE8A918CBD8AE90EBF4EFE1D7413E3F46911A1A5C26298266828F66EC";
     internal const string AcceptedChainRecordingBuild="DD563F456E5A693E9139F669B3C7E9B95ECFB11D6096A32A79F6EE82E89CF1FA";
@@ -42,7 +45,10 @@ internal static class RunPlayback
     internal const string MerchantRecordingBuild="1C02153EFE00347294CBAADB2789ECDD304CCE495EE5C3C34FDB549047909A8F";
     internal const string EventRecordingBuild="B09A643DF2ECE027ECBDA8EB3EA437BCA6FF8086173B192AD3CA1E9CE7480C04";
     internal const string EventAcceptedBuild="3902D4A1203D9A1CCA5248B972565348ED321745EA335D3A6F86569CED6DBDC8";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild;
+    internal const string InternalEventRecordingBuild="7B27D6217ACE4D1B66A0D43FCAC4AF67E9C4DE21BD15D584D4109531CC0F108D";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild;
+    internal static bool BattleVerified(int source)=>VerifiedBattles.Contains(source);
+    internal static bool NeedsComputedSave(int source)=>NeededComputedSaves.Contains(source);
     internal static RunOperation? Current;
     internal static bool HasFollowing=>Active&&_index+1<_run.Operations.Count&&_run.Operations[_index+1].Status=="complete"&&_run.Operations[_index+1].Kind!="gap";
     internal static bool WantsNext=>HasFollowing&&(_auto||_continuation);
@@ -78,8 +84,11 @@ internal static class RunPlayback
             .GroupBy(c=>c.Before).ToDictionary(g=>g.Key,g=>g.Select(c=>c.Point).ToArray());
         _run=run;Active=true;NonCombat=false;Driving=false;_auto=false;_whole=false;_stop=false;_continuation=false;
         _fine=0;_wholeRequests=0;_decision=0;_phaseAt=0;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;Current=run.Operations[_index];RunPatches.Clear();
+        VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;
+        foreach(var point in _continuations.Values.SelectMany(p=>p))
+            if(RunRoutes.CompletedEventBattle(run,point) is {} child)NeededComputedSaves.Add(child.SourceSequence??child.Sequence);
     }
-    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();}
+    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();}
     internal static string? InitialProgress()
     {
         if(!_progressContexts.Remove(_run.Operations[_index].Sequence,out var points))return Current?.Progress;
@@ -182,6 +191,7 @@ internal static class RunPlayback
                     NonCombat=false;await NativeSeek.Run();
                     if(_stop)return NativeSeek.AllMatched&&_index==_run.Operations.Count-1;
                     Codec.Require(NativeSeek.Finished&&HasFollowing,"run-battle-transition-without-complete-result");
+                    Codec.Require(NativeSeek.AllMatched,"run-battle-unverified-before-continuation");VerifiedBattles.Add(Current.SourceSequence??Current.Sequence);
                     NativeSeek.Clear();ChoiceTape.Clear();ActionMonitor.Reset();NonCombat=true;PlayerLoop.Loading=false;
                     _continuation=false;
                     _index++;continue;
@@ -225,6 +235,10 @@ internal static class RunPlayback
             var visit=_run.Visits.Single(v=>v.Id==point.Visit);
             Codec.Require(operation.Visit==point.Visit&&LiveState.Run.CurrentMapCoord is {} coord&&coord.row==visit.Row&&coord.col==visit.Col&&
                 LiveState.Run.CurrentRoom is CombatRoom {IsPreFinished:true},"run-continue-room-boundary-mismatch");
+            if(RunRoutes.CompletedEventBattle(_run,point) is {} battle)
+            {
+                Codec.Require(_eventLoad is null,"run-event-load-boundary-ambiguous");_eventLoad=(point,battle);continue;
+            }
             // EnterMapPointInternal invokes this before restoring an already
             // completed room. Reuse that native history finalization while
             // keeping this playback's live RunState, resources and RNGs.
@@ -239,6 +253,8 @@ internal static class RunPlayback
         Runtime.Log("run-resource-difference",new{Sequence=sequence,Point=point,Expected=expected,Actual=actual});
         throw new InvalidDataException("run-resources-or-rng-mismatch-"+sequence+"-"+point);
     }
+    internal static void CompareBefore(RunOperation operation)
+    {if(operation.Before is {} expected)Compare(operation.Sequence,"before",expected,RunResources.Capture());}
     private static async Task Execute(RunOperation operation)
     {
         if(operation.Kind is "reward" or "proceed")await RewardsReady(requireVisible:false);
@@ -257,14 +273,19 @@ internal static class RunPlayback
         // Load's newer account context after that action's own input context,
         // before it generates the room for the selected restored attempt.
         ApplyProgressContexts(operation.Sequence);
-        if(operation.Before is {} expected)Compare(operation.Sequence,"before",expected,RunResources.Capture());
+        var eventLoad=_eventLoad;_eventLoad=null;
+        Codec.Require(eventLoad is null||operation.Kind=="event-return","event-load-outside-recorded-return");
+        if(eventLoad is null)CompareBefore(operation);
         switch(operation.Kind)
         {
             case "treasure-open":case "treasure-pick":case "treasure-proceed":await RunTreasures.Play(operation);break;
             case "merchant-open":case "merchant-close":case "merchant-proceed":case "merchant-buy":case "merchant-remove":
                 await RunMerchants.Play(operation);break;
             case "event-choice":case "event-proceed":await RunEvents.Play(operation);break;
-            case "event-return":_rewardsRoom=null;await RunEventCombat.PlayReturn();break;
+            case "event-return":
+                _rewardsRoom=null;
+                if(eventLoad is {} load)await RunEventCombat.RestoreCompletedReturn(load.Point,load.Battle,operation);
+                else await RunEventCombat.PlayReturn();break;
             case "reward":
                 var rewards=RunPatches.Rewards!;var index=operation.Argument.RewardIndex??-1;
                 Codec.Require(index>=0&&index<rewards.Rewards.Count,"run-reward-index");var reward=rewards.Rewards[index];

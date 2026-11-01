@@ -116,6 +116,27 @@ internal static class RunBranchContracts
             var rejected=false;try{_=RunRoutes.Destination(sample,travel with{Argument=new(9,9)},combat);}catch(InvalidDataException){rejected=true;}
             Need(rejected,"unknown-destination-ignored-recorded-coordinates");
         });
+        Test("completed-event-load-is-bound-to-saved-child-battle-and-selected-return-not-parent-first-page",()=>
+        {
+            var sample=Fresh();sample.Visits[1]=sample.Visits[1] with{MapType="Unknown",RoomType="Event",Model="EVENT.DUMMY"};
+            RunRoutes.StartAttempt(sample,1,null,null,"entry");Add(sample,1,"battle","first");Add(sample,1,"map","event");
+            RunRoutes.StartAttempt(sample,2,1,null,"entry");Add(sample,2,"event-choice","fight");
+            var child=Add(sample,2,"battle","child");sample.Operations[3]=child with{Battle=new(sample.Id,2,1,0,3,100,"event","victory","EVENT.DUMMY",true)};
+            var saved=RunRoutes.Observe(sample,2,2,[1,2,3,4],"completed-disk","completed-load","key",true);
+            Add(sample,2,"event-return","old-return");RunRoutes.Restore(sample,"completed-load");
+            sample.Continuations.Add(new(DateTimeOffset.UtcNow,2,true,"key","native-continue",6,sample.Branches!.ActiveAttempt,"actual-load-progress"));
+            Add(sample,2,"event-return","new-return");var before=Codec.Bytes(sample);var view=RunRoutes.Playback(sample);var context=view.Continuations.Single();
+            Need(view.Operations.Select(o=>o.SourceSequence).SequenceEqual(new int?[]{1,2,3,4,6})&&
+                RunStore.ContinueBefore(view,context)==5&&RunRoutes.ProgressBefore(view,context)==5&&
+                RunRoutes.CompletedEventBattle(view,context)?.SourceSequence==4&&Codec.Bytes(sample).SequenceEqual(before),"event-load-return-or-source-battle-lost");
+            var rejected=0;
+            sample.Branches.Saves[0]=saved with{Path=[1,2,3]};
+            try{_=RunStore.ContinueBefore(RunRoutes.Playback(sample),context);}catch(InvalidDataException){rejected++;}
+            sample.Branches.Saves[0]=saved;
+            var wrong=view with{Operations=view.Operations.Select(o=>o.Sequence==5?o with{Kind="event-proceed"}:o).ToList()};
+            try{_=RunStore.ContinueBefore(wrong,context);}catch(InvalidDataException){rejected++;}
+            Need(rejected==2,"event-completed-load-guessed-without-child-save-or-resume");
+        });
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
         File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_RUN_BRANCH_SELECTION_CONTRACTS_NOT_NATIVE_RUNTIME",Tests=tests,NativeRuntimeNotExecuted=true}));
         Console.WriteLine("PASS_RUN_BRANCH_SELECTION_CONTRACTS_NOT_NATIVE_RUNTIME");

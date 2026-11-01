@@ -38,7 +38,9 @@ internal sealed class RunStore(string root)
 {
     internal static int ContinueBefore(RunDocument run,RunContinuation point)
     {
-        Codec.Require(point.PreFinished&&point.Status=="native-continue"&&run.Visits.Any(v=>v.Id==point.Visit&&v.RoomType=="Monster"),"run-unsupported-continue-boundary");
+        Codec.Require(point.PreFinished&&point.Status=="native-continue"&&run.Visits.Any(v=>v.Id==point.Visit),"run-unsupported-continue-boundary");
+        var eventBattle=RunRoutes.CompletedEventBattle(run,point);
+        Codec.Require(eventBattle is not null||run.Visits.Single(v=>v.Id==point.Visit).RoomType=="Monster","run-unsupported-continue-boundary");
         if(point.BeforeOperation is {} recorded)
         {
             Codec.Require(recorded>=1&&recorded<=run.Operations.Count+1&&
