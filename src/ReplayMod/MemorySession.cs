@@ -15,9 +15,11 @@ internal sealed class MemorySession
     private readonly string? _runHash,_backupHash,_progressHash;
     private bool _installed;
     private readonly string? _recordedProgress;
-    internal MemorySession(string? recordedProgress=null)
+    private readonly string? _recordedPrefs;
+    internal MemorySession(string? recordedProgress=null,string? recordedPrefs=null)
     {
         _recordedProgress=recordedProgress;
+        _recordedPrefs=recordedPrefs;
         Original=SaveManager.Instance;
         _nativePath=ProjectSettings.GlobalizePath(RunSaveManager.GetRunSavePath(Original.CurrentProfileId,RunSaveManager.runSaveFileName));
         _runHash=FileHash(_nativePath);_backupHash=FileHash(_nativePath+".backup");_beforeProgress=Progress(Original);
@@ -31,7 +33,7 @@ internal sealed class MemorySession
         var memory=new MockGodotFileIo("user://ReplayMod/memory-only"){getCurrentTime=()=>DateTimeOffset.UtcNow};
         memory.WriteFile(ProfileSaveManager.GetProfileSavePath(null),JsonSerializationUtility.ToJson(profile));
         memory.WriteFile(SettingsSaveManager.settingsSaveFileName,JsonSerializationUtility.ToJson(Original.SettingsSave));
-        memory.WriteFile(PrefsSaveManager.GetPrefsPath(Original.CurrentProfileId,null),JsonSerializationUtility.ToJson(Original.PrefsSave));
+        memory.WriteFile(PrefsSaveManager.GetPrefsPath(Original.CurrentProfileId,null),_recordedPrefs??JsonSerializationUtility.ToJson(Original.PrefsSave));
         memory.WriteFile(ProgressSaveManager.GetProgressPathForProfile(Original.CurrentProfileId,null),_recordedProgress??_beforeProgress);
         var isolated=new SaveManager(memory,memory,true);isolated.InitProfileId(null);
         Codec.Require(isolated.InitSettingsData().Success&&isolated.InitPrefsData().Success&&isolated.InitProgressData().Success,"memory-context-init");

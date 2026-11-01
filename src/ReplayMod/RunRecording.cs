@@ -27,7 +27,7 @@ internal static class RunResources
         result["acts"]=acts;
         if(RunManager.Instance.DebugOnlyGetState()?.CurrentRoom is MerchantRoom)
             result["merchant_inventory"]=JsonNode.Parse(RunMerchants.Offer());
-        if(RunEvents.InOrdinaryEvent)result["event_state"]=JsonNode.Parse(RunEvents.State());
+        if(RunEvents.InSupportedEvent)result["event_state"]=JsonNode.Parse(RunEvents.State());
         return result.ToJsonString(Codec.Json);
     }
 }
@@ -50,7 +50,7 @@ internal static class RunRecording
         Pending=null;_battleSequence=0;_visit=0;_entryProgress=null;_restoredEntry=false;_unknownLoad=false;
         var path=Path.Combine(Runtime.Root,"runs",id+".json");
         _run=File.Exists(path)?Store.Read(id):new(1,id,Runtime.GameHash,Runtime.ModHash,Runtime.Scope,
-            save?.Players[0].CharacterId?.ToString()??LiveState.Player.Character.Id.ToString(),DateTimeOffset.UtcNow,[],[],[],new());
+            save?.Players[0].CharacterId?.ToString()??LiveState.Player.Character.Id.ToString(),DateTimeOffset.UtcNow,[],[],[],new(),Opening:continuation?null:RunOpening.Take());
         if(continuation)
         {
             _visit=_run.Visits.LastOrDefault()?.Id??0;
@@ -132,7 +132,8 @@ internal static class RunRecording
         }
         var supported=room.RoomType==RoomType.Monster&&visit.MapType is "Monster" or "Unknown"||
             room.RoomType==RoomType.RestSite&&visit.MapType=="RestSite"||room.RoomType is RoomType.Treasure or RoomType.Shop||
-            room is EventRoom {CanonicalEvent:not MegaCrit.Sts2.Core.Models.AncientEventModel}&&visit.MapType=="Unknown";
+            room is EventRoom {CanonicalEvent:not MegaCrit.Sts2.Core.Models.AncientEventModel}&&visit.MapType=="Unknown"||
+            room is EventRoom {CanonicalEvent:MegaCrit.Sts2.Core.Models.Events.Neow}&&visit.MapType=="Ancient"&&_run.Opening is not null;
         _run.Visits[index]=visit with{RoomType=room.RoomType.ToString(),Model=room.ModelId?.ToString(),Status="entered",
             Gap=supported?visit.Gap:"本轮未支持的实际房间"};Save();
     }

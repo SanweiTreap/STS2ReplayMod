@@ -101,10 +101,17 @@ internal static class PlayerLoop
             var clip=Runtime.ReadClip(id);
             Codec.Require(clip.Battle?.Entry!="event","event-battle-open-through-parent-route-only");
             _playingClip=clip;LiveState.Format=clip.Format;Cursor=new(clip.Operations.Length);
-            if(nativeSeek){DecisionRoute.Clear();NativeSeek.Start(clip);}else DecisionRoute.Start(clip);
+            var fromOpening=chain is not null&&chainStart==0;
+            if(nativeSeek){DecisionRoute.Clear();if(fromOpening)NativeSeek.Clear();else NativeSeek.Start(clip);}else DecisionRoute.Start(clip);
             Runtime.Status="加载回放：独立内存会话";Ui.Playback();ActionMonitor.Reset();ChoiceTape.Play(clip);
             if(SaveManager.Instance.CurrentRunSaveTask is {} saving)await saving;
-            memory=new(chain is null?null:RunPlayback.InitialProgress());memory.Install();IsolatedManager=memory.Isolated;_memory=memory;
+            memory=new(fromOpening?chain!.Opening!.Progress:chain is null?null:RunPlayback.InitialProgress(),
+                fromOpening?chain!.Opening!.Prefs:null);memory.Install();IsolatedManager=memory.Isolated;_memory=memory;
+            if(fromOpening)
+            {
+                await RunOpening.Load(chain!.Opening!);Loading=false;checks.Add("native-pre-reward-opening");
+                complete=await RunPlayback.Run();checks.Add("native-run-chain");Cursor.Stop();return;
+            }
             if(nativeSeek)
             {
                 var restartMemory=false;

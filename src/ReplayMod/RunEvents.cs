@@ -31,6 +31,7 @@ internal static class RunEvents
     private static bool Input()=>!RunPlayback.Active||RunPlayback.Driving;
     private static EventModel Model=>RunManager.Instance.EventSynchronizer.GetLocalEvent();
     internal static bool InOrdinaryEvent=>LiveState.Run.CurrentRoom is EventRoom {CanonicalEvent:not AncientEventModel};
+    internal static bool InSupportedEvent=>InOrdinaryEvent||LiveState.Run.CurrentRoom is EventRoom {CanonicalEvent:MegaCrit.Sts2.Core.Models.Events.Neow};
     internal static void Install(Harmony h)
     {
         void Patch(Type type,string method,string? before=null,string? after=null)=>h.Patch(AccessTools.DeclaredMethod(type,method),
@@ -41,6 +42,7 @@ internal static class RunEvents
         Patch(typeof(EventOption),"Chosen",nameof(ChosenBefore),nameof(ChosenAfter));
         Patch(typeof(NEventRoom),"SetupLayout",after:nameof(Owned));
         Patch(typeof(EventModel),"BeginEvent",after:nameof(Owned));
+        Patch(typeof(NAncientEventLayout),"OnDialogueHitboxClicked",nameof(Input));
         RunEventCombat.Install(h);
         h.Patch(AccessTools.DeclaredMethod(typeof(RelicCmd),"Obtain",[typeof(RelicModel),typeof(Player),typeof(int)]),
             new HarmonyMethod(typeof(RunEvents),nameof(ObtainBefore)),new HarmonyMethod(typeof(RunEvents),nameof(ObtainAfter)));
@@ -60,7 +62,7 @@ internal static class RunEvents
     internal static void Clear(){_option=null;_model=null;_recorded=null;_task=null;_addingRelic=null;_addingPlayer=null;NativeChoice.Value=null;}
     private static bool Prepare(EventOption option,string kind,int index)
     {
-        if(!InOrdinaryEvent)return !RunPlayback.Active;
+        if(!InSupportedEvent)return !RunPlayback.Active;
         var model=Model;
         if(RunPlayback.Active)
         {
@@ -84,7 +86,7 @@ internal static class RunEvents
     }
     private static bool Choose(int __0)
     {
-        if(!Input())return false;if(!InOrdinaryEvent)return !RunPlayback.Active;
+        if(!Input())return false;if(!InSupportedEvent)return !RunPlayback.Active;
         var options=Model.CurrentOptions;
         if(__0<0||__0>=options.Count){Runtime.Guard(()=>throw new InvalidDataException("event-choice-index"));return !RunPlayback.Active;}
         return Prepare(options[__0],"event-choice",__0);
@@ -134,7 +136,17 @@ internal static class RunEvents
     {
         await RunPlayback.Wait(()=>NEventRoom.Instance is {} room&&GodotObject.IsInstanceValid(room)&&room.IsNodeReady()&&
             room.Layout is not null,"event-layout-not-ready");
-        Codec.Require(InOrdinaryEvent&&State()==operation.Argument.RewardKey,"event-page-options-or-rng-mismatch");
+        Codec.Require(InSupportedEvent&&State()==operation.Argument.RewardKey,"event-page-options-or-rng-mismatch");
+        if(NEventRoom.Instance!.Layout is NAncientEventLayout ancient)
+        {
+            while(!(bool)AccessTools.Property(typeof(NAncientEventLayout),"IsDialogueOnLastLine").GetValue(ancient)!)
+            {
+                await RunPlayback.TakePhase("涅奥对话");
+                await RunPlayback.Wait(()=>RunPatches.Field(ancient,"_contentTween") is not Tween tween||!tween.IsRunning(),"ancient-dialogue-not-ready");
+                RunPlayback.Native(()=>AccessTools.Method(typeof(NAncientEventLayout),"OnDialogueHitboxClicked").Invoke(ancient,[null]));
+            }
+            await RunPlayback.Wait(()=>RunPatches.Field(ancient,"_contentTween") is not Tween tween||!tween.IsRunning(),"ancient-options-not-presented");
+        }
         var index=operation.Argument.RewardIndex??-1;
         NEventOptionButton? button=null;
         await RunPlayback.Wait(()=>
