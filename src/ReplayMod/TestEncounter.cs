@@ -69,17 +69,6 @@ internal static class TestEncounter
             {Codec.Require(rooms.normalEncounters.Count>=2,"run-test-second-encounter-missing");rooms.normalEncounters[1]=ModelDb.Encounter<CorpseSlugsWeak>();player.Creature.SetCurrentHpInternal(40);}
             if(_mode==TestPreparation.RunShops)player.Gold=1000;
         }
-        if(_mode==TestPreparation.RunEvents)
-        {
-            Codec.Require(rooms.eventsVisited==0&&rooms.events.Count>=2,"test-events-before-visits");
-            rooms.events[0]=ModelDb.Event<AbyssalBaths>();rooms.events[1]=ModelDb.Event<DoorsOfLightAndDark>();
-            // These current odds are serialized in the native checkpoint. Keep
-            // native base odds and Roll intact so replay recreates their changes.
-            var odds=_run.Odds.UnknownMapPoint;
-            odds.MonsterOdds=-1;odds.EliteOdds=-1;odds.ShopOdds=-1;odds.TreasureOdds=-1;
-            Runtime.Log("test-event-models-prepared",new{Models=rooms.events.Take(2).Select(e=>e.Id.ToString()).ToArray(),
-                CurrentNonEventOdds=-1,NativeBaseOddsUnchanged=true,BeforeRecordingCheckpoint=true});
-        }
         if(_mode==TestPreparation.NecrobinderContent)
         {
             var player=_run.Players[0];
@@ -246,6 +235,22 @@ internal static class TestEncounter
         var camp=first.Children.OrderBy(p=>p.coord.col).First();var second=camp.Children.OrderBy(p=>p.coord.col).First();
         if(_mode==TestPreparation.RunEvents)
         {
+            // SetActInternal resets current odds before GenerateMap. Configure
+            // here, after that reset and before the first room/checkpoint.
+            // The starting Ancient is also MarkVisited(Event), consuming one
+            // ordinary-event index even though it uses PullAncient instead.
+            var rooms=(RoomSet)AccessTools.Field(typeof(ActModel),"_rooms").GetValue(_run!.Act)!;
+            Codec.Require(rooms.eventsVisited==0,"test-events-before-visits");
+            var firstEvent=map.StartingMapPoint.PointType==MegaCrit.Sts2.Core.Map.MapPointType.Ancient?1:0;
+            Codec.Require(rooms.events.Count>firstEvent+1,"test-event-list-too-short");
+            RoomSet.SwapToOrCreateAtIndex<EventModel,AbyssalBaths>(rooms.events,firstEvent);
+            RoomSet.SwapToOrCreateAtIndex<EventModel,DoorsOfLightAndDark>(rooms.events,firstEvent+1);
+            // Only serialized current odds change; native bases and Roll stay intact.
+            var odds=_run.Odds.UnknownMapPoint;
+            odds.MonsterOdds=-1;odds.EliteOdds=-1;odds.ShopOdds=-1;odds.TreasureOdds=-1;
+            Runtime.Log("test-event-models-prepared",new{Models=rooms.events.Skip(firstEvent).Take(2).Select(e=>e.Id.ToString()).ToArray(),
+                FirstOrdinaryEventIndex=firstEvent,StartingMapType=map.StartingMapPoint.PointType.ToString(),
+                CurrentNonEventOdds=-1,NativeBaseOddsUnchanged=true,AfterActOddsReset=true,BeforeRecordingCheckpoint=true});
             var last=second.Children.OrderBy(p=>p.coord.col).First();
             camp.PointType=MegaCrit.Sts2.Core.Map.MapPointType.Unknown;second.PointType=MegaCrit.Sts2.Core.Map.MapPointType.Unknown;
             last.PointType=MegaCrit.Sts2.Core.Map.MapPointType.Monster;

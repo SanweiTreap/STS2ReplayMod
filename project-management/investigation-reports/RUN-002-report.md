@@ -1,6 +1,15 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · 普通事件增量005已安装，待首次录制
+## 最新摘要 · 2026-11-01 · r15定向准备失败已定位，006已安装待新局验证
+
+- 用户正确启用了事件短路线。r15会话f7e1bee7共112事件、0 observer-error，新root666d7e32保存12项complete操作、4访问/4尝试；首普通66720e1a和第一个Unknown实际普通战斗c18d089a均8步胜利封存。第二个Unknown为光暗门，原生选择LIGHT及PROCEED已记录。没有浴场多页样本，不把本轮判为事件矩阵通过；两片及root生产读取/checksum/资源连续性通过，尚未原生观看。
+- 两个定向准备错误均有实际存档和原生调用顺序证据：005在SetUpNewSingleplayer完成时写当前odds=-1，但随后SetActInternal.ResetToBase覆盖，首战及Unknown战斗checkpoint均为Monster0.1/Shop0.03/Treasure0.02；开场Ancient虽走PullAncient，也执行MarkVisited(Event)，首战checkpoint的eventsVisited已为1，故放在events[0]的浴场跳过、events[1]光暗门成为首次普通事件。不是用户选错入口，也不改本次实际房型为预期结果。
+- RUN-002/build-006只修准备生命周期并加入005确切hash兼容：改在SetMap前的已有地图准备入口配置事件/odds，此处已在原生Reset之后、首次房间及checkpoint之前；按起点是否Ancient为普通事件预留索引，沿原生SwapToOrCreateAtIndex交换浴场/光暗门，保持RoomSet计数与原生Roll不变，不改未序列化base odds。Continue/观看不应用准备。后续实际checkpoint需核odds与eventsVisited，构建通过不替代此项原生验证。
+- 当前DLL `3902D4A1203D9A1CCA5248B972565348ED321745EA335D3A6F86569CED6DBDC8`，manifest仍`69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-006-4a42d786.json`；主程序及合同程序集构建0警告0错误，005原片/root生产读取通过。005及此前所有pair/事实保留，尚无006游戏结论。
+- r15原生当前完整fingerprint精确匹配成功point7：visit4/attempt4光暗门入口、PreFinished=false、Path[1..10]，实际LIGHT和PROCEED尚未写入该入口save。封存117数据文件及51已知当前文件4,381,468 bytes至`RUN002-post-r15-current-20261101-125035`；相对r14共6项正常录制/账户/backup变化，无缺失，game0、无restore/自行启动。证据`runtime-verification-r15.json`、`collection-r15.json`、`checks/r15/`。006安装后51文件只有允许的settings.save变化，无进度变化，见`preparation/post-006-progress-check.json`。
+- 下一步新开事件短路线铁甲A0验证浴场进入→停留两次→离开浴场，停在结束文字、不点前进，保存退出正常关游戏；旧666d7e32的Unknown战斗/光暗门样本保留供后续观看，不覆盖原件。普通事件播放/SL/后战及内部战斗返回仍待，RUN-002保持IN_PROGRESS；商店和宝箱已接受结论不重跑。
+
+## 005：普通事件增量安装（历史，r15已发现定向准备错误）
 
 - PM已接受004商店代表样本，r11/r13/r14及细分限制保持，RUN-002仍IN_PROGRESS。当前RUN-002/build-005，DLL `B09A643DF2ECE027ECBDA8EB3EA437BCA6FF8086173B192AD3CA1E9CE7480C04`，manifest仍`69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-005-2e23faf4.json`。004及全部旧pair保留、显式兼容004原片/root，尚无005事件游戏结论。
 - 普通事件沿原生NEventOptionButton→EventSynchronizer→EventOption.Chosen执行，选项和离开分别录制，复用原生牌组选牌。严格资源快照新增事件页key、选项身份/锁定/已选、动态数值与字符串、事件自身RNG及共享事件同步页/RNG；原生历史在Chosen调用后追加，完成快照等该调用栈结束后一帧，不靠expected补历史。事件派生遗物领取只准当前原生选项异步调用上下文内的确切Obtain实例，其他增删保护保持；该分支未作本轮领取覆盖声明。
