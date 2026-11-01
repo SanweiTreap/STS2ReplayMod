@@ -1,6 +1,13 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r29自然后战/内部Back通过，快速队列失败，010待测
+## 最新摘要 · 2026-11-01 · r30快速队列/胜利Back重做/重开Stop通过
+
+- 保持RUN-002/build-010（源码d0b93f8，DLL `6456E2F6E34654BFF8186CBDD801613C8431F965D7FA92AF1477FF0D4E5F7843`），无换版。r30会话27430a4c共317事件，0 observer-error/失败；3次打开首战，12次原生动作全部结果/RNG匹配，其中5次提前入队。3次明确重现旧失败条件：同一CombatId=2的原生目标位置由接受时1变执行时0，原生TargetId保持2，均正常继续至胜利；不是靠延迟入队避开问题。4次胜利投影及原生胜利任务通过，用户确认快速`>>`、胜利Back重做及重开正常。
+- 3次Back到1、0、2均状态/RNG匹配、无原生host重建，其中到2来自胜利并重新激活战斗，随后末击再次胜利。3次手动Stop均恢复原manager/context及所比较Continue/Progress。整局Complete=false/AtRecordedEnd=false来自计划内停在首战胜利、未继续后续房间，不覆盖已通过的战斗结果；r29两次完整路线/自然下一普通战斗、内部Back的独立证据保持。r29/009的两次快速队列失败原样保留。
+- 封存324数据文件和51已知当前文件4,390,350 bytes至`RUN002-post-r30-current-20261101-215459`；相对r29仅settings.save.backup变化，无缺失，主Continue/Progress及root/4原片逐hash不变，native完整fingerprint仍point12下一战完成未领奖。安装pair逐hash保持010，game0，无restore。证据`runtime-verification-r30.json`、`collection-r30.json`；本轮仅日志/原件核对，无源码修改/新增构建。
+- 此前待核的自然后战衔接、内部Back及此次快速排队bug已按代表样本通过，合并向PM交接这一段。RUN-002仍IN_PROGRESS，房间切换在途Stop仍未单测，额外奖励/自定义内部布局/全部事件组合不外推；本轮不为补表重跑已答矩阵。
+
+## r29：自然后战/内部Back通过，快速队列失败，010修复候选
 
 - r29/009会话9b7d7af4共816事件、6次打开：两次完整路线到下一普通战斗胜利并Stop，3次内部Back（5→4→3→2）状态/RNG匹配且无重建，完成子战斗SL/返回升级/自然下一战已有观看证据；另两次首战提前Stop无错误。快速`>>`两次在首战第3项开始时保护退出，均为`operation-execution-input-identity-mismatch`，本轮保留混合结果，不按整轮PASS。6次退出均恢复原context；切换在途Stop仍未测。
 - 原因：第三项BodySlam+稳定目标CombatId=2，提前入原生队列时首只蛞蝓仍在，目标列表位置为1；前项击杀CombatId=1后位置变0。ActionMonitor已在真正开始时重采手牌位置/卡牌状态，但目标仍用接受时位置；初态及前项结果/RNG已严格通过，却被旧位置误判。010在原生PlayCardAction真正开始、尚未花资源时，从该动作原生TargetId解析同一目标并重采位置；同时把录像目标沿已有稳定身份解析到当前边界再比较，兼容旧录像的接受时位置。不跳过身份/状态/RNG校验，不禁用原生排队，不加卡名等待。
