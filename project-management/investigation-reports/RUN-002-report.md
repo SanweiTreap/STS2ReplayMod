@@ -1,6 +1,12 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r20暗门删牌在途Stop/重开通过，普通事件首增量交接
+## 最新摘要 · 2026-11-01 · r21旧片Unknown战斗与LIGHT随机升级观看通过
+
+- 保持RUN-002/build-006，无换版/重录。r21会话424156a7共279事件、0 observer-error/资源差异，复用005的666d7e32旧root；9项非战斗操作严格匹配，两场各8步原生胜利。第一个Unknown由原生Roll实际得到Monster，核为CORPSE_SLUGS_WEAK，下一战InitialAndRngMatched=true、CheckpointLoaded=false、ExpectedStateInjected=false；第二个Unknown为光暗门Event，LIGHT随机升级及PROCEED的资源/事件RNG均匹配，没有强制房型。
+- Operation12终点Auto=false/AwaitingStop=true/SceneKeptOpen=true，手动Stop AtRecordedEnd=true；11登记任务全部结束、0取消/故障，Complete/AllOperationsMatched/VictoryReached=true、Error=null，原manager及所比较Continue/Progress恢复true。原005root逐hash与r15相同；观看通过不追改r15“预期浴场未达”的真实准备失败。
+- 封存284数据文件及51已知当前文件4,404,314 bytes至`RUN002-post-r21-current-20261101-134412`；相对r20全部逐hash不变、无缺失，当前native完整fingerprint仍原9f37d2ec的point9后战完成未领奖，game0、无restore/自行启动。证据`runtime-verification-r21.json`、`collection-r21.json`。006保持；同包下一增量接原生事件内部战斗/战后返回与实际保存阶段，未测不作通过，不重复旧矩阵。
+
+## r20：暗门删牌在途Stop/重开通过，普通事件首增量交接
 
 - 保持RUN-002/build-006，无换版。r20会话d0c5f75c共209事件、0 observer-error/资源差异：关闭Auto后精细推进至projected10/source14暗门选项持有原生删牌窗口，用户确认未确认删除；之前7项非战斗操作匹配，source14未完成/未写verified。Stop为Operation10/NonCombat=true/AtRecordedEnd=false，16登记任务全部结束（2取消/0故障），原manager和所比较Continue/Progress恢复true。
 - 同进程重开同root，首战Position1后再次Stop，0登记任务/故障，原context恢复true。两次Complete/AllOperationsMatched=false均是计划内提前退出，不作整段失败或胜利。完整最终路线播放PASS在r19，多页浴场原路线PASS在r17；本轮不替代商店删牌窗口在途Stop，也未单独测浴场初始选项窗口Stop。
