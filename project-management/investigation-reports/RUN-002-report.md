@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r27真实SL与返回呈现通过，准备验证后续普通战斗
+## 最新摘要 · 2026-11-01 · r28战后恢复前进及下一普通战斗录制通过
+
+- 保持RUN-002/build-009，无换版。r28会话a14234d5共37事件、0 observer-error/缺口/未决存盘；真正Continue精确匹配point9，visit3新增attempt7(parent6/restoredSave9)。旧12项raw逐项保持，新增raw13原生event-return、14 event-proceed、15 map、16下一普通战斗均complete；最终[1..5,8,9,13..16]，原raw10/11/12返回记录及旧中断片仍保留不选，4访问/8尝试，不重复战斗/升级。
+- 新第4层后战9b00e9b5为Battle3/Attempt1、3步胜利，真实checkpoint为115金币、80/80HP、14张牌/7张已升级牌，EnergyPotion不存在，另两瓶原生药水保持；第3层历史仍同一Event访问下的BATTLEWORN_DUMMY→V2 Combat、1次选档/1次战斗回合。升级及已消耗药水自然带入原生下一战，不凭内存路线推断；该新衔接尚未观看，当前仅录制通过。
+- 新成功point10仍完成子战斗返回前，point11下一战入口，point12下一战完成未领奖；当前native完整fingerprint精确匹配point12/visit4/attempt8。root16原始/11选中操作及新后战生产读取/checksum、资源连续性通过；完成事件Load计划精确绑定attempt7→sourceBattle9，不改原文件。证据`runtime-verification-r28.json`、`checks/r28/`。
+- 封存44数据文件及51已知当前文件4,390,350 bytes至`RUN002-post-r28-current-20261101-201010`；相对r27共6项正常录制/账户/backup变化，无缺失，game0、无restore/自行启动，见`collection-r28.json`。root2,360,864 bytes在16MB限制内，所有旧样本/失败/pair保持。
+- 下一复用同root第2层，Auto保持关闭：`>>`播完首战，再`>`逐步进假人开场，`>>`喝药及打一张岿然不动+；该牌结算后Back一次并`>>`重做，然后Auto通过完成子战斗SL/原生返回升级/前进/自然后战至第4层胜利，核下一战初态RNG与终点Stop。先不Continue/领奖/重录。内部Back与新后战自然播放尚未通过，切换在途Stop仍后续代表检查，RUN-002保持IN_PROGRESS。
+
+## r27：真实SL与返回呈现通过
 
 - 保持RUN-002/build-009，DLL `56163611CA0AA73A28D87CC2E2F3F33B5460AB8932D3A1CD23A62011688C1D99`，无换版。r27会话46b05763共349事件、0 observer-error/资源差异，两次完整路线/终点Stop，其中重开后有手动Step推进。两轮source9在原生保存边界各自捕获快照，消费hash各自相同、attempt6/真实SaveKey，原生重建父事件栈，未载入录制checkpoint或expected；首战/内部战斗初态、各步及胜利均严格通过，5项非战斗各轮匹配。
 - 两轮均先NativeLayoutComplete/NativeFadeComplete，再启动2个原生升级任务，Started=2/Finished=2/OriginalAnimationsCompleted=true；用户确认遮罩、两张升级与飞回牌组正常。Operation8终点Auto=false/留场，手动Stop AtRecordedEnd=true，15登记任务各轮全部结束、0取消故障，原manager及所比较Continue/Progress恢复true。用户报告重开一步Stop，日志实际重开后用Step/Auto亦完成整条路线；不另宣称Position1提前Stop已单独观察，也不要求为补表再跑。
