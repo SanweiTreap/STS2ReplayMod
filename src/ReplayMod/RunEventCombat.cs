@@ -26,6 +26,7 @@ internal static class RunEventCombat
     internal static void Clear(){_parent=null;_encounter=null;_entry=null;_ready=null;_reenter=false;Returning=false;ResumeTasks.Clear();ComputedSaves.Clear();_restoredBefore=null;}
     internal static void Install(Harmony h)
     {
+        EventReturnPresentation.Install(h);
         h.Patch(AccessTools.Method(typeof(EventCombatSynchronizer),"ReadyToEnterCombat"),prefix:new HarmonyMethod(typeof(RunEventCombat),nameof(Ready)));
         h.Patch(AccessTools.Method(typeof(RunManager),"EnterRoomWithoutExitingCurrentRoom"),
             prefix:new HarmonyMethod(typeof(RunEventCombat),nameof(EnterBefore)),postfix:new HarmonyMethod(typeof(RunEventCombat),nameof(EnterAfter)));
