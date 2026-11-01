@@ -24,76 +24,20 @@ internal static class Ui
     }
     internal static void AttachMenu(NMainMenu menu)
     {
-        var panel=new PanelContainer{Name="ReplayModRecentClip",AnchorLeft=.65f,AnchorRight=.96f,AnchorTop=.12f,AnchorBottom=.90f};
-        var scroll=new ScrollContainer{HorizontalScrollMode=ScrollContainer.ScrollMode.Disabled};panel.AddChild(scroll);
-        var box=new VBoxContainer{SizeFlagsHorizontal=Control.SizeFlags.ExpandFill};scroll.AddChild(box);box.AddChild(Label("Replay · 对局与战斗"));
-        box.AddChild(Label("已记录路线 · 缺少战外历史的旧片仍在下方独立打开"));
-        foreach(var runId in RunRecording.Store.Ids())
-        {
-            try
-            {
-                var raw=RunRecording.Store.Read(runId);var run=RunRoutes.Playback(raw);var start=RunPlayback.StartIndex(run);
-                var selectedVisits=run.Operations.Select(o=>o.Visit).ToHashSet();
-                box.AddChild(Label($"对局 {run.Id[..8]} · {run.Character.Replace("CHARACTER.","")}\n"+
-                    string.Join(" → ",run.Visits.Where(v=>raw.Branches is null||selectedVisits.Contains(v.Id)).Select(v=>$"{v.Floor}:{v.RoomType??v.MapType}{(v.Gap is null?"":"（缺口）")}"))));
-                if(raw.Branches is {} branch)box.AddChild(Label($"最终延续路线 · 保留{branch.Attempts.Count}次房间尝试／{raw.Operations.Count}项原始操作，当前路线{run.Operations.Count}项"));
-                else box.AddChild(Label("旧记录：没有房间分支索引，保持原有合法观看"));
-                var discontinuities=RunStore.ResourceDiscontinuities(run);
-                if(discontinuities.Length>0)box.AddChild(Label("路线存在未记录的资源变化：第"+string.Join("、",discontinuities)+"项之前"));
-                if(start<0)box.AddChild(Label("尚无可播放起点"));
-                foreach(var anchor in run.Operations.Where(o=>o.Kind=="battle"&&o.Status=="complete"&&o.Clip is not null&&o.Battle?.Entry!="event"))
-                {
-                    var visit=run.Visits.Single(v=>v.Id==anchor.Visit);
-                    var play=Button(box,$"从第{visit.Floor}层战斗／尝试{anchor.Battle?.Attempt??0}顺播路线",()=>
-                        TaskHelper.RunSafely(PlayerLoop.Open(anchor.Clip!,entry:"run-list",chain:raw,chainStart:anchor.SourceSequence??anchor.Sequence)));
-                    play.TooltipText="从该记录起点原生顺播；遇到未支持或中断处停止。战外Back与跨房间Seek暂禁用";
-                    play.Disabled=!RunPlayback.Compatible(run.ModHash)||discontinuities.Any(s=>s>anchor.Sequence);
-                }
-            }
-            catch(Exception ex){box.AddChild(Label($"路线 {runId[..8]} 暂不可用：{ex.GetType().Name}"));}
-        }
-        string? id=null;Clip? clip=null;string info;
-        try
-        {
-            Runtime.CheckEnvironment();id=Runtime.Store.LatestId();
-            clip=id is null?null:Runtime.ReadClip(id);
-            var shownBattle=clip?.Battle is {} recordedBattle?Runtime.Journal.Display(recordedBattle):null;
-            info=clip is null?"暂无片段。五角色任一A0首幕普通战斗会逐场自动录制，支持Continue后续录。":
-                $"最近{(clip.Operations[^1].Victory?"完整胜利战斗":"片段")} {clip.Id[..8]} · {clip.CreatedUtc.ToLocalTime():MM-dd HH:mm}\n{clip.Operations.Length}个操作 · {(clip.Character=="CHARACTER.NECROBINDER"?"亡灵契约师":clip.Character=="CHARACTER.DEFECT"?"故障机器人":clip.Character=="CHARACTER.REGENT"?"储君":clip.Character=="CHARACTER.SILENT"?"猎人":"铁甲")} A0\nSeed {clip.Seed}\n本场 · 出牌／用药／丢弃药水／原生选择"+
-                    (clip.Preparation is null?"":clip.Preparation.StartsWith("CONTENT004",StringComparison.Ordinal)?"\n定向测试：储君／星星／锻造与复制":clip.Preparation.StartsWith("CONTENT003",StringComparison.Ordinal)?"\n定向测试：猎人／连续弃牌／生成小刀":clip.Preparation.StartsWith("DEMO005",StringComparison.Ordinal)?"\n定向测试：升级牌＋能力＋小花＋能量药水":"\n定向测试样本：暗港双蛞蝓")+
-                    (clip.Timing is null?"\n原始操作时间：未知（旧片）":"\n已记录操作接受／完成时间")+
-                    (shownBattle is {} battle?$"\n第{battle.Floor}层 · 本局第{battle.Battle}场 · 尝试{battle.Attempt}":"\n旧片：局归属未知");
-        }
-        catch(Exception ex){info="片段暂不可打开："+(ex is InvalidDataException?ex.Message:ex.GetType().Name);}
-        box.AddChild(Label(info));
-        var open=Button(box,"打开最近片段 · 原生播放器",()=>{if(id is not null)TaskHelper.RunSafely(PlayerLoop.Open(id));});
-        var unavailable=clip is null?null:clip.Battle?.Entry=="event"?"事件内部战斗请从父事件之前的路线起点观看":NativePlaybackSupport.Reason(clip);open.Disabled=clip is null||unavailable is not null;
-        if(unavailable is not null)box.AddChild(Label(unavailable));
-        box.AddChild(Label("战斗列表 · 每场独立打开"));
-        try
-        {
-            var rows=RecordingLibrary.List(Path.Combine(Runtime.Root,"clips"),Runtime.ReadClip,Runtime.Journal.Display);
-            foreach(var group in rows.GroupBy(r=>r.Battle?.RunId))
-            {
-                box.AddChild(Label(group.Key is {} run?$"对局 {run[..8]}":"旧片／未知归属"));
-                foreach(var row in group.OrderBy(r=>r.Battle?.Battle??int.MaxValue).ThenBy(r=>r.Battle?.Attempt??0))
-                {
-                    var where=row.Battle is {} b?$"第{b.Floor}层 · 第{b.Battle}场／尝试{b.Attempt}":"旧片";
-                    var text=$"{where} · {(row.Victory?"胜利":"片段")} · {row.Operations}步\n{row.Character.Replace("CHARACTER.","")} · {row.Encounter.Replace("ENCOUNTER.","")}\n{row.CreatedUtc.ToLocalTime():MM-dd HH:mm} · {row.Id[..8]}";
-                    var pick=Button(box,text,()=>TaskHelper.RunSafely(PlayerLoop.Open(row.Id,entry:"battle-list")));
-                    pick.Disabled=row.Problem is not null;pick.TooltipText=row.Problem??"从本场房间前存档独立打开";
-                }
-            }
-            Runtime.Log("replay-library-listed",new{Count=rows.Length,Problems=rows.Count(r=>r.Problem is not null),PerFrameScan=false});
-        }
-        catch(Exception ex){box.AddChild(Label("战斗列表暂不可用："+ex.GetType().Name));}
+        var panel=new PanelContainer{Name="ReplayModEntry",AnchorLeft=.79f,AnchorRight=.96f,AnchorTop=.82f,AnchorBottom=.89f};
+        var button=new Button{Name="ReplayModWatchButton",Text="回放"};button.Pressed+=()=>ReplayLibraryUi.Open(menu);panel.AddChild(button);menu.AddChild(panel);
+    }
+    internal static void BuildDevelopment(BoxContainer box)
+    {
         _menuStatus=Label(Runtime.Status);box.AddChild(_menuStatus);
-        var development=new VBoxContainer{Visible=false};
-        Button(box,"开发／旧样本与定向准备",()=>development.Visible=!development.Visible);box.AddChild(development);box=development;
+        string? id=null;Clip? clip=null;
+        try{id=Runtime.Store.LatestId();if(id is not null)clip=Runtime.ReadClip(id);}catch(Exception){/* No compatible recent authority sample. */}
+        var neow=new CheckBox{Text="RUN-003 涅奥新叶选牌准备（仅下一新局）",ButtonPressed=RunOpening.NewLeafArmed};
+        neow.Toggled+=value=>{RunOpening.NewLeafArmed=value;if(value){TestEncounter.Armed=TestPreparation.None;RecordedState.Armed=false;}
+            Runtime.Status=value?"下一铁甲A0新局：原生涅奥第一项为新叶，选择并变形两张牌":"已取消涅奥准备";};
+        box.AddChild(neow);
         var loadStop=new CheckBox{Text="RUN-002：下次事件SL切换途中自动点Stop（仅一次）",ButtonPressed=EventReturnPresentation.StopTestArmed};
-        loadStop.Toggled+=value=>{EventReturnPresentation.StopTestArmed=value;
-            Runtime.Status=value?"打开现有事件对局并Auto；在原生重建加载途中发送一次Stop，无需抢时机":"已取消事件切换Stop测试";};
-        box.AddChild(loadStop);
+        loadStop.Toggled+=value=>EventReturnPresentation.StopTestArmed=value;box.AddChild(loadStop);
         var rats=Button(box,"CONTENT-006 三鼠召援：关闭",()=>{});
         void RatsText()=>rats.Text=TestEncounter.Armed==TestPreparation.EnemySummon?"CONTENT-006 三鼠召援：已启用（下一新局）":"CONTENT-006 三鼠召援：关闭";
         rats.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.EnemySummon?TestPreparation.None:TestPreparation.EnemySummon;
@@ -196,10 +140,11 @@ internal static class Ui
         prepare.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.Content?TestPreparation.None:TestPreparation.Content;PreparationText();
             Runtime.Status=TestEncounter.Armed==TestPreparation.Content?"请新建铁甲A0：定向双蛞蝓，增加耸肩无视+／燃烧／开心小花／能量药水，会正常保存进度":"已取消测试准备";});
         PreparationText();
-        menu.AddChild(panel);
+
     }
     internal static void Playback()
     {
+        var native=NativeSeek.Enabled||RunPlayback.Active;
         ClosePlayback();_playLayer=new CanvasLayer{Layer=100};
         var block=new Control{Name="ReplayModWatchInputBlock"};_inputBlock=block;block.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         block.MouseFilter=Control.MouseFilterEnum.Stop;_playLayer.AddChild(block);
@@ -207,7 +152,7 @@ internal static class Ui
         var box=new VBoxContainer();panel.AddChild(box);_playStatus=Label(Runtime.Status);box.AddChild(_playStatus);
         _choiceStatus=Label("");box.AddChild(_choiceStatus);
         var controls=new HBoxContainer();box.AddChild(controls);
-        if(NativeSeek.Enabled)
+        if(native)
         {
             // Cover reconstruction without changing IsVisibleInTree for native hand layout.
             _seekCover=new ColorRect{Color=new Color(.06f,.07f,.09f,1),MouseFilter=Control.MouseFilterEnum.Ignore,Visible=false};
@@ -216,9 +161,9 @@ internal static class Ui
             _seekPoints=new OptionButton{CustomMinimumSize=new Vector2(430,40)};navigation.AddChild(_seekPoints);
             _seekGo=Button(navigation,"Seek · 保持Auto模式",()=>Runtime.Guard(()=>NativeSeek.RequestSeek(_seekPoints.GetSelectedId()-1)));
         }
-        if(!NativeSeek.Enabled)_play=Button(controls,"播放 / 暂停",()=>PlayerLoop.Control("toggle"));
-        if(NativeSeek.Enabled)_auto=Button(controls,"Auto：关闭",()=>PlayerLoop.Control("auto"));
-        if(NativeSeek.Enabled)
+        if(!native)_play=Button(controls,"播放 / 暂停",()=>PlayerLoop.Control("toggle"));
+        if(native)_auto=Button(controls,"Auto：关闭",()=>PlayerLoop.Control("auto"));
+        if(native)
         {
             _fine=Button(controls,"> 精细前进",()=>PlayerLoop.Control("fine"));
             _fine.Disabled=true;

@@ -48,7 +48,8 @@ internal static class RunPlayback
     internal const string InternalEventRecordingBuild="7B27D6217ACE4D1B66A0D43FCAC4AF67E9C4DE21BD15D584D4109531CC0F108D";
     internal const string EventLoadBuild="0C9EAC791A373AB641FBABFF66E26C48CD45363BD7F559F685A1A0E05413B2EB";
     internal const string EventPresentationBuild="56163611CA0AA73A28D87CC2E2F3F33B5460AB8932D3A1CD23A62011688C1D99";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild;
+    internal const string EventStopBuild="A91D084118A288EEFF21E7CE1D7AE47E68B6FA9942066AAC3F5A4C3B959F07E4";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild;
     internal static bool BattleVerified(int source)=>VerifiedBattles.Contains(source);
     internal static bool NeedsComputedSave(int source)=>NeededComputedSaves.Contains(source);
     internal static RunOperation? Current;
@@ -74,8 +75,9 @@ internal static class RunPlayback
     {
         _rawOperations=run.Operations.Count;run=RunRoutes.Playback(run);
         Codec.Require(run.GameHash==Runtime.GameHash&&run.Scope==Runtime.Scope&&Compatible(run.ModHash),"run-environment-or-build-mismatch");
-        _index=startSequence is {} sequence?run.Operations.FindIndex(o=>(o.SourceSequence??o.Sequence)==sequence):StartIndex(run);
-        Codec.Require(_index>=0&&run.Operations[_index] is {Kind:"battle",Status:"complete",Clip:not null}&&run.Operations[_index].Battle?.Entry!="event","run-has-no-recorded-battle-start");
+        var opening=startSequence==0;
+        _index=opening?0:startSequence is {} sequence?run.Operations.FindIndex(o=>(o.SourceSequence??o.Sequence)==sequence):StartIndex(run);
+        Codec.Require(opening?RunOpening.Available(run):_index>=0&&run.Operations[_index] is {Kind:"battle",Status:"complete",Clip:not null}&&run.Operations[_index].Battle?.Entry!="event","run-has-no-recorded-battle-start");
         Codec.Require(!RunStore.ResourceDiscontinuities(run).Any(s=>s>run.Operations[_index].Sequence),"run-has-unrecorded-resource-transition");
         var first=run.Operations[_index];
         _progressContexts=run.Continuations.Where(c=>c.Status=="native-continue"&&c.Progress is not null&&c.BeforeOperation>=first.Sequence)
@@ -84,7 +86,7 @@ internal static class RunPlayback
         _continuations=run.Continuations.Where(c=>c.PreFinished&&c.Visit>=first.Visit)
             .Select(c=>(Before:RunStore.ContinueBefore(run,c),Point:c)).Where(c=>c.Before>=first.Sequence)
             .GroupBy(c=>c.Before).ToDictionary(g=>g.Key,g=>g.Select(c=>c.Point).ToArray());
-        _run=run;Active=true;NonCombat=false;Driving=false;_auto=false;_whole=false;_stop=false;_continuation=false;
+        _run=run;Active=true;NonCombat=opening;Driving=false;_auto=false;_whole=false;_stop=false;_continuation=false;
         _fine=0;_wholeRequests=0;_decision=0;_phaseAt=0;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;Current=run.Operations[_index];RunPatches.Clear();
         VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;
         foreach(var point in _continuations.Values.SelectMany(p=>p))

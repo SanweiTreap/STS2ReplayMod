@@ -29,9 +29,12 @@ public sealed class RunBranches
     public List<RunSavePoint> Saves {get;init;}=[];
     public int ActiveAttempt {get;set;}
 }
+public sealed record RunStartInput(string Character,string Seed,string[] Acts,string GameMode,int Ascension,string Progress,string Prefs,
+    string? NeowDebugOption=null);
 public sealed record RunDocument(int Format,string Id,string GameHash,string ModHash,string Scope,string Character,
     DateTimeOffset Created,List<RoomVisit> Visits,List<RunOperation> Operations,List<RunContinuation> Continuations,
-    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] RunBranches? Branches=null);
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] RunBranches? Branches=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] RunStartInput? Opening=null);
 public sealed record RunEnvelope(string SHA256,RunDocument Data);
 
 internal sealed class RunStore(string root)
@@ -81,6 +84,10 @@ internal sealed class RunStore(string root)
         Codec.Require(run.Format==1&&Regex.IsMatch(run.Id,"^[a-f0-9]{32}$")&&run.Visits.Count<=256&&run.Operations.Count<=2048,"unsupported-run-file");
         Codec.Require(run.Operations.Select(o=>o.Sequence).SequenceEqual(Enumerable.Range(1,run.Operations.Count)),"run-operation-order");
         Codec.Require(run.Operations.All(o=>run.Visits.Any(v=>v.Id==o.Visit)),"run-operation-visit-missing");
+        if(run.Opening is {} opening)Codec.Require(opening.Character==run.Character&&opening.Seed.Length is >0 and <=128&&
+            opening.Acts.Length is >0 and <=4&&opening.Acts.All(a=>Regex.IsMatch(a,"^ACT\\.[A-Z0-9_]+$"))&&
+            opening.GameMode=="Standard"&&opening.Ascension==0&&opening.Progress.Length>0&&opening.Prefs.Length>0&&
+            opening.NeowDebugOption is null or "NEW_LEAF","run-opening-input-unsupported");
         Codec.Require(run.Continuations.All(c=>(c.Visit==0||run.Visits.Any(v=>v.Id==c.Visit))&&
             (c.BeforeOperation is null||c.BeforeOperation>=1&&c.BeforeOperation<=run.Operations.Count+1&&
              (c.Visit==0||c.BeforeOperation>run.Operations.Count||run.Operations[c.BeforeOperation.Value-1].Visit==c.Visit))),"run-continuation-position");
