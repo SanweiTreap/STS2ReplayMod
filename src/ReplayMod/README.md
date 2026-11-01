@@ -1,4 +1,8 @@
-# ReplayMod 0.1.0 · 原生单场回放
+# ReplayMod 0.1.0 · 原生回放开发版
+
+当前保留RUN-002/build-011，按代表样本收束，最新能力/限制见[项目状态](../../project-management/CURRENT_STATUS.md)。本地固定安装为`<游戏目录>/mods/ReplayMod/ReplayMod.dll`与同目录`ReplayMod.json`，Prepare-Demo.ps1已同步该目录；不要另在mods根目录放第二份。归档/恢复与本次目录搬迁验证边界见[安装维护](../../project-management/maintenance/MOD-INSTALLATION.md)。
+
+以下保留阶段历史，文中“当前/下一步”以当时轮次为准，操作步骤以当前任务报告为准。
 
 RUN-001/build-006已完成铁甲A0首幕两条短普通路线的代表验证：领奖/跳卡、选路、营火升级/休息、下一战原生状态与RNG、合法点真正重启Continue、两个选择窗口中Stop及完整回放。Auto终点关闭并停留，手动Stop退出；战外Back/跨房间Seek仍未开放。当前版本与具体边界见[RUN-001报告](../../project-management/investigation-reports/RUN-001-report.md)。以下保留已有验收基线及实施历史，当前测试步骤以该报告为准。
 
