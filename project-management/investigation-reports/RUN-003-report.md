@@ -1,6 +1,15 @@
 # RUN-003：涅奥奖励与整局观看入口
 
-## 最新摘要 · 2026-11-02 · build-002首测候选，待录制/游戏验证
+## 最新摘要 · 2026-11-02 · r1新叶单张变形录制/旧路线观看通过，003待开局观看
+
+- r1/002会话d86ad1f2共331事件，0 observer-error/缺口/缺失操作。新Run `2adb83061a15459782c838e27caa8c0b`，Seed QL4MLA7ZADU6、铁甲Standard A0、三幕实际输入及Progress/Prefs在新局工厂前冻结。第1层原生Ancient/Neow→第2层普通缩小甲虫，4项event-choice/event-proceed/map/battle均complete，selected[1,2,3,4]，2访问/2尝试，成功原生保存点1–4，未发生Continue/猜测SL归属；真正奖励前起点已录，未将首战checkpoint当开局。
+- Neow实际候选NEW_LEAF/POMANDER/NEOWS_BONES，选择索引0新叶；deck-transform在10张原生候选中最终选索引4的一张未升级打击，原生变为IRON_WAVE，牌组仍10张，新增NEW_LEAF遗物。首战checkpoint自然保留该结果，8项原生操作胜利并自动封存clip `68196feda91f42cfa9030aeba3e2c253`。资源连续性/生产读取/checksum通过；开局观看候选及首战初态/RNG重现仍未测，记录成功不代替观看通过。
+- 用户纠正并由固定本体NewLeaf.CardsVar(1)确认：新叶只变形一张。此前测试步骤和UI提示“两张”有误，录制/播放逻辑一直读取原生实际选择，未硬编码变形数量；003把提示改为按原生页面选牌/确认，不再误导。历史001/002说明保留供追溯，本样本不需重录，也不拿单张新叶当树叶药膏/多张变形验证。
+- 新主页/列表/详情及D-141文件夹识别已有实际使用证据：旧a51777b1详情OpeningAvailable=false/OldHistoryInvented=false，并从旧合法起点完整原生播放整条路线，AllOperationsMatched/Complete=true、0异常、原context及所比较Continue/Progress恢复；旧root hash仍480DCEA7…0796E。坏条目/全部导航/新增选择Stop与重开仍待代表检查，不外推。
+- 当前RUN-003/build-003，DLL `8F1729C5B671C76949E231963DC2688E9A69F614724C47B1870FECDA9927E052`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-003-095709cf.json`，单文件夹mods/ReplayMod。除提示更正，仅增加002的精确记录兼容，构建0警告0错误，未改新旧录像。r1封存339文件与51已知当前文件4,150,616 bytes至`RUN003-post-r1-current-20261102-013437`，7项正常新局/录制/settings变化均保留、无缺失/restore，native精确匹配新point4首战完成未领奖；003安装后51项复核仅settings.save变化，game0。证据`collection-r1.json`、`runtime-verification-r1.json`、`checks/r1/`、`preparation/post-build003-check.json`。
+- 下一复用2adb8306“从开局观看”：Auto关，`>`推进至变形选牌窗口、确认前Stop；重开同一起点Auto自然到首战胜利，Back一次并`>>`重做末击，再Stop/正常退出。核实际新局生成的Neow候选/选牌/地图和首战初态/RNG、选择中退出/任务/原context恢复，不独立打开首战片冒充开局链。
+
+## 001/002：首候选实现与准备（当时未运行）
 
 - D-143首段IN_PROGRESS，未有新游戏运行结论。候选把记录前移到原生NGame.StartNewSingleplayerRun输入边界：实际角色/seed/幕ID/Standard A0、实际Progress/Prefs在原生解锁生成、初始化及奖励前冻结，作为可选Opening随原RunId保存。观看在原有隔离SaveManager内调用同一新局工厂（shouldSave=false），沿原生Initialize/FinalizeStartingRelics/EnterAct到Neow；不是首战checkpoint补演，原生战斗replay写入在Setup后、Launch前关闭。此路径能否与实录候选/首战RNG完全一致仍待实测。
 - Ancient共用选项任务接入Neow，复用原生EventOption/RelicCmd与已有选牌驱动；事件页面/候选身份/资源/RNG严格比较。原生古神对话用其真实点击入口逐段展示，原生Tween完成后继续，不记录逐字/鼠标轨迹。地图选路后沿同一Run进入首战，仅核clip初态/结果，不读取首战checkpoint重建。旧定向战斗准备会令开局输入明确不可用，不伪造可重现开场；首轮单独提供默认关闭的新叶准备，通过原生Ancient.DebugOption将第一项替换为NEW_LEAF，实际输入与准备标记均记录/重做，不手写奖励业务。
