@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · 011准备唯一剩余的切房间在途Stop检查
+## 最新摘要 · 2026-11-01 · DONE_WITH_LIMITATIONS（代表样本完成）
+
+- RUN-002按固定v0.111.0、单人A0首幕铁甲代表样本收束：宝箱领取/跳过、商店购买/动态折扣/删牌取消确认、普通多页事件及选牌、假人内部战斗/返回升级，真实房间入口SL及未完/完成子战斗SL的新尝试归属、最终延续路线和自然后战状态/RNG已有原生证据；放弃尝试/中断片/旧失败原件保留，不混为一次胜利。依据r6–r31各段，特别是PM已接受的r27/D-140、r29自然后战/内部Back与r30快速队列回归；本轮不外推011已重新跑完全部路线。
+- r31/011完成最后一份D-140切换在途Stop代表检查。会话448bbc71共206事件、0异常：新Run已绑定且Loading=true，原生加载Task未结束时通过公开PlayerLoop.Control(stop)接受一次请求，原生加载约1380ms后正常完成，同一隔离manager；约1701ms后主菜单恢复，15登记任务全部收束、2取消/0故障（尚在等待显示的升级任务随Stop取消，未称动画完整播完），原scene退出后才恢复原manager/context/所比较Continue和Progress。两场胜利先行严格核对；未强截原生业务、未继续到后战或终点。用户确认自动Stop正常。
+- 同进程第二次打开，原生前进到首项后手动Stop，0登记任务遗留/0故障、原context及所比较原件恢复；测试开关只消费一次，没有重开再次自动Stop。整局Complete=false及第一轮Core=not-started/Position0是Stop发生于战外重建阶段、战斗驱动已释放的日志形态，不当作战斗未播放/全链通过。另封存025d495d的3条启动事件，不计为一次观看。证据`runtime-verification-r31.json`。
+- 保持RUN-002/build-011，源码60a0a69，DLL `A91D084118A288EEFF21E7CE1D7AE47E68B6FA9942066AAC3F5A4C3B959F07E4`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，pair逐hash不变，收据`preparation/build-011-46e86183.json`。r31封存216文件与51已知当前文件4,147,660 bytes至`RUN002-post-r31-current-20261101-230926`，无缺失/restore、game0；root及4原片不变，测试modded1文件不变、native仍point12下一普通战斗完成未领奖。相对r30另有settings/backup及modded2的Progress/backup/latest.mcr变化：后三项最后写入23:01，早于本轮进程23:03:09启动，原生胜利/卡牌统计变化单列并已完整补存，不归为观看写入、不覆盖新进度，不宣称整个账户零变化。见`collection-r31.json`。
+- 限制：上述为各版本累积代表验证，不是全内容/全组合或011全矩阵。其他宝箱遗物/额外奖励、商店特殊套购/附加选择、商店删牌在途Stop、全部事件/私有自定义内部布局/派生效果、所有切换时机仍未全覆盖；缺少账户输入的旧样本保持严格缺口。精英Boss/跨幕/通关与失败、非战斗Back/跨房间Seek、任意文件恢复和完整经历播放仍不开放。到记录终点关Auto并留场，手动Stop安全收尾。本包不再追加矩阵；将终稿交PM，保留当前可用pair和原进度。
+
+## 011：准备切房间在途Stop检查
 
 - PM已核r29/r30及010关键diff，接受自然后战、内部Back和快速原生队列修复的代表结果；进入RUN-002收束，仅保留原计划一份D-140新Run/父事件重建期间Stop检查，通过后按DONE_WITH_LIMITATIONS提交终稿，不扩特殊事件/奖励或重复已答矩阵。PM管理原文CURRENT_STATUS/TODO已精确独立提交ea8dcec。
 - 新RUN-002/build-011，DLL `A91D084118A288EEFF21E7CE1D7AE47E68B6FA9942066AAC3F5A4C3B959F07E4`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-011-46e86183.json`。开发区新增默认关闭/单次消费的“下次事件SL切换途中自动点Stop”：在真正新Run绑定、原生LoadIntoLatestMapCoord已提交且Task未完成时调用与公开Stop按钮相同的PlayerLoop.Control(stop)，记录请求/接受及加载是否在途；原生任务仍直接await到安全完成，再沿现有Stop/任务与场景清理/原context恢复。登记该原生加载Task以便退出核对，没有新探针平台、强截原生业务或额外模拟场景。
