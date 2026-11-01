@@ -1,6 +1,14 @@
 # RUN-002：宝箱、商店、问号与SL尝试归属
 
-## 最新摘要 · 2026-11-01 · r28战后恢复前进及下一普通战斗录制通过
+## 最新摘要 · 2026-11-01 · r29自然后战/内部Back通过，快速队列失败，010待测
+
+- r29/009会话9b7d7af4共816事件、6次打开：两次完整路线到下一普通战斗胜利并Stop，3次内部Back（5→4→3→2）状态/RNG匹配且无重建，完成子战斗SL/返回升级/自然下一战已有观看证据；另两次首战提前Stop无错误。快速`>>`两次在首战第3项开始时保护退出，均为`operation-execution-input-identity-mismatch`，本轮保留混合结果，不按整轮PASS。6次退出均恢复原context；切换在途Stop仍未测。
+- 原因：第三项BodySlam+稳定目标CombatId=2，提前入原生队列时首只蛞蝓仍在，目标列表位置为1；前项击杀CombatId=1后位置变0。ActionMonitor已在真正开始时重采手牌位置/卡牌状态，但目标仍用接受时位置；初态及前项结果/RNG已严格通过，却被旧位置误判。010在原生PlayCardAction真正开始、尚未花资源时，从该动作原生TargetId解析同一目标并重采位置；同时把录像目标沿已有稳定身份解析到当前边界再比较，兼容旧录像的接受时位置。不跳过身份/状态/RNG校验，不禁用原生排队，不加卡名等待。
+- 当前RUN-002/build-010，DLL `6456E2F6E34654BFF8186CBDD801613C8431F965D7FA92AF1477FF0D4E5F7843`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-010-ba4d7944.json`。新增009精确兼容项供r28后战片读取；两项目构建0警告0错误，当前root及3个完整战斗片生产读取/兼容检查、既有稳定敌人身份合同通过，见`checks/build-010/`，这些不代替原生快速排队实测。
+- r29封存823文件和51已知当前文件4,390,350 bytes至`RUN002-post-r29-current-20261101-205729`；相对r28全部不变，root hash不变、native精确匹配point12。010安装后51项复核仅settings.save变化，无缺失、无restore，game0，所有旧pair/失败保留。证据`runtime-verification-r29.json`、`collection-r29.json`、`preparation/post-010-progress-check.json`。
+- 下一复用a51777b1第2层首战，Auto关，快速连续3次`>>`至首战胜利；Back一次再`>>`重做末击，Stop后重开同首战再快点3次`>>`，Stop并正常退出。无需Continue/领奖/重录。010尚未游戏验证；RUN-002保持IN_PROGRESS，快速队列及切换在途Stop未收束。
+
+## r28：战后恢复前进及下一普通战斗录制通过
 
 - 保持RUN-002/build-009，无换版。r28会话a14234d5共37事件、0 observer-error/缺口/未决存盘；真正Continue精确匹配point9，visit3新增attempt7(parent6/restoredSave9)。旧12项raw逐项保持，新增raw13原生event-return、14 event-proceed、15 map、16下一普通战斗均complete；最终[1..5,8,9,13..16]，原raw10/11/12返回记录及旧中断片仍保留不选，4访问/8尝试，不重复战斗/升级。
 - 新第4层后战9b00e9b5为Battle3/Attempt1、3步胜利，真实checkpoint为115金币、80/80HP、14张牌/7张已升级牌，EnergyPotion不存在，另两瓶原生药水保持；第3层历史仍同一Event访问下的BATTLEWORN_DUMMY→V2 Combat、1次选档/1次战斗回合。升级及已消耗药水自然带入原生下一战，不凭内存路线推断；该新衔接尚未观看，当前仅录制通过。

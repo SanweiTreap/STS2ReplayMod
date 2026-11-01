@@ -47,7 +47,8 @@ internal static class RunPlayback
     internal const string EventAcceptedBuild="3902D4A1203D9A1CCA5248B972565348ED321745EA335D3A6F86569CED6DBDC8";
     internal const string InternalEventRecordingBuild="7B27D6217ACE4D1B66A0D43FCAC4AF67E9C4DE21BD15D584D4109531CC0F108D";
     internal const string EventLoadBuild="0C9EAC791A373AB641FBABFF66E26C48CD45363BD7F559F685A1A0E05413B2EB";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild;
+    internal const string EventPresentationBuild="56163611CA0AA73A28D87CC2E2F3F33B5460AB8932D3A1CD23A62011688C1D99";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild;
     internal static bool BattleVerified(int source)=>VerifiedBattles.Contains(source);
     internal static bool NeedsComputedSave(int source)=>NeededComputedSaves.Contains(source);
     internal static RunOperation? Current;
