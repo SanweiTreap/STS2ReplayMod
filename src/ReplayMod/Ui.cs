@@ -34,7 +34,7 @@ internal static class Ui
         try{id=Runtime.Store.LatestId();if(id is not null)clip=Runtime.ReadClip(id);}catch(Exception){/* No compatible recent authority sample. */}
         var neow=new CheckBox{Text="RUN-003 涅奥新叶选牌准备（仅下一新局）",ButtonPressed=RunOpening.NewLeafArmed};
         neow.Toggled+=value=>{RunOpening.NewLeafArmed=value;if(value){TestEncounter.Armed=TestPreparation.None;RecordedState.Armed=false;}
-            Runtime.Status=value?"下一铁甲A0新局：原生涅奥第一项为新叶，选择并变形两张牌":"已取消涅奥准备";};
+            Runtime.Status=value?"下一铁甲A0新局：原生涅奥第一项为新叶，按原生页面选牌并确认变形":"已取消涅奥准备";};
         box.AddChild(neow);
         var loadStop=new CheckBox{Text="RUN-002：下次事件SL切换途中自动点Stop（仅一次）",ButtonPressed=EventReturnPresentation.StopTestArmed};
         loadStop.Toggled+=value=>EventReturnPresentation.StopTestArmed=value;box.AddChild(loadStop);
