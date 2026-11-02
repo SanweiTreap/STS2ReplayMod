@@ -2,7 +2,7 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包已开始实现，**build-001 首个后段增量待安装**，尚无RUN-005原生运行结论；RUN-004/004原代表验收保持。完整目标仍需同一真实新局→三幕→原生终局的一份录制与连续观看，不把本次第二幕后段准备拼成完整整局。
+- 本包已开始实现，**build-001 首个后段增量已安装待测**，源码 `54aa923`，尚无RUN-005原生运行结论；RUN-004/004原代表验收保持。完整目标仍需同一真实新局→三幕→原生终局的一份录制与连续观看，不把本次第二幕后段准备拼成完整整局。
 - 录制入口、format10场景身份、LiveState输入/恢复、共用换幕投票与第三幕Ancient分派接到Act0/1/2；保持同Run/ActModel/visit/attempt、自然资源/RNG和既有自算保存点恢复。第一/二次换幕共用原生EnterNextAct路径；第三幕Boss后的终局入口仍待接，不能只删白名单后说完整通关。
 - 新增可选Lifecycle事实：原生新局/Continue、保存退出（可续）、中断、真正OnEnded胜利/死亡/主动放弃。WinRun先OnEnded(true)后强制杀玩家，再次OnEnded(false)不覆盖胜利；无字段旧片保持未知，不补胜负。当前仅登记原生结局事实基础，死亡末尾动作/死亡观看、终局事件/胜利观看尚未实现和动态验证。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
@@ -19,6 +19,10 @@ RunTailPreparation只在显式Armed、非观看、已启用录制、当前Act1�
 RunEndings在真正OnEnded首次调用前冻结实际RunResources并按isVictory/IsAbandoned分类，原生已上传标记和本会话首次终局事实保护后续强杀/清理。RunRecording在普通暂停菜单CloseToMenu登记存退意图、实际Cleanup收尾为可续saved-exit；没有凭退出新造成功SaveRun位置，Continue仍只依原有实际成功存盘证据。此候选未声称死亡录像已有最终动作/可播，也没有实现最终自定义事件。
 
 新RunDocument.Lifecycle为可选省略null字段；旧记录字节/校验保持，旧没有结局字段显示“未知”并保留范围/缺口。运行事实含visit/act/BeforeOperation/attempt与原生来源，不给新主菜单/正式UI设计结论。第三幕与前两幕继续用相同本体战斗、native queue/选择/Back、EnterNextAct与Ancient路径；所选新敌人/古神和第二次换幕需人工动态验证。
+
+001安装收据 `evidence/run-005/preparation/build-001-b9115c1f.json`：DLL `4B591FA3D071A67E8D4332355825BF769B6708C919D2093A62F7531332DF8657`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`；唯一mods/ReplayMod pair与封存001一致，原RUN-004/004另存核hash。51已知文件安装后仅settings.save变化、零缺失、game0、无restore，见 `preparation/post-build001-check.json`。工具只补run-005和既有备份名，不新建账户/扫描工作流。
+
+PM UI分线：已结束对局未来正式入口为百科大全→历史记录→当前局详情观看，左右切换继续本体；当前主菜单回放仅开发临时。UI讨论/历史身份绑定不在本候选实现；已知原生history/{StartTime}.run身份可由后续真正终局事实保留，当前Battle.RunStartTime已登记真实起始时间，不借此宣称正式关联已完成。
 
 ## 后续必须完成
 
