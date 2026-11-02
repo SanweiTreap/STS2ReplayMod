@@ -1,6 +1,14 @@
 # RUN-003：涅奥奖励与整局观看入口
 
-## 最新摘要 · 2026-11-02 · r2涅奥选择被战斗观察器误接，004修复候选待测
+## 最新摘要 · 2026-11-02 · r3原生开局纵向链/选择Stop通过，主菜单BGM残留待005听测
+
+- r3/004会话28ca75da共213事件、0异常。两次从奖励前输入调用原生新局工厂，CombatChoiceTapeActive=false/RunChoicesOwnSelections=true，r2生命周期修复实际通过。首次手动推进到新叶选择中Stop，7登记任务全部收束、3取消/0故障；原scene/context及所比较Continue/Progress恢复，计划内Complete=false不当失败。
+- 重开后Auto沿原生Neow候选/单张变形→完成页/离开→地图→首战，3项战外资源/RNG严格匹配，首战初态/RNG自然匹配（未读首战checkpoint/注入expected），8步胜利。胜利Back到7/8后重做末击，状态/RNG及两次胜利均通过，共9次动作验证；终点Stop，10登记任务全部完成/0取消故障，整局Complete=true、原context恢复。新叶奖励前初始化/选牌/自然首战已有真实纵向证据，非独立打开首战片替代。
+- 本轮仍保留音频呈现FAIL：用户听到主菜单BGM贯穿观看，日志语义通过不代替音频接受。固定原版NCharacterSelectScreen.BeginRun在进入NGame.StartNewSingleplayerRun前调用NAudioManager.StopMusic；观看直接进入工厂漏掉该外层生命周期。005在工厂前补同一个原生StopMusic，只结束前场景音乐，后续环境/战斗与回菜单音乐沿原生控制，不按涅奥/奖励手写曲目。新增MenuMusicStopRequested日志只证明调用，实际声音待用户确认。
+- 当前RUN-003/build-005，DLL `2C6236C03CD535A025635F479EE171AD76B4E219294511216516DECA751B5AFA`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-005-6e329e4e.json`，构建0警告0错误；仅原生音乐调用与诊断字段，不新加镜像测试。r3封存217数据文件与51已知当前文件4,149,576 bytes至`RUN003-post-r3-current-20261102-133248`，相对r2仅settings.save.backup变化，无缺失，root/clip不变，native仍point4；005安装后仅settings.save变化，game0、无restore/自行启动。证据`runtime-verification-r3.json`、`collection-r3.json`、`preparation/post-build005-check.json`，旧003失败保留。
+- 下一仅听测：同份2adb8306从开局观看，确认进入Neow时主菜单BGM停止；Auto自然进首战听正常战斗BGM后即可Stop，核回主菜单音乐恢复并正常退出。无需重录/重复选择中Stop、胜利与Back矩阵。全Neow选项、Neow SL、坏条目实际交互及全部页面组合不外推；阶段待音频确认后合并交PM。
+
+## r2：涅奥选择被战斗观察器误接，004修复候选
 
 - r2/003会话8b0a9671共19事件，首次开局观看失败，保留FAIL。原生NGame新局工厂已从真实奖励前输入到Neow，shouldSave=false、同一隔离manager、未读首战checkpoint；首个`>`后首项Before资源/RNG及Neow候选校验通过，进入原生NewLeaf.Obtain→FromDeckForTransformation时触发`choice-reserved-outside-supported-command`，尚未完成奖励或进入首战，不能当纵向链通过。
 - 原因是PlayerLoop.Open把未来首战clip的ChoiceTape.Play提前用于开局。ChoiceTape.Begin已把战外选择交RunChoices，但仍启用的战斗ReserveChoiceId观察器要求战斗scope，引发误判；7登记任务最终全部收束（1取消/2故障对应本次失败），原scene/manager及所比较Continue/Progress恢复。004只调整生命周期：涅奥前明确Clear战斗tape，真正进入首战仍由既有LoadEnteredBattle启用该clip；不放宽Reserved/Synced或原生选择/资源/RNG校验。开局增加战外选择归属断言及日志，供确认修复确实到达。

@@ -4,6 +4,7 @@ using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Events;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Audio;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
 
@@ -61,13 +62,17 @@ internal static class RunOpening
         {
             var character=ModelDb.GetById<CharacterModel>(ModelId.Deserialize(input.Character));
             var acts=input.Acts.Select(id=>ModelDb.GetById<ActModel>(ModelId.Deserialize(id))).ToArray();
+            // Native character-select BeginRun stops menu music before the factory.
+            // Replay enters the same factory directly, so keep that transition here.
+            var audio=NAudioManager.Instance;audio?.StopMusic();
             var task=Runtime.Game.StartNewSingleplayerRun(character,false,acts,[],input.Seed,GameMode.Standard,input.Ascension);
             RunPlayback.Track(task);await task;RunPlayback.CheckStop();
             Codec.Require(LiveState.Run.CurrentRoom is MegaCrit.Sts2.Core.Rooms.EventRoom {CanonicalEvent:Neow},"new-run-did-not-reach-neow");
             RunManager.Instance.CombatStateSynchronizer.IsDisabled=true;RunManager.Instance.CombatReplayWriter.IsEnabled=false;
             Runtime.Log("run-opening-native-created",new{input.Character,input.Seed,NativeNewRunFactory=true,CheckpointLoaded=false,
                 ShouldSave=RunManager.Instance.ShouldSave,IsolatedManager=true,Preparation=input.NeowDebugOption,
-                CombatChoiceTapeActive=ChoiceTape.Watching,RunChoicesOwnSelections=RunPlayback.NonCombat});
+                CombatChoiceTapeActive=ChoiceTape.Watching,RunChoicesOwnSelections=RunPlayback.NonCombat,
+                MenuMusicStopRequested=audio is not null});
         }
         finally{_playing=null;}
     }
