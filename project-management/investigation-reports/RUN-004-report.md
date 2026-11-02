@@ -8,7 +8,7 @@
 - r6唯一原生Boss奖励页投票、EnterNextAct/EnterAct自然换幕与实际第二幕地图/古神匹配；Boss、第二幕首普通自然初态/RNG匹配，未读后幕checkpoint。新加载Stop开关仍未测；第二幕只覆盖Orobas/RadiantPearl及ExoskeletonsWeak代表样本。
 - 当前已有精英/Boss共用录制、输入/Back与format10第一二幕身份；可选ActModel/RoomType/原生ActFloor/TotalFloor保持旧片省略字段。短准备改暗港首节点为精英并连到本幕原生Boss，牌组/遗物/药水在checkpoint前创建；准备前涅奥虽保留操作，Opening=null，不伪称从涅奥完整重建。普通新局RUN-003路径保留。非战斗Back/跨房间Seek仍禁用。
 - r4证据 `evidence/run-004/runtime-verification-r4.json`、`checks/r4-run.json`、`checks/r4-act2-clip.json`；最新补存 `RUN004-post-r4-current-20261102-222133`，132数据文件、51已知文件/4,169,988 bytes，零缺失，game0，无restore。r4仅modded1录制/原生进度及settings.backup共6项变化；r3已保留modded2更新，本轮未再变。Cloud本轮用户确认关闭，另一账户排除。
-- r6两次战后Continue均先核本次战斗，再载本次播放原生保存边界的自算快照，同隔离manager原生重建奖励，资源/RNG通过。用户所见精英/Boss战后暗亮，恰好为这两处显式淡出/淡入遮住真实重建；未Recorded-Continue的第二幕胜利未插此段。现为已解释呈现选择，长远是否隐去待产品讨论，不因能播完声明全部视觉已接受。
+- r6两次战后Continue均先核本次战斗，再载本次播放原生保存边界的自算快照，同隔离manager原生重建奖励，资源/RNG通过。精英/Boss战后暗亮对应这两处显式淡出/淡入。**D-147用户澄清：当前最终延续demo应剪去SL/Continue重建的观看过程，两次暗亮是暂留呈现偏差，未获目标效果接受。** 后台必要恢复保持，本轮暂缓呈现修改，继续既定退出测试；稍后由用户/PM讨论两种播放方式，不新增隐藏过场测试。
 - 下一步：保留004，启用现有换幕一次性Stop开关，从Boss起点Auto验证新增加载Stop；回菜单后重开一步Stop。无需重录/整链再测。r6证据 `runtime-verification-r6.json`，最新补存 `RUN004-post-r6-current-20261102-234618`，887数据文件/51已知文件，较r5仅settings.backup变化；root/三片hash不变、native仍point12、game0、无restore。
 
 ## 首候选实现边界
@@ -87,6 +87,6 @@ Release主体与DirectContracts均0warnings/0errors；13项branch合同通过，
 
 会话 `2022f62e9da4494fbacd5e903aae6eb0`，881事件、零observer-error/failed/difference。从精英合法战前入口开始，16/22/24三个战斗原生driver全部完成、AllOperationsMatched=true、三次胜利；12个非战斗操作包括精英奖励/跳卡、地图、Boss奖励选卡、一次act-proceed、第二幕Orobas第二项/离开/首普通地图均资源与RNG精确匹配。Boss及第二幕普通自然初态核对通过，CheckpointLoaded=false/ExpectedStateInjected=false。原生换幕只拥有一次当前幕/玩家投票，实际同Run0→1/ACT.HIVE正确，无额外EnterAct。
 
-精英及Boss分别在原始battle4/12原生SaveRun边界捕获本次播放自算快照；已核战斗完成后，按真实记录的Continue原生重建，使用相同隔离SaveManager，无录制后战checkpoint/expected注入，两个nativeLoad实际成功收束。显示上各有一次主动RoomFadeOut/RoomFadeIn；用户问是否正常，已说明对应录制SL而非每场胜利固定插入，不把该问题转成私自改产品交互或要求重录。
+精英及Boss分别在原始battle4/12原生SaveRun边界捕获本次播放自算快照；已核战斗完成后，按真实记录的Continue原生重建，使用相同隔离SaveManager，无录制后战checkpoint/expected注入，两个nativeLoad实际成功收束。显示上各有一次主动RoomFadeOut/RoomFadeIn；最初已解释对应录制SL而非每场胜利固定插入。随后D-147明确最终延续demo应剪去此观看过程，所以这两次过场是暂留呈现偏差，不是目标视觉已接受；后台必要恢复与观众展示须分开，暂不改实现、不加测试，待用户/PM讨论播放方式后处理。
 
 根Complete=true、Error=null，最后第二幕胜利AllOperationsMatched=true；22个已拥有任务均完成、0取消/0fault，Stop后原manager/context与所比较Continue/Progress恢复通过。root/三片SHA与r4保持，当前native精确point12。887数据文件及51已知文件补存，较r5仅settings.backup变化，无缺失/无restore/game0。剩余原定换幕加载Stop/重开未测，未提前标包完成；代表性限制及旧失败保留。证据 `runtime-verification-r6.json`、`collection-r6.json`。
