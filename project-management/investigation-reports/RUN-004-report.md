@@ -2,7 +2,7 @@
 
 ## 当前摘要（2026-11-02）
 
-- 本包进行中，**build-003 跨幕候选待安装**。r3/002精英完整16步/胜利/40金币与血瓶领奖全匹配，误报已消除，Stop后原manager/context及所比较Continue/Progress恢复。r2的内部遗物误报mixed FAIL保留，不追改。
+- 本包进行中，**build-003 跨幕候选已安装待测**，源码 `ce24af2`。r3/002精英完整16步/胜利/40金币与血瓶领奖全匹配，误报已消除，Stop后原manager/context及所比较Continue/Progress恢复。r2的内部遗物误报mixed FAIL保留，不追改。
 - r3真正Continue精确匹配原point4，仍同一Run，保留旧领取5/6为原始事实而不纳入最终路线；新领奖/跳卡→原生地图→瀑布巨人Boss22步胜利自动封存，未领奖。Boss当前仅录制/生产读取通过，未观看；精英四次Back/重做已在r2通过，无需复测旧卡矩阵。
 - 当前局 `2b0f7e321a3a4dcd9caf9ee83435a06f`，种子KTRJB2SKRSYV；原生fingerprint精确匹配point7，首幕Boss完成未领奖，57HP/139金币。root原始12操作，最终selected `[1,2,3,4,7,8,9,10,11,12]`，3访问/4attempt。Boss片 `27099a921185492ca48419b00b23a80f`、精英片 `be74f0a6bbb943578c3ec700c328bfbd`。
 - 003沿Boss奖励页原生SetLocalPlayerReady→唯一原生Vote→EnterNextAct任务记录/播放act-proceed，实际加载Task收束后核同Run第二幕MapRoom/空地图访问；不直接重复调用EnterAct、不读后幕checkpoint。接第二幕Ancient实际入口/原生选项和首普通战斗；新增默认关闭换幕加载中公开Stop一次性开关。**这些新增路径尚无原生动态结论**。
@@ -53,3 +53,5 @@
 第二幕地图首点在CurrentMapPoint=null时只接受本体StartingMapPoint，随后仍沿MapTravel实际可达节点；目的访问核Act/ActModel，Ancient实际房型/模型、候选/页面/RNG及选择结果沿RunEvents/RunChoices。实际第二幕Orobas当前只计划选原生第二项代表奖励，不外推其他古神奖励布局；原有自定义布局/额外reward页保护保持。新增Stop开关在原生SetActInternal完成但EnterAct场景未结束时调用公开Stop，直接等待已提交原生转换完成后清理；默认关闭，不让用户抢帧。真实Stop结果待有片后验证。
 
 主体/DirectContracts Release均0warnings/0errors；12项branch合同及11项run-envelope通过，新增合同只证明Boss因果操作和第二幕新visit/真实save分支关系，不当原生换幕证据。r3实际root/Boss片生产reader通过；001/002精确已知录制build显式兼容。证据 `checks/build-003-branches.json`、`checks/build-003-run.json`。
+
+003安装收据 `preparation/build-003-5d10c7a3.json`：DLL `BAE17032415D20C4F7844779B921379D8994ABC7C3BE69AC9106988EDADDA70B`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。`mods/ReplayMod`唯一pair与封存003一致、原002另存核hash；51已知文件安装后仅settings.save变化、零缺失、game0、无restore，见 `preparation/post-build003-check.json`。本轮先续录跨幕与第二幕首普通胜利；换幕Stop开发开关暂不启用，等待该实际链有录像后再合并观看验证。
