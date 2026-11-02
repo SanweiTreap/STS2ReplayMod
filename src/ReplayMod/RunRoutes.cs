@@ -75,6 +75,24 @@ internal static class RunRoutes
             "run-event-completed-load-anchor-missing");
         return battle;
     }
+    internal static RunOperation? CompletedMapBattle(RunDocument run,RunContinuation point)
+    {
+        var visit=run.Visits.Single(v=>v.Id==point.Visit);
+        if(!point.PreFinished||visit.RoomType is not ("Monster" or "Elite" or "Boss")||run.Branches is null)return null;
+        var attempt=run.Branches.Attempts.SingleOrDefault(a=>a.Id==point.Attempt&&a.Visit==point.Visit);
+        var save=attempt?.RestoredSave is {} id?run.Branches.Saves.SingleOrDefault(s=>s.Id==id&&s.Visit==point.Visit&&s.PreFinished):null;
+        var source=save?.Path.LastOrDefault();
+        var battle=source is >0?run.Operations.SingleOrDefault(o=>(o.SourceSequence??o.Sequence)==source):null;
+        // Only an observed completed-battle save is a proven native load boundary.
+        // Other/legacy saves retain their earlier guards; never guess by resources.
+        if(battle?.Kind!="battle")return null;
+        var next=run.Operations.SingleOrDefault(o=>o.Sequence==point.BeforeOperation);
+        Codec.Require(battle is {Status:"complete",Clip:not null,Battle.Completion:"victory"}&&battle.Battle.Entry!="event"&&
+            save!.Attempt==attempt!.Parent&&battle.Visit==point.Visit&&battle.Battle.Act==visit.Act&&
+            next is {Kind:"reward" or "proceed" or "act-proceed"}&&next.Visit==point.Visit&&next.Attempt==point.Attempt,
+            "run-completed-map-load-anchor-missing");
+        return battle;
+    }
     internal static (RoomVisit Visit,string? Type,string? Model) Destination(RunDocument run,RunOperation map,RunOperation next)
     {
         var visit=run.Visits.Single(v=>v.Id==next.Visit);

@@ -273,15 +273,17 @@ internal static class PlayerLoop
     }
     // Re-enact an evidenced Load using this playback's OWN native save-boundary
     // result. No recorded battle checkpoint or expected world state enters here.
-    internal static async Task LoadComputedContinuation(string json)
+    internal static async Task LoadComputedContinuation(string json,bool completedMap=false)
     {
         var memory=_memory??throw new InvalidDataException("computed-load-without-memory-session");
         var manager=IsolatedManager;
         Codec.Require(Active&&RunPlayback.Active&&ReferenceEquals(manager,SaveManager.Instance),"computed-load-save-owner");
         var parsed=JsonSerializationUtility.FromJson<SerializableRun>(json);
-        Codec.Require(parsed.Success&&parsed.SaveData?.PreFinishedRoom is {IsPreFinished:true,ParentEventId:not null,ShouldResumeParentEvent:true},"computed-load-parent-stage");
+        Codec.Require(parsed.Success&&parsed.SaveData?.PreFinishedRoom is {IsPreFinished:true} completed&&
+            (completedMap?completed.ParentEventId is null&&LiveState.CombatRoomType(completed.RoomType):
+                completed is {ParentEventId:not null,ShouldResumeParentEvent:true}),"computed-load-parent-stage");
         var encounter=parsed.SaveData!.PreFinishedRoom!.EncounterId??throw new InvalidDataException("computed-load-encounter-missing");
-        Codec.Require(!ModelDb.GetById<EncounterModel>(encounter).ShouldGiveRewards,"computed-load-extra-reward-stage-unsupported");
+        Codec.Require(completedMap||!ModelDb.GetById<EncounterModel>(encounter).ShouldGiveRewards,"computed-load-extra-reward-stage-unsupported");
         Loading=true;
         try
         {
@@ -289,6 +291,7 @@ internal static class PlayerLoop
             // The native parent-room Resume owns the ONE subsequent fade-in.
             await Runtime.Game.Transition.RoomFadeOut();RunPlayback.CheckStop();
             await ClearRoom(memory);RunPlayback.CheckStop();
+            if(completedMap)RunPatches.Clear();
             _roster=null;_fileBindings=null;Checkpoints.Clear();Prequeued.Clear();Committed.Clear();OrbState.Reset();BattleEnd.Reset();
             var save=parsed.SaveData!;var state=RunState.FromSerializable(save);
             await RunManager.Instance.SetUpSavedSingleplayer(state,save);RunPlayback.CheckStop();
@@ -297,17 +300,17 @@ internal static class PlayerLoop
             await PreloadManager.LoadRunAssets(state.Players.Select(p=>p.Character));await PreloadManager.LoadActAssets(state.Act);RunPlayback.CheckStop();
             RunManager.Instance.Launch();Runtime.Game.RootSceneContainer.SetCurrentScene(NRun.Create(state));
             await RunManager.Instance.GenerateMap();RunPlayback.CheckStop();
-            EventReturnPresentation.Begin(state);
+            if(!completedMap)EventReturnPresentation.Begin(state);
             var load=RunManager.Instance.LoadIntoLatestMapCoord(AbstractRoom.FromSerializable(save.PreFinishedRoom,state));
-            RunPlayback.Track(load);EventReturnPresentation.TestStopDuringLoad(load);
+            RunPlayback.Track(load);if(!completedMap)EventReturnPresentation.TestStopDuringLoad(load);
             await load;
-            Runtime.Log("run-computed-event-load-settled",new{NativeLoadCompleted=load.IsCompletedSuccessfully,
+            Runtime.Log(completedMap?"run-computed-combat-load-settled":"run-computed-event-load-settled",new{NativeLoadCompleted=load.IsCompletedSuccessfully,
                 StopRequested=Cursor?.StopRequested==true,PlayerLoop.Loading,SameIsolatedSaveManager=ReferenceEquals(manager,SaveManager.Instance)});
             RunPlayback.CheckStop();
-            await EventReturnPresentation.Finish();
+            if(completedMap)await Runtime.Game.Transition.RoomFadeIn();else await EventReturnPresentation.Finish();
             Codec.Require(ReferenceEquals(manager,IsolatedManager)&&ReferenceEquals(manager,SaveManager.Instance),"computed-load-replaced-save-manager");
         }
-        finally{EventReturnPresentation.End();Loading=false;}
+        finally{if(!completedMap)EventReturnPresentation.End();Loading=false;}
     }
     internal static void ReleaseBattleForTravel()
     {

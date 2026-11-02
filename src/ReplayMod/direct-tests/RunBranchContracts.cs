@@ -36,6 +36,26 @@ internal static class RunBranchContracts
                 target.Visit.ActModel=="ACT.HIVE"&&target.Model=="EVENT.OROBAS"&&
                 RunRoutes.ProgressBefore(view,view.Continuations.Single())==4,"act-cause-duplicated-or-entry-load-context-misplaced");
         });
+        Test("completed-map-load-requires-observed-save-of-the-verified-battle-not-resource-similarity",()=>
+        {
+            foreach(var kind in new[]{"Monster","Elite","Boss"})
+            {
+                var sample=Fresh();sample.Visits[0]=sample.Visits[0] with{MapType=kind,RoomType=kind};
+                RunRoutes.StartAttempt(sample,1,null,null,"entry");var battle=Add(sample,1,"battle","victory");
+                sample.Operations[0]=battle with{Battle=new(sample.Id,1,1,0,2,100,"map","victory")};
+                var saved=RunRoutes.Observe(sample,1,1,[1],"disk-before-progress","load-before-progress","key",true);
+                Add(sample,1,"reward","old");RunRoutes.Restore(sample,"load-before-progress");
+                var point=new RunContinuation(DateTimeOffset.UtcNow,1,true,"key","native-continue",3,sample.Branches!.ActiveAttempt);
+                sample.Continuations.Add(point);Add(sample,1,"reward","actual-after-load");var view=RunRoutes.Playback(sample);
+                Need(RunRoutes.CompletedMapBattle(view,view.Continuations.Single())?.SourceSequence==1&&
+                    RunStore.ContinueBefore(view,view.Continuations.Single())==2&&saved.Path.SequenceEqual(new[]{1}),"completed-map-source-not-bound-to-actual-save");
+                var altered=view with{Operations=view.Operations.Select(o=>o.Sequence==1?o with{Battle=o.Battle! with{Act=1}}:o).ToList()};
+                var rejected=false;try{_=RunRoutes.CompletedMapBattle(altered,altered.Continuations.Single());}
+                catch(InvalidDataException ex) when(ex.Message=="run-completed-map-load-anchor-missing"){rejected=true;}
+                Need(rejected,"other-act-battle-used-as-load-boundary");
+                Need(RunRoutes.CompletedMapBattle(view,view.Continuations.Single() with{PreFinished=false}) is null,"unfinished-load-guessed-as-completed");
+            }
+        });
         RunRoutes.StartAttempt(run,2,1,null,"entry");var point=RunRoutes.Observe(run,2,2,[1,2],"disk","load","semantic",false);
         Add(run,2,"treasure-open","offer");Add(run,2,"treasure-pick","A");
         var original=Codec.Bytes(run.Operations);
