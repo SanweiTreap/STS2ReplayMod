@@ -30,7 +30,7 @@
 
 ## 随后的方向与主要缺口
 
-RUN-004/r6已实测精英合法起点→Boss→唯一原生换幕→Orobas第二项RadiantPearl→第二幕普通胜利，后两战自然初态/RNG及整链结果匹配；当前仍仅完成这一代表连续链，换幕Loading中Stop/重开由Implementation在原包继续，不新增矩阵。D-146将D-140自算原生保存点恢复扩至有真实完成战斗Save/Continue关系的地图战斗，两处精英/Boss重载通过；未读录制后战checkpoint或注入expected，r5原失败保持。准备局Opening=null，不当从涅奥完整观看。两次胜利后暗亮对应实录SL的重建淡出入，暂保留，不认所有视觉已接受或提前实施隐藏SL/播放模式。当前原生point12第二幕首普通完成未领奖，无restore；精确恢复点见当前报告。见[整局规划](technical-notes/RUN-REPLAY-PLAN.md)。
+RUN-004/r6已实测精英合法起点→Boss→唯一原生换幕→Orobas第二项RadiantPearl→第二幕普通胜利，后两战自然初态/RNG及整链结果匹配；当前仍仅完成这一代表连续链，换幕Loading中Stop/重开由Implementation在原包继续，不新增矩阵。D-146将D-140自算原生保存点恢复扩至有真实完成战斗Save/Continue关系的地图战斗，两处精英/Boss重载通过；未读录制后战checkpoint或注入expected，r5原失败保持。准备局Opening=null，不当从涅奥完整观看。D-147用户澄清：当前最终路线应剪掉SL/Continue场景重建过程，两次暗亮是暂留呈现偏差；后台必要恢复另算，本轮不急修，之后讨论两种播放方式。当前原生point12第二幕首普通完成未领奖，无restore；精确恢复点见当前报告。见[整局规划](technical-notes/RUN-REPLAY-PLAN.md)。
 
 用户留存的未来方向：[原始界面输入/简化等效与Auto节奏](technical-notes/PLAYBACK-MODES.md)。现有商店开关等操作记录更接近原始输入过程；暂按实现方便继续，不要求现在拆分模式/补时间线或加验收，不排为紧接下一包的必做任务。
 
