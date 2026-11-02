@@ -93,9 +93,12 @@ internal static class RunPlayback
         _fine=0;_wholeRequests=0;_decision=0;_phaseAt=0;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;Current=run.Operations[_index];RunPatches.Clear();
         VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;
         foreach(var point in _continuations.Values.SelectMany(p=>p))
-            if(RunRoutes.CompletedEventBattle(run,point) is {} child)NeededComputedSaves.Add(child.SourceSequence??child.Sequence);
+        {
+            var battle=RunRoutes.CompletedEventBattle(run,point)??RunRoutes.CompletedMapBattle(run,point);
+            if(battle is not null)NeededComputedSaves.Add(battle.SourceSequence??battle.Sequence);
+        }
     }
-    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();RunActs.Clear();}
+    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();RunActs.Clear();RunCombatLoads.Clear();}
     internal static string? InitialProgress()
     {
         if(!_progressContexts.Remove(_run.Operations[_index].Sequence,out var points))return Current?.Progress;
@@ -205,7 +208,7 @@ internal static class RunPlayback
                 }
                 Codec.Require(Current.Status=="complete"&&Current.Kind!="gap","run-recording-gap");
                 NonCombat=true;_whole=false;_decision=0;
-                ApplyContinuations(Current);
+                await ApplyContinuations(Current);
                 if(_rewardsRoom is {} room&&room.Encounter.ShouldGiveRewards)
                 {
                     Codec.Require(Current.Kind is "reward" or "proceed" or "act-proceed","run-missing-reward-operation");
@@ -233,7 +236,7 @@ internal static class RunPlayback
         }
         catch(OperationCanceledException) when(_stop){return false;}
     }
-    private static void ApplyContinuations(RunOperation operation)
+    private static async Task ApplyContinuations(RunOperation operation)
     {
         if(!_continuations.Remove(operation.Sequence,out var points))return;
         ApplyProgressContexts(operation.Sequence);
@@ -247,6 +250,11 @@ internal static class RunPlayback
             if(RunRoutes.CompletedEventBattle(_run,point) is {} battle)
             {
                 Codec.Require(_eventLoad is null,"run-event-load-boundary-ambiguous");_eventLoad=(point,battle);continue;
+            }
+            if(RunRoutes.CompletedMapBattle(_run,point) is {} completed)
+            {
+                _rewardsRoom=null;
+                await RunCombatLoads.Restore(point,completed);continue;
             }
             // EnterMapPointInternal invokes this before restoring an already
             // completed room. Reuse that native history finalization while
