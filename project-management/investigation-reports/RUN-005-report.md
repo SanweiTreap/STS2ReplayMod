@@ -2,15 +2,15 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包已开始实现，**build-001 首个后段增量已安装待测**，源码 `54aa923`，尚无RUN-005原生运行结论；RUN-004/004原代表验收保持。完整目标仍需同一真实新局→三幕→原生终局的一份录制与连续观看，不把本次第二幕后段准备拼成完整整局。
+- 本包进行中，保留 **build-001**，源码 `54aa923`。**r1原生后段录制通过**：第二幕KnowledgeDemon Boss19步胜利→第二次换幕→第三幕Nonupeipe第一项FurCoat→ScrollsOfBitingWeak首战一张防御后存退；零观察器错误，唯一gap为显式准备。尚未原生观看/第三幕重启续录。完整新局→三幕→原生终局同份证据仍待，RUN-004原结果保持。
 - 录制入口、format10场景身份、LiveState输入/恢复、共用换幕投票与第三幕Ancient分派接到Act0/1/2；保持同Run/ActModel/visit/attempt、自然资源/RNG和既有自算保存点恢复。第一/二次换幕共用原生EnterNextAct路径；第三幕Boss后的终局入口仍待接，不能只删白名单后说完整通关。
-- 新增可选Lifecycle事实：原生新局/Continue、保存退出（可续）、中断、真正OnEnded胜利/死亡/主动放弃。WinRun先OnEnded(true)后强制杀玩家，再次OnEnded(false)不覆盖胜利；无字段旧片保持未知，不补胜负。当前仅登记原生结局事实基础，死亡末尾动作/死亡观看、终局事件/胜利观看尚未实现和动态验证。
+- 新增可选Lifecycle事实：r1实际Continue与saved-exit正确登记，未误判放弃；无字段旧片保持未知。真正OnEnded胜利/死亡/主动放弃的登记基础已实现、尚未动态验证；死亡末尾动作/死亡观看、最终事件/胜利观看仍待实现。WinRun后的强杀不得覆盖胜利。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
 - 原生已查：第三幕最后Boss领奖后经ActChangeSynchronizer/EnterNextAct进入TheArchitect，实际选项/演出最终调用WinRun。TheArchitect为自定义Combat事件布局，尚未接入普通事件播放器。OnEnded真正落统计/历史/删Continue，主动Abandon先置IsAbandoned再强杀，普通保存退出只ReturnToMainMenu；不按末击/CleanUp/角色死亡猜胜利。
 - 主体/DirectContracts Release均0warnings/0errors；12项run-envelope、15项library、13项branch合同通过，含第三幕metadata及生命周期胜利防覆盖/存退可续/死亡与放弃区分/旧字段省略；旧RUN-004 root/第三场clip生产读取通过且原件不变。均非新增原生运行通过。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
-- 用户本轮确认Cloud关闭、无新进度；实读当前仍KTRJB2SKRSYV、ACT.HIVE/ExoskeletonsWeak胜利未领奖、point12，game0。补存 `RUN005-pre-build001-current-20261103-013141`，51文件/4,169,988bytes，较RUN004/r7零变化/缺失，全部hash读回，无restore/另一账户读取。
-- 下一步：装001后用户启用后段准备→Continue当前第二幕完成房间→领奖/原生Boss战胜利→正常奖励/第二次换幕→第三幕古神→首普通打一张防御后存退；先核后段增量与第三幕真正Continue，再接后续终局。正式UI由PM讨论，当前“回放”明确只是开发临时入口；D-147两次SL暗亮仍是待改呈现偏差，本包不隐藏过场/拆模式。
+- 当前实读同Run `2b0f7e321a3a4dcd9caf9ee83435a06f`、种子KTRJB2SKRSYV，native精确point18：Act2/ACT.GLORY第三幕首普通**战前**，已封存的一步防御在旧片中但未写入战前存档。原始root35项、selected33项、8visit/11attempt，Lifecycle为continued→saved-exit。game0，最新补存 `RUN005-post-r1-current-20261103-014454`，142数据文件/51已知文件、零缺失/无restore；本轮原生录制6项变化保留，另一账户未读。
+- 下一步：继续用001真正重新启动Continue第三幕首战并获胜，胜利不领奖/不前进、存退。核point18恢复/新attempt及旧一步片不拼接，再从原始26第二幕Boss合法起点观看后段。无需重打第二幕Boss。正式UI/播放模式及D-147暗亮隐藏继续不实现。
 
 ## 首候选实现与边界
 
@@ -23,6 +23,18 @@ RunEndings在真正OnEnded首次调用前冻结实际RunResources并按isVictory
 001安装收据 `evidence/run-005/preparation/build-001-b9115c1f.json`：DLL `4B591FA3D071A67E8D4332355825BF769B6708C919D2093A62F7531332DF8657`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`；唯一mods/ReplayMod pair与封存001一致，原RUN-004/004另存核hash。51已知文件安装后仅settings.save变化、零缺失、game0、无restore，见 `preparation/post-build001-check.json`。工具只补run-005和既有备份名，不新建账户/扫描工作流。
 
 PM UI分线：已结束对局未来正式入口为百科大全→历史记录→当前局详情观看，左右切换继续本体；当前主菜单回放仅开发临时。UI讨论/历史身份绑定不在本候选实现；已知原生history/{StartTime}.run身份可由后续真正终局事实保留，当前Battle.RunStartTime已登记真实起始时间，不借此宣称正式关联已完成。
+
+## r1：第二次换幕与第三幕存退录制（001）
+
+会话 `4b24899b06e742d4a47d121105a4d5b0`，137事件、零observer-error/unsupported-or-failed/missing。Continue精确恢复原point12同Run、创建attempt8；显式后段准备在原生地图生成后把当前第二幕普通节点连到本幕原生Boss，原资源/RNG/敌人不改，原始操作21明确gap。该gap是预定准备范围，不当录制程序失败，也不视作完整新局证明。
+
+第二幕 `ENCOUNTER.KNOWLEDGE_DEMON_BOSS`19步胜利封存片 `37525b91f57c4fcb92895ad4ee008173`，Battle.Act1/ACT.HIVE/Floor16/TotalFloor6；实际奖励与第二次act-proceed完成后，进入新Visit7、Act2/ACT.GLORY/EVENT.NONUPEIPE，选择第一项RELIC.FUR_COAT，离开并自然进入Visit8 `ENCOUNTER.SCROLLS_OF_BITING_WEAK`。一张CARD.DEFEND_IRONCLAD完整结算后保存退出，format10一步中断片 `34f3f3c2d444422eb54baa2c76481d73`，Battle.Act2/Floor2/TotalFloor8、Completion=interrupted、Victory=false。
+
+Lifecycle明确原生SetUpSavedSingleplayer的continued和暂停CloseToMenu→Cleanup的saved-exit，非死亡/放弃。当前原生fingerprint精确point18（PreFinished=false，Path到原始34），没有把未存盘的原始battle35一步操作拼进保存位置；第三幕真正重启Continue与新attempt等待下一轮。root35原始/selected33，8visit/11attempt，后段覆盖从原始26第二幕Boss合法checkpoint起；未混淆三个幕复用坐标。
+
+root后段与Boss片、第三幕一步片分别使用生产reader校验通过且原件不变；纯验证工具补显式起点与中断片选项，仍分别标注尾段/中断/非观看，不把胜利专用checker的拒绝解释为游戏故障。最初以整局默认起点检查被准备gap的Continue前保护拒绝，以胜利专用checker检查一步中断片亦被拒绝；这些边界保留在 `checks/r1-scope-boundaries.json`，未放宽runtime/删除gap或改数据以求PASS。新检查CLI在direct-tests内，主DLL/001不变。
+
+补存142数据文件、51已知当前文件/4,136,544bytes，6项实际modded1录制/进度及settings.backup更新保留，零缺失/game0/无restore/另一账户未读。证据 `runtime-verification-r1.json`、`collection-r1.json`、`checks/r1-tail-run.json`、`checks/r1-clip-37525b91.json`、`checks/r1-fragment.json`。**本轮只录制/实读，第二次换幕及第三幕自然观看尚未证明。**
 
 ## 后续必须完成
 
