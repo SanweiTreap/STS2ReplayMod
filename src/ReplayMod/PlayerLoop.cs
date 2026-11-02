@@ -258,7 +258,18 @@ internal static class PlayerLoop
             Check("run-next-battle-initial",clip.Initial,LiveState.Capture());BattleEnd.Begin();EnsureRoster();
             Runtime.Log("run-next-battle-initial-verified",new{clip.Id,InitialAndRngMatched=true,CheckpointLoaded=false,ExpectedStateInjected=false});
         }
-        Codec.Require(await NativeSeek.LoadOpening(Load,()=>throw new InvalidDataException("run-cross-room-opening-navigation-disabled")),"run-next-battle-opening-stopped");
+        var retired=false;
+        async Task RetireForStop()
+        {
+            Codec.Require(NativeSeek.Stopping,"run-cross-room-opening-navigation-disabled");
+            ChoiceAbort=true;await ClearRoom(_memory??throw new InvalidDataException("opening-stop-without-memory-session"));retired=true;
+        }
+        if(!await NativeSeek.LoadOpening(Load,RetireForStop))
+        {
+            Runtime.Log("run-battle-opening-stopped",new{clip.Id,OpeningRoomCleared=retired,NativeSeek.Stopping,
+                StopRequested=Cursor?.StopRequested==true,CrossRoomNavigationEnabled=false});
+            RunPlayback.CheckStop();throw new InvalidDataException("run-next-battle-opening-stopped");
+        }
     }
     // Re-enact an evidenced Load using this playback's OWN native save-boundary
     // result. No recorded battle checkpoint or expected world state enters here.

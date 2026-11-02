@@ -15,6 +15,7 @@ namespace ReplayMod;
 internal static class RunOpening
 {
     internal static bool NewLeafArmed;
+    internal static bool CombatStopTestArmed;
     private static RunStartInput? _captured,_playing;
     private static string? _recordedDebug;
     internal static void Install(Harmony h)
@@ -44,6 +45,18 @@ internal static class RunOpening
             BeforeNewRunFactory=true,BeforeRewards=true,Preparation=_recordedDebug});
     });
     internal static RunStartInput? Take(){var input=_captured;_captured=null;return input;}
+    internal static void TestCombatEntryStop(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom room,MegaCrit.Sts2.Core.Combat.CombatState state)
+    {
+        if(!CombatStopTestArmed||!RunPlayback.Active||!PlayerLoop.Loading||!NativeSeek.Enabled||!NativeSeek.Opening||
+            !ReferenceEquals(room,MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom.Instance)||
+            !ReferenceEquals(state,MegaCrit.Sts2.Core.Combat.CombatManager.Instance.DebugOnlyGetState()))return;
+        CombatStopTestArmed=false;
+        Runtime.Log("run-combat-entry-stop-test-request",new{Phase="NCombatRoom.OnCombatSetUp",PlayerLoop.Loading,NativeSeek.Opening,
+            OneShotConsumed=true,PublicControl="PlayerLoop.Control(stop)"});
+        PlayerLoop.Control("stop");
+        Runtime.Log("run-combat-entry-stop-test-accepted",new{Accepted=NativeSeek.Stopping&&PlayerLoop.Cursor?.StopRequested==true,
+            CrossRoomNavigationEnabled=false});
+    }
     private static void PrepareOptions(AncientEventModel __instance)
     {
         if(__instance is not Neow)return;
