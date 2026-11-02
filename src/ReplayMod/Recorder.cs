@@ -36,7 +36,7 @@ internal static class Recorder
         RunEventCombat.Clear();
         ResetSegment();_enabled=false;_attempted=false;_continueSave=null;
         if(fresh){_loadedSave=null;_loadedJson=null;Runtime.CheckEnvironment();Runtime.Journal.NewRun();RecordedState.NewRun();_enabled=true;RunRecording.Attach(false);}
-        Runtime.Status="自动录制：五角色A0第一、二幕战斗，每场胜利独立保存；支持保存退出后继续";
+        Runtime.Status="自动录制：五角色A0三幕战斗，每场胜利独立保存；支持保存退出后继续";
     }
     internal static void Continue(SerializableRun save)
     {
@@ -101,7 +101,7 @@ internal static class Recorder
         if(Active||_waiting)Interrupt();
         ResetSegment(preserveAuthority:true);_attempted=false;
         var run=LiveState.Run;
-        if(preFinished||run.CurrentActIndex is not (0 or 1)||run.AscensionLevel!=0||run.Modifiers.Count!=0||run.CurrentMapPoint is not {} point||!LiveState.CombatMapType(point.PointType))
+        if(preFinished||run.CurrentActIndex is <0 or >2||run.AscensionLevel!=0||run.Modifiers.Count!=0||run.CurrentMapPoint is not {} point||!LiveState.CombatMapType(point.PointType))
         {
             _continueSave=null;Runtime.Status="本房间不录制；进入下一场受支持战斗时自动恢复";return;
         }
@@ -158,7 +158,7 @@ internal static class Recorder
         if(parent is not null)battle=battle! with{ParentEvent=parent,ResumeParent=true};
         _clip=new(LiveState.Format,Guid.NewGuid().ToString("N"),DateTimeOffset.UtcNow,Runtime.GameHash,Runtime.ModHash,Runtime.Scope,
             Runtime.Mods,LiveState.Player.Character.Id.ToString(),run.Rng.ToSerializable().Seed??"",coord.row,coord.col,"",
-            JsonSerializationUtility.ToJson(save),"",[],TestEncounter.Preparation,RecordedState.Recording?"STATE001-first-Defend-v1":null,Battle:battle);
+            JsonSerializationUtility.ToJson(save),"",[],TestEncounter.Preparation??RunTailPreparation.Marker,RecordedState.Recording?"STATE001-first-Defend-v1":null,Battle:battle);
         _waiting=true;if(LiveState.Format>=4)ChoiceTape.Record();Runtime.Status="准备录制：等待本场可操作，初始选择将一并记录";
         Runtime.Log("recording-room-checkpoint",new{_clip.Id,_clip.Battle,coord.row,coord.col,save.StartTime,BeforeRoomCreation=true,Source=source});
     }

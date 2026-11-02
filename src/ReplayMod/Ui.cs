@@ -40,6 +40,9 @@ internal static class Ui
         combatStop.Toggled+=value=>RunOpening.CombatStopTestArmed=value;box.AddChild(combatStop);
         var actStop=new CheckBox{Text="RUN-004：下次换幕加载中自动Stop（仅一次）",ButtonPressed=RunActs.StopTestArmed};
         actStop.Toggled+=value=>RunActs.StopTestArmed=value;box.AddChild(actStop);
+        var tail=new CheckBox{Text="RUN-005 后段准备：Continue当前第二幕普通后直连Boss（明确前缀缺口）",ButtonPressed=RunTailPreparation.Armed};
+        tail.Toggled+=value=>{RunTailPreparation.Armed=value;Runtime.Status=value?
+            "仅下次Continue当前第二幕普通保存点：地图直连原生Boss，原资源/RNG不改；这不是完整三幕样本":"已取消后段准备";};box.AddChild(tail);
         var acts=new CheckBox{Text="RUN-004 精英→Boss短路线（仅下一铁甲A0新局）",ButtonPressed=TestEncounter.Armed==TestPreparation.RunActs};
         acts.Toggled+=value=>{TestEncounter.Armed=value?TestPreparation.RunActs:TestPreparation.None;
             if(value){RecordedState.Armed=false;RunOpening.NewLeafArmed=false;}

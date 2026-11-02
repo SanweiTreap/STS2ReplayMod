@@ -32,8 +32,8 @@ internal static class RunActs
         {
             if(RunRecording.Enabled)
             {
-                if(LiveState.Run.CurrentActIndex!=0||LiveState.Run.CurrentRoom is not CombatRoom {RoomType:RoomType.Boss,IsPreFinished:true})
-                {Runtime.Guard(()=>RunRecording.Unsupported("act-proceed","本轮仅支持首幕Boss到第二幕"));return true;}
+                if(LiveState.Run.CurrentActIndex is not (0 or 1)||LiveState.Run.CurrentRoom is not CombatRoom {RoomType:RoomType.Boss,IsPreFinished:true})
+                {Runtime.Guard(()=>RunRecording.Unsupported("act-proceed","最终Boss之后的终局入口待接入"));return true;}
                 _recorded=RunPatches.Record("act-proceed",()=>RunRecording.Begin("act-proceed",new()));
             }
             return true;
@@ -86,8 +86,8 @@ internal static class RunActs
     internal static async Task Play()
     {
         var run=LiveState.Run;
-        Codec.Require(run.CurrentActIndex==0&&run.CurrentRoom is CombatRoom {RoomType:RoomType.Boss,IsPreFinished:true}&&
-            run.Acts.Count>1,"act-proceed-not-at-supported-completed-boss");
+        Codec.Require(run.CurrentActIndex is 0 or 1&&run.CurrentRoom is CombatRoom {RoomType:RoomType.Boss,IsPreFinished:true}&&
+            run.CurrentActIndex+1<run.Acts.Count,"act-proceed-not-at-supported-completed-boss");
         _owner=run;_source=run.CurrentActIndex;_transition=null;_ready=false;_voted=false;
         PlayerLoop.ReleaseBattleForTravel();
         try

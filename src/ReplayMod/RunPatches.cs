@@ -89,6 +89,7 @@ internal static class RunPatches
         RunOpening.Install(h);
         RunActs.Install(h);
         RunCombatLoads.Install(h);
+        RunEndings.Install(h);
     }
     private static void RoomTypeChosen(MapPointType __0,RoomType __result)=>Runtime.Guard(()=>
     {
@@ -96,7 +97,7 @@ internal static class RunPatches
             Playback=RunPlayback.Active,NativeRollExecuted=true,RoomTypeForced=false});
         Recorder.RoomTypeChosen(__0,__result);
     });
-    private static void GeneratedMap(ActMap __0)=>Runtime.Guard(()=>TestEncounter.ConfigureRunRoute(__0));
+    private static void GeneratedMap(ActMap __0)=>Runtime.Guard(()=>{TestEncounter.ConfigureRunRoute(__0);RunTailPreparation.Apply(__0);});
     private static void Room(AbstractRoom __0,ref Task __result)
     {var native=__result;__result=Finish();async Task Finish(){await native;Runtime.Guard(()=>RunRecording.Room(__0));}}
     private static bool Map(NMapPoint __0)

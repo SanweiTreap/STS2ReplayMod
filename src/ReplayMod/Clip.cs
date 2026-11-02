@@ -50,7 +50,7 @@ public static class Codec
             clip.Operations[0] is {Kind:OperationKind.Card,Card:"CARD.DEFEND_IRONCLAD",Turn:1,Victory:false,CardState.Upgrade:0},"unsupported-authority-point");
         var victory=clip.Operations[^1].Victory;
         Require(clip.Format>=9?clip.Battle is {Battle:>0,Attempt:>0,Act:>=0,Floor:>0,RunStartTime:>0} battle&&
-            (clip.Format>=10?battle.Act<=1:battle.Act==0)&&
+            (clip.Format>=10?battle.Act<=2:battle.Act==0)&&
             (battle.RoomType is null or "Monster" or "Elite" or "Boss")&&
             (battle.ActModel is null||Regex.IsMatch(battle.ActModel,"^ACT\\.[A-Z0-9_]+$"))&&
             (battle.ActFloor is null||battle.ActFloor==battle.Floor)&&(battle.TotalFloor is null or >0)&&
@@ -153,7 +153,7 @@ public static class Codec
 // Prototype files are private local clips, not a public/export format. The checkpoint contains native player identifiers.
 public sealed class ClipStore(string root)
 {
-    public const int Cap=4*1024*1024;
+    public const int Cap=16*1024*1024;
     private string PathFor(string id){Codec.Require(Regex.IsMatch(id,"^[a-f0-9]{32}$"),"invalid-clip-id");return Path.Combine(root,id+".json");}
     public string? LatestId()
     {

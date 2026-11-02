@@ -41,13 +41,14 @@ internal static class RunRecording
     private static int _battleSequence;
     private static string? _entryProgress;
     private static bool _restoredEntry,_unknownLoad;
+    private static bool _saveExit;
     internal sealed record SaveLocation(string Run,int Visit,int Attempt,int[] Path);
     internal static bool Enabled=>_run is not null&&!PlayerLoop.Active;
     internal static bool Choosing=>Enabled&&Pending?.Kind is "reward" or "rest" or "treasure-pick" or "merchant-buy" or "merchant-remove" or "event-choice";
     internal static void Attach(bool continuation,SerializableRun? save=null,string? loadedJson=null)
     {
         if(PlayerLoop.Active||Runtime.Journal.CurrentRun is not {} id)return;
-        Pending=null;_battleSequence=0;_visit=0;_entryProgress=null;_restoredEntry=false;_unknownLoad=false;
+        Pending=null;_battleSequence=0;_visit=0;_entryProgress=null;_restoredEntry=false;_unknownLoad=false;_saveExit=false;
         var path=Path.Combine(Runtime.Root,"runs",id+".json");
         _run=File.Exists(path)?Store.Read(id):new(1,id,Runtime.GameHash,Runtime.ModHash,Runtime.Scope,
             save?.Players[0].CharacterId?.ToString()??LiveState.Player.Character.Id.ToString(),DateTimeOffset.UtcNow,[],[],[],new(),Opening:continuation?null:RunOpening.Take());
@@ -73,7 +74,19 @@ internal static class RunRecording
             if(_run.Branches is null&&save?.PreFinishedRoom is null&&_run.Visits.LastOrDefault()?.RoomType is "Monster" or "Elite" or "Boss")
                 Gap("未完战斗从原生开场重进；前次操作不拼接");
         }
-        Save();
+        NoteLifecycle(continuation?"continued":"in-progress",continuation?"native-SetUpSavedSingleplayer":"native-new-run",act:save?.CurrentActIndex);
+    }
+    internal static void SaveExitIntent(){if(Enabled)_saveExit=true;}
+    internal static void NoteLifecycle(string kind,string source,string? state=null,int? act=null)
+    {
+        if(!Enabled)return;
+        _run=_run! with{Lifecycle=_run!.Lifecycle??[]};
+        var entry=new RunLifecycleEvent(kind,DateTimeOffset.UtcNow,source,_visit,
+            act??RunManager.Instance.DebugOnlyGetState()?.CurrentActIndex??_run.Visits.LastOrDefault()?.Act??0,
+            _run.Operations.Count+1,CurrentAttempt,state);
+        if(!RunLifecycle.Append(_run.Lifecycle!,entry))return;
+        Save();Runtime.Log("run-lifecycle-recorded",new{Run=_run.Id,entry.Kind,entry.Source,entry.Visit,entry.Act,entry.BeforeOperation,entry.Attempt,
+            NativeTerminal=RunLifecycle.Terminal(kind),StateFrozen=state is not null});
     }
     internal static SaveLocation? SavePosition()=>Enabled&&_visit>0&&_run!.Branches is {ActiveAttempt:>0} b?
         new(_run.Id,_visit,b.ActiveAttempt,b.Selected.ToArray()):null;
@@ -137,7 +150,7 @@ internal static class RunRecording
             room.RoomType==RoomType.RestSite&&visit.MapType=="RestSite"||room.RoomType is RoomType.Treasure or RoomType.Shop||
             room is EventRoom {CanonicalEvent:not MegaCrit.Sts2.Core.Models.AncientEventModel}&&visit.MapType=="Unknown"||
             room is EventRoom {CanonicalEvent:MegaCrit.Sts2.Core.Models.AncientEventModel}&&visit.MapType=="Ancient"&&
-                (visit.Act==1||_run.Opening is not null);
+                (visit.Act is 1 or 2||_run.Opening is not null);
         _run.Visits[index]=visit with{RoomType=room.RoomType.ToString(),Model=room.ModelId?.ToString(),Status="entered",
             Gap=supported?visit.Gap:"本轮未支持的实际房间"};Save();
     }
@@ -195,7 +208,9 @@ internal static class RunRecording
     {if(Pending is {} pending)Missing(pending,reason);MissingOperation(kind,reason);}
     internal static void Exit()
     {
-        if(!Enabled)return;if(Pending is {} pending)Missing(pending,"退出时选择或转换尚未完成");Save();_run=null;Pending=null;
+        if(!Enabled)return;if(Pending is {} pending)Missing(pending,"退出时选择或转换尚未完成");
+        NoteLifecycle(_saveExit?"saved-exit":"interrupted",_saveExit?"native-pause-CloseToMenu":"native-CleanUp-without-terminal");
+        Save();_run=null;Pending=null;_saveExit=false;
     }
     private static void Missing(RunOperation operation,string reason)
     {if(!Enabled)return;Replace(operation with{Status="missing"});if(Pending?.Sequence==operation.Sequence)Pending=null;Save();Runtime.Log("run-operation-missing",new{operation.Sequence,Reason=reason});}

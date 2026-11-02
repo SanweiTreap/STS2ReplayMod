@@ -32,7 +32,7 @@ internal static class RunEvents
     private static EventModel Model=>RunManager.Instance.EventSynchronizer.GetLocalEvent();
     internal static bool InOrdinaryEvent=>LiveState.Run.CurrentRoom is EventRoom {CanonicalEvent:not AncientEventModel};
     internal static bool InSupportedEvent=>InOrdinaryEvent||LiveState.Run.CurrentRoom is EventRoom {CanonicalEvent:AncientEventModel}&&
-        LiveState.Run.CurrentActIndex is 0 or 1;
+        LiveState.Run.CurrentActIndex is >=0 and <=2;
     internal static void Install(Harmony h)
     {
         void Patch(Type type,string method,string? before=null,string? after=null)=>h.Patch(AccessTools.DeclaredMethod(type,method),
