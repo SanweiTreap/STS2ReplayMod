@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-11-02。**RUN-003按首段代表样本验收为DONE_WITH_LIMITATIONS，保留build-006。** 涅奥奖励前真实起点→原生奖励/选择→地图→首战胜利与整局主页入口已形成可用链；不等于全奖励/五角色新开局已验证。Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)。当前无新增测试要求；精英/Boss/跨幕为下一段候选，尚未派发。精确版本、运行证据及旧失败见[RUN-003报告最新摘要](investigation-reports/RUN-003-report.md)。
+更新：2026-11-02。**RUN-004已授权启动：精英、Boss与首条跨幕观看链，尚无新运行结论。** 目标是一位角色A0首幕精英/Boss→原生战后/幕间与第二幕入口选择→第二幕首个普通战斗；见[工作包](handoffs/RUN-004.md)。Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)。起点RUN-003按首段代表样本DONE_WITH_LIMITATIONS、保留006至新候选安装，既有结果/限制见[RUN-003报告](investigation-reports/RUN-003-report.md)。
 
 ## 已确认的可用基础
 
@@ -30,7 +30,7 @@
 
 ## 随后的方向与主要缺口
 
-RUN-003已验证代表样本的奖励前原生新局重建方案，入口与首战链收束。下一最有价值的是一位角色A0的“首幕精英→Boss→原生战后/幕间→第二幕首战”，检查房型、奖励/原生换幕与后战状态/RNG的真实连续性；尚未派发下一包，不把未测涅奥组合全矩阵作为前置。见[整局规划](technical-notes/RUN-REPLAY-PLAN.md)。
+RUN-004已派发：共用路径接精英/Boss房型，记录真实战后/换幕与第二幕古神/入口选择，沿同一隔离会话自然进入第二幕首战并严格核状态/RNG；检查Run/Act/访问与真实Continue归属、新边界Stop/重开。跨幕方案尚未实测，不以删白名单或后幕checkpoint补演冒充完成，不把未测涅奥组合全矩阵作为前置。见[整局规划](technical-notes/RUN-REPLAY-PLAN.md)。
 
 用户留存的未来方向：[原始界面输入/简化等效与Auto节奏](technical-notes/PLAYBACK-MODES.md)。现有商店开关等操作记录更接近原始输入过程；暂按实现方便继续，不要求现在拆分模式/补时间线或加验收，不排为紧接下一包的必做任务。
 
@@ -39,7 +39,7 @@ RUN-003已验证代表样本的奖励前原生新局重建方案，入口与首�
 ## 工作入口
 
 - D-141安装整理已完成，RUN-003实际确认目录识别：现用006固定`<游戏>/mods/ReplayMod/`、无根目录第二份；9套退休探针/不用的SBWEI/旧日志仍在游戏外归档。Prepare-Demo已支持run-003，见[安装维护](maintenance/MOD-INSTALLATION.md)。
-- [当前任务与授权](handoffs/RUN-003.md)、[TODO](TODO.md)、[MVP](MVP.md)、[Roadmap](ROADMAP.md)、[工作流](WORKFLOW.md)。PM按阶段更新，普通bug由Implementation自主完成，不逐轮审批。
+- [当前任务与授权](handoffs/RUN-004.md)、[TODO](TODO.md)、[MVP](MVP.md)、[Roadmap](ROADMAP.md)、[工作流](WORKFLOW.md)。PM按阶段更新，普通bug由Implementation自主完成，不逐轮审批。
 - 源码`src/ReplayMod`；固定反编译`C:/Projects/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`。历史按问题查报告/DECISIONS，不默认全读。
 - D-092备份后自主实验/安装/短测授权保持；用户手动操作游戏，换DLL先正常退出，无Computer Use/替代GUI自动化/自行headless；Cloud按实况，另一账号排除。
 - [公开仓库](https://github.com/SanweiTreap/STS2ReplayMod)只存源码/文档，原始数据/备份/反编译留本地。Git一个index写入者、精确路径、不reset/clean/force；不擅自新建对话或改模型。
