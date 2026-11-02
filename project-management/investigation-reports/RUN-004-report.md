@@ -2,14 +2,14 @@
 
 ## 当前摘要（2026-11-02）
 
-- 本包进行中，**build-004 修复候选待安装**。r5/003完整观看在精英胜利后真实Continue边界FAIL：16步/胜利匹配，唯一差异discovered_enemies（原生胜利存盘早于首次发现统计，观看保留了存盘后列表），已安全退回菜单。r4跨幕代表链录制仍完整；连续观看/换幕Stop尚待通过。r2误报与r5 FAIL均保留。
+- 本包进行中，**build-004 已安装待测**，源码 `3a82316`（主体修复 `9b07bd1`）。r5/003完整观看在精英胜利后真实Continue边界FAIL：16步/胜利匹配，唯一差异discovered_enemies（原生胜利存盘早于首次发现统计，观看保留了存盘后列表），已安全退回菜单。r4跨幕代表链录制仍完整；连续观看/换幕Stop尚待通过。r2误报与r5 FAIL均保留。
 - r3真正Continue精确匹配原point4，仍同一Run，保留旧领取5/6为原始事实而不纳入最终路线；新领奖/跳卡→原生地图→瀑布巨人Boss22步胜利自动封存，未领奖。Boss当前仅录制/生产读取通过，未观看；精英四次Back/重做已在r2通过，无需复测旧卡矩阵。
 - 当前局 `2b0f7e321a3a4dcd9caf9ee83435a06f`，种子KTRJB2SKRSYV；原生fingerprint精确匹配point12，第二幕首普通完成未领奖。root原始20操作，最终selected18操作（旧领奖5/6仍只保留为原始事实），5访问/7attempt。三片为精英 `be74f0a6bbb943578c3ec700c328bfbd`、Boss `27099a921185492ca48419b00b23a80f`、第二幕普通 `4c538903df5241cf9451bcc87fd7c779`；前两片hash未改。
 - 003沿Boss奖励页原生SetLocalPlayerReady→原生Vote→EnterNextAct任务记录/播放act-proceed，不重复调用EnterAct、不读后幕checkpoint；r4实际只录到一次act-proceed，Before/After幕索引0→1，第二幕Ancient与普通访问身份独立且正确。播放的唯一投票/任务收束、自然初态/RNG及新增默认关闭换幕Stop开关仍需实测。
 - 当前已有精英/Boss共用录制、输入/Back与format10第一二幕身份；可选ActModel/RoomType/原生ActFloor/TotalFloor保持旧片省略字段。短准备改暗港首节点为精英并连到本幕原生Boss，牌组/遗物/药水在checkpoint前创建；准备前涅奥虽保留操作，Opening=null，不伪称从涅奥完整重建。普通新局RUN-003路径保留。非战斗Back/跨房间Seek仍禁用。
 - r4证据 `evidence/run-004/runtime-verification-r4.json`、`checks/r4-run.json`、`checks/r4-act2-clip.json`；最新补存 `RUN004-post-r4-current-20261102-222133`，132数据文件、51已知文件/4,169,988 bytes，零缺失，game0，无restore。r4仅modded1录制/原生进度及settings.backup共6项变化；r3已保留modded2更新，本轮未再变。Cloud本轮用户确认关闭，另一账户排除。
 - 004将已证D-140原生保存边界的自算快照重载路径接到有真实成功保存/恢复证据的普通/精英/Boss战后Continue：先核本次战斗胜利，再载本次播放在原生SaveRun边界深冻结的自算快照，同一隔离manager，原生FromSerializable/FinishedCombat重建奖励。保留discoveries完整比较，不清空/注入expected、不读录制后战checkpoint。源码/合同通过，动态结果待测。
-- 下一步：安装004后用原片从精英起点Auto整链；若到第二幕胜利，再做原定换幕自动Stop/重开。无需重录或再打战斗。最新补存 `RUN004-post-r5-current-20261102-222611`，231数据文件、51已知文件，较r4仅settings.backup变化、game0、无restore；当前原生仍point12。
+- 下一步：先只用004原片从精英起点Auto整链并Stop/正常退出，暂不启用换幕Stop开关；核通过后再做原定换幕自动Stop/重开。无需重录或再打战斗。最新补存 `RUN004-post-r5-current-20261102-222611`，231数据文件、51已知文件，较r4仅settings.backup变化、game0、无restore；当前原生仍point12。
 
 ## 首候选实现边界
 
@@ -80,3 +80,5 @@ root20原始操作、selected18操作、5visit/7attempt，selected `[1,2,3,4,7,8
 RunCombatLoads只在所需且本次正在播放的普通/精英/Boss胜利原生RunSaveManager.SaveRun前缀，捕获本次ToSave(room)深冻结JSON（原生保存发生时、progress更新前）。原生战斗全部校验后，在已记录Continue边界同隔离manager中调用扩展后的LoadComputedContinuation；真实FromSerializable/SetUpSavedSingleplayer/LoadIntoLatestMapCoord进入FinishedCombat重生奖励，实际加载Task结束再淡入。无读录制后战checkpoint、无expected资源赋值、无删除发现字段；同样补齐其他原生Load归一化行为，避免逐字段修动画/状态。此处是既有已记录Load重演，不新增Seek/Back地点。
 
 Release主体与DirectContracts均0warnings/0errors；13项branch合同通过，新增普通/Elite/Boss保存证据归属、异幕拒绝及非完成边界不猜；实际root生产读取通过并明确两处源操作，均为结构检查非运行通过。证据 `checks/build-004-branches.json`、`checks/build-004-actual-run.json`。
+
+004安装收据 `preparation/build-004-d0fabcad.json`：DLL `7B7410D2A03968C5C8032E1351B078A8508D44348306F314848695BEDFE4E0B1`，manifest仍 `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`；唯一pair已封存/安装核对、原003另存核hash，51已知文件安装后仅settings.save变化、零缺失、game0、无restore。001/002/003精确录制build显式兼容，可直接沿原root/三片重测，不改旧数据。见 `preparation/post-build004-check.json`。
