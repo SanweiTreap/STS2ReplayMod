@@ -34,14 +34,36 @@ public sealed class RunBranches
 }
 public sealed record RunStartInput(string Character,string Seed,string[] Acts,string GameMode,int Ascension,string Progress,string Prefs,
     string? NeowDebugOption=null);
+public sealed record RunLifecycleEvent(string Kind,DateTimeOffset At,string Source,int Visit,int Act,int BeforeOperation,int? Attempt,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? State=null);
+internal static class RunLifecycle
+{
+    internal static bool Terminal(string kind)=>kind is "victory" or "death" or "abandoned";
+    internal static string Status(RunDocument run)=>run.Lifecycle?.LastOrDefault()?.Kind??"unknown";
+    internal static bool Append(List<RunLifecycleEvent> events,RunLifecycleEvent item)
+    {
+        if(item.Kind!="continued"&&events.AsEnumerable().Reverse().TakeWhile(e=>e.Kind!="continued").Any(e=>Terminal(e.Kind)))return false;
+        events.Add(item);return true;
+    }
+    internal static void Validate(RunDocument run)
+    {
+        if(run.Lifecycle is not {} events)return;
+        Codec.Require(events.Count<=4096&&events.All(e=>e.Kind is "in-progress" or "continued" or "saved-exit" or "interrupted" or "victory" or "death" or "abandoned"&&
+            e.Act is >=0 and <=2&&e.BeforeOperation>=1&&e.BeforeOperation<=run.Operations.Count+1&&
+            (e.Visit==0||run.Visits.Any(v=>v.Id==e.Visit))&&e.Source.Length is >0 and <=128&&
+            (!Terminal(e.Kind)||e.State is {Length:>0})),"run-lifecycle-invalid");
+    }
+}
 public sealed record RunDocument(int Format,string Id,string GameHash,string ModHash,string Scope,string Character,
     DateTimeOffset Created,List<RoomVisit> Visits,List<RunOperation> Operations,List<RunContinuation> Continuations,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] RunBranches? Branches=null,
-    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] RunStartInput? Opening=null);
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] RunStartInput? Opening=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] List<RunLifecycleEvent>? Lifecycle=null);
 public sealed record RunEnvelope(string SHA256,RunDocument Data);
 
 internal sealed class RunStore(string root)
 {
+    internal const int Cap=64*1024*1024;
     internal static int ContinueBefore(RunDocument run,RunContinuation point)
     {
         Codec.Require(point.PreFinished&&point.Status=="native-continue"&&run.Visits.Any(v=>v.Id==point.Visit),"run-unsupported-continue-boundary");
@@ -71,13 +93,13 @@ internal sealed class RunStore(string root)
     {
         Validate(run);Directory.CreateDirectory(root);
         var bytes=Codec.Bytes(new RunEnvelope(Codec.Hash(Codec.Bytes(run)),run));
-        Codec.Require(bytes.Length<=16*1024*1024,"run-file-size-limit");
+        Codec.Require(bytes.Length<=Cap,"run-file-size-limit");
         var path=Path.Combine(root,run.Id+".json");File.WriteAllBytes(path+".pending",bytes);File.Move(path+".pending",path,true);
     }
     internal RunDocument Read(string id)
     {
         Codec.Require(Regex.IsMatch(id,"^[a-f0-9]{32}$"),"invalid-run-id");
-        var path=Path.Combine(root,id+".json");Codec.Require(new FileInfo(path).Length<=16*1024*1024,"run-file-size-limit");
+        var path=Path.Combine(root,id+".json");Codec.Require(new FileInfo(path).Length<=Cap,"run-file-size-limit");
         var envelope=JsonSerializer.Deserialize<RunEnvelope>(File.ReadAllBytes(path),Codec.Json)??throw new InvalidDataException("empty-run-file");
         Codec.Require(Codec.Hash(Codec.Bytes(envelope.Data))==envelope.SHA256,"run-file-checksum");Validate(envelope.Data);return envelope.Data;
     }
@@ -95,5 +117,6 @@ internal sealed class RunStore(string root)
             (c.BeforeOperation is null||c.BeforeOperation>=1&&c.BeforeOperation<=run.Operations.Count+1&&
              (c.Visit==0||c.BeforeOperation>run.Operations.Count||run.Operations[c.BeforeOperation.Value-1].Visit==c.Visit))),"run-continuation-position");
         RunRoutes.Validate(run);
+        RunLifecycle.Validate(run);
     }
 }

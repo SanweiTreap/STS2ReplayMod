@@ -265,6 +265,7 @@ internal static class Patches
         _=PlayerLoop.ExitFromMenu("return-to-main-menu",callerWaitsForTeardown:false);__result=Task.CompletedTask;return false;
     }
     private static bool PauseMenuExit(ref Task __result)
-    {if(!PlayerLoop.Active||PlayerLoop.TearingDown)return true;__result=PlayerLoop.ExitFromMenu("pause-save-and-quit",callerWaitsForTeardown:true);return false;}
+    {if(!PlayerLoop.Active){Runtime.Guard(RunRecording.SaveExitIntent);return true;}
+        if(PlayerLoop.TearingDown)return true;__result=PlayerLoop.ExitFromMenu("pause-save-and-quit",callerWaitsForTeardown:true);return false;}
     private static bool Hotkey()=>!PlayerLoop.Active||(DecisionRoute.Enabled?DecisionRoute.Ready:ChoiceTape.Controllable);
 }

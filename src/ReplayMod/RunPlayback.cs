@@ -53,7 +53,8 @@ internal static class RunPlayback
     internal const string EliteRecordingBuild="8178809C473A012396E85374C9BD2865AD126F7179BCF9DF48DEAFFF719189CC";
     internal const string BossRecordingBuild="69A1529F939E9452F2FF4AB96A753C532153C287378C63E01CE69154753CC0E7";
     internal const string ActRecordingBuild="BAE17032415D20C4F7844779B921379D8994ABC7C3BE69AC9106988EDADDA70B";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild||hash==ActRecordingBuild;
+    internal const string AcceptedActRecordingBuild="7B7410D2A03968C5C8032E1351B078A8508D44348306F314848695BEDFE4E0B1";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild||hash==ActRecordingBuild||hash==AcceptedActRecordingBuild;
     internal static bool BattleVerified(int source)=>VerifiedBattles.Contains(source);
     internal static bool NeedsComputedSave(int source)=>NeededComputedSaves.Contains(source);
     internal static RunOperation? Current;
@@ -377,7 +378,7 @@ internal static class RunPlayback
                 }
                 else
                 {
-                    Codec.Require(point.PointType==MapPointType.Ancient&&destination.Type=="Event"&&destination.Visit.Act==1||
+                    Codec.Require(point.PointType==MapPointType.Ancient&&destination.Type=="Event"&&destination.Visit.Act is 1 or 2||
                         point.PointType is MapPointType.RestSite or MapPointType.Treasure or MapPointType.Shop or MapPointType.Unknown&&
                         destination.Type is "RestSite" or "Treasure" or "Shop" or "Event","run-next-room-unsupported");await Enter();
                 }

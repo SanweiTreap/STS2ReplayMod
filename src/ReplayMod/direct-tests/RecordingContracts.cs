@@ -68,7 +68,8 @@ internal static class RecordingContracts
                 var read=JsonSerializer.Deserialize<Clip>(Codec.Bytes(value),Codec.Json)!;
                 Need(read.Battle==value.Battle,"act-room-identity-lost-on-read");
             }
-            foreach(var bad in new[]{clip with{Battle=clip.Battle! with{Act=1}},current with{Battle=current.Battle! with{Act=2}},
+            Codec.Validate(current with{Battle=current.Battle! with{Act=2,ActModel="ACT.GLORY"}},"game","mod","scope");
+            foreach(var bad in new[]{clip with{Battle=clip.Battle! with{Act=1}},current with{Battle=current.Battle! with{Act=3}},
                 current with{Battle=current.Battle! with{RoomType="Event"}},current with{Battle=current.Battle! with{ActModel="EVENT.NEOW"}},
                 current with{Battle=current.Battle! with{ActFloor=0}}})
             {var rejected=false;try{Codec.Validate(bad,"game","mod","scope");}catch(InvalidDataException ex) when(ex.Message=="battle-recording-metadata"){rejected=true;}Need(rejected,"unsupported-act-or-room-accepted");}

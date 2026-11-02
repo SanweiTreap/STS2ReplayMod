@@ -70,6 +70,10 @@ internal static class ReplayLibraryUi
         var run=RunRoutes.Playback(raw);var start=RunPlayback.StartIndex(run);var compatible=RunPlayback.Compatible(run.ModHash);
         _box.AddChild(Text(string.Join(" → ",run.Visits.Where(v=>run.Operations.Any(o=>o.Visit==v.Id)).Select(v=>$"第{v.Act+1}幕{v.Floor}层:{v.RoomType??v.MapType}"))));
         if(raw.Branches is {} branch)_box.AddChild(Text($"最终延续路线 · 保留{branch.Attempts.Count}次房间尝试，{raw.Operations.Count}项原始记录"));
+        _box.AddChild(Text("录制状态："+(RunLifecycle.Status(raw) switch{"victory"=>"原生整局胜利","death"=>"原生死亡",
+            "abandoned"=>"主动放弃","saved-exit"=>"保存退出，可继续","continued" or "in-progress"=>"进行中",
+            "interrupted"=>"记录中断，需核缺口",_=>"旧记录未登记结局，不推断胜负"})+
+            (raw.Opening is null?" · 未具备从真实新局开始的可重建输入":" · 含新局输入；完整播放仍以实际覆盖为准")));
         var gaps=RunStore.ResourceDiscontinuities(run);
         if(gaps.Length>0)_box.AddChild(Text("有未记录的资源变化：第"+string.Join("、",gaps)+"项之前"));
         if(!compatible)_box.AddChild(Text("当前版本不支持此记录的来源版本。"));

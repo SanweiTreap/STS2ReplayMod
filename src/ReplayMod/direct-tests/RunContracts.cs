@@ -102,6 +102,27 @@ internal static class RunContracts
             store.Save(run);var read=store.Read(id);
             Need(read.Opening is null&&!JsonNode.Parse(Codec.Bytes(read))!.AsObject().ContainsKey("Opening"),"legacy-opening-invented");
         });
+        Test("terminal-native-win-survives-forced-death-and-cleanup-while-save-exit-stays-resumable",()=>
+        {
+            var history=new List<RunLifecycleEvent>();
+            RunLifecycleEvent Event(string kind)=>new(kind,DateTimeOffset.UtcNow,"actual-native-source",1,0,1,null,
+                RunLifecycle.Terminal(kind)?"actual-native-state":null);
+            Need(RunLifecycle.Append(history,Event("in-progress"))&&RunLifecycle.Append(history,Event("saved-exit"))&&
+                !RunLifecycle.Terminal(history[^1].Kind),"save-exit-was-treated-as-terminal");
+            RunLifecycle.Append(history,Event("continued"));RunLifecycle.Append(history,Event("victory"));
+            Need(!RunLifecycle.Append(history,Event("death"))&&!RunLifecycle.Append(history,Event("interrupted"))&&
+                RunLifecycle.Status(run with{Lifecycle=history})=="victory","victory-overwritten-by-forced-death-or-cleanup");
+            foreach(var kind in new[]{"death","abandoned"})
+            {
+                var other=new List<RunLifecycleEvent>();RunLifecycle.Append(other,Event(kind));
+                Need(RunLifecycle.Status(run with{Lifecycle=other})==kind,"native-death-and-abandon-confused");
+            }
+            var value=run with{Lifecycle=history};store.Save(value);Need(Codec.Bytes(store.Read(id)).SequenceEqual(Codec.Bytes(value)),"lifecycle-roundtrip-changed");
+            Need(RunLifecycle.Status(run)=="unknown"&&!JsonNode.Parse(Codec.Bytes(run))!.AsObject().ContainsKey("Lifecycle"),"legacy-outcome-was-invented");
+            var rejected=false;try{store.Save(run with{Lifecycle=[Event("victory") with{State=null}]});}
+            catch(InvalidDataException ex) when(ex.Message=="run-lifecycle-invalid"){rejected=true;}
+            Need(rejected,"terminal-kind-without-native-snapshot-accepted");
+        });
         var opening=new RunStartInput(run.Character,"actual-seed",["ACT.UNDERDOCKS"],"Standard",0,"actual-progress","actual-prefs","NEW_LEAF");
         Test("new-run-inputs-roundtrip-with-preparation-and-account-inputs-without-changing-operations",()=>
         {
