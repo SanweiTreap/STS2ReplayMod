@@ -103,7 +103,10 @@ internal static class PlayerLoop
             _playingClip=clip;LiveState.Format=clip.Format;Cursor=new(clip.Operations.Length);
             var fromOpening=chain is not null&&chainStart==0;
             if(nativeSeek){DecisionRoute.Clear();if(fromOpening)NativeSeek.Clear();else NativeSeek.Start(clip);}else DecisionRoute.Start(clip);
-            Runtime.Status="加载回放：独立内存会话";Ui.Playback();ActionMonitor.Reset();ChoiceTape.Play(clip);
+            Runtime.Status="加载回放：独立内存会话";Ui.Playback();ActionMonitor.Reset();
+            // The first battle clip is only a future anchor during a Neow start.
+            // Its combat choice observer belongs to LoadEnteredBattle, not this event.
+            if(fromOpening)ChoiceTape.Clear();else ChoiceTape.Play(clip);
             if(SaveManager.Instance.CurrentRunSaveTask is {} saving)await saving;
             memory=new(fromOpening?chain!.Opening!.Progress:chain is null?null:RunPlayback.InitialProgress(),
                 fromOpening?chain!.Opening!.Prefs:null);memory.Install();IsolatedManager=memory.Isolated;_memory=memory;

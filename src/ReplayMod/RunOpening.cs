@@ -55,6 +55,7 @@ internal static class RunOpening
     internal static async Task Load(RunStartInput input)
     {
         Codec.Require(ReferenceEquals(SaveManager.Instance,PlayerLoop.IsolatedManager),"new-run-opening-without-isolated-manager");
+        Codec.Require(RunPlayback.NonCombat&&!ChoiceTape.Watching&&!ChoiceTape.Waiting,"new-run-opening-choice-owner");
         _playing=input;
         try
         {
@@ -65,7 +66,8 @@ internal static class RunOpening
             Codec.Require(LiveState.Run.CurrentRoom is MegaCrit.Sts2.Core.Rooms.EventRoom {CanonicalEvent:Neow},"new-run-did-not-reach-neow");
             RunManager.Instance.CombatStateSynchronizer.IsDisabled=true;RunManager.Instance.CombatReplayWriter.IsEnabled=false;
             Runtime.Log("run-opening-native-created",new{input.Character,input.Seed,NativeNewRunFactory=true,CheckpointLoaded=false,
-                ShouldSave=RunManager.Instance.ShouldSave,IsolatedManager=true,Preparation=input.NeowDebugOption});
+                ShouldSave=RunManager.Instance.ShouldSave,IsolatedManager=true,Preparation=input.NeowDebugOption,
+                CombatChoiceTapeActive=ChoiceTape.Watching,RunChoicesOwnSelections=RunPlayback.NonCombat});
         }
         finally{_playing=null;}
     }
