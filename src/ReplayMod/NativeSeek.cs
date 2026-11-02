@@ -137,7 +137,7 @@ internal static class NativeSeek
                 if(_choice?.Driver is {IsFaulted:true} failed)await failed;
                 // Asset/scene loading is not cancellable. Let it reach a native wait
                 // before dismantling the room; never let a late loader enter a new run.
-                if(_stopping&&HasView)break;
+                if(_stopping&&(HasView||ChoiceTape.Scope is {Ui:not null,Closed:false,Cancelled:false}))break;
                 if(_requests.Acquire()&&HasView)await AdvanceChoice();
                 await Runtime.NextFrame();
             }

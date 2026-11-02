@@ -344,8 +344,11 @@ internal static class RunPlayback
                     {
                         Native(()=>screen.OnMapPointSelectedLocally((NMapPoint)dictionary[coord]!));
                         await Wait(()=>_mapTask is not null,"run-native-travel-not-started");
-                        await Await(_mapTask!);
-                        Codec.Require(RunPatches.Travel is not null,"run-native-room-entry-not-started");await Await(RunPatches.Travel!);
+                        // A submitted scene load must reach its real native boundary.
+                        // LoadOpening retires a choice wait; Stop must not abandon a
+                        // wrapper while the underlying scene task can still run.
+                        Track(_mapTask!);await _mapTask!;
+                        Codec.Require(RunPatches.Travel is not null,"run-native-room-entry-not-started");Track(RunPatches.Travel!);await RunPatches.Travel!;
                     }
                     finally{_mapRun=null;}
                 }

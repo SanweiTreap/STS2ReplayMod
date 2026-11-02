@@ -36,6 +36,8 @@ internal static class Ui
         neow.Toggled+=value=>{RunOpening.NewLeafArmed=value;if(value){TestEncounter.Armed=TestPreparation.None;RecordedState.Armed=false;}
             Runtime.Status=value?"下一铁甲A0新局：原生涅奥第一项为新叶，按原生页面选牌并确认变形":"已取消涅奥准备";};
         box.AddChild(neow);
+        var combatStop=new CheckBox{Text="RUN-003：下次整局首战入场自动Stop（仅一次）",ButtonPressed=RunOpening.CombatStopTestArmed};
+        combatStop.Toggled+=value=>RunOpening.CombatStopTestArmed=value;box.AddChild(combatStop);
         var loadStop=new CheckBox{Text="RUN-002：下次事件SL切换途中自动点Stop（仅一次）",ButtonPressed=EventReturnPresentation.StopTestArmed};
         loadStop.Toggled+=value=>EventReturnPresentation.StopTestArmed=value;box.AddChild(loadStop);
         var rats=Button(box,"CONTENT-006 三鼠召援：关闭",()=>{});

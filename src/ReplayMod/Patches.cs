@@ -219,7 +219,8 @@ internal static class Patches
     private static bool TurnBanner(int __0,ref NPlayerTurnBanner? __result)=>NativeOpening.TurnBanner(__0,ref __result);
     private static bool EnemyBanner(ref NEnemyTurnBanner? __result)
     {if(!NativeSeek.Enabled||!NativePhaseRetirement.Active)return true;__result=null;return false;}
-    private static void OpeningRoomVisible(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom __instance,CombatState __0)=>Runtime.Guard(()=>NativeSeek.OpeningRoomVisible(__instance,__0));
+    private static void OpeningRoomVisible(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom __instance,CombatState __0)=>Runtime.Guard(()=>
+    {NativeSeek.OpeningRoomVisible(__instance,__0);RunOpening.TestCombatEntryStop(__instance,__0);});
     private static void OstyReviveHud(NCreature __instance)=>Runtime.Guard(()=>CreaturePresentation.VerifyNativeOstyRevive(__instance));
     private static void EndBefore(){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(BattleEnd.EndStarted);}
     private static void EndTask(Task __result){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(()=>BattleEnd.Track(__result));}

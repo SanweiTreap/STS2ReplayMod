@@ -1,6 +1,15 @@
 # RUN-003：涅奥奖励与整局观看入口
 
-## 最新摘要 · 2026-11-02 · r3原生开局纵向链/选择Stop通过，主菜单BGM残留待005听测
+## 最新摘要 · 2026-11-02 · r4 BGM听测通过，开场Stop误判待006回归
+
+- r4/005会话709a327b共40事件。用户确认进入Neow停止主菜单BGM、首战音乐和Stop回菜单音乐均正常，MenuMusicStopRequested=true，音频修复按所测通过；r3完整开局/选牌/首战RNG及胜利Back证据保持。本轮在首战尚处Opening时Stop，界面正常回菜单，但日志记录`run-cross-room-opening-navigation-disabled`，整轮保留混合结果，不把听测接受写成退出无异常。
+- 根因：自然进新战斗的LoadEnteredBattle将所有opening reset回调都设为“禁止跨房间导航”；LoadOpening在Stop清理时也调用此回调。006为它提供仅NativeSeek.Stopping允许的实际清理，退出按RunPlayback的正常取消路径返回；真正Back/Seek仍拒绝。已提交的原生地图/场景Task直接等待其实际生命周期，避免Stop只退出外层包装后原生加载仍运行；开场Stop可在实际原生选择UI等待处清理（无需等其交互准备完成），继续禁止强截资产加载及回放旧任务。
+- 为准确复现而非要求用户抢帧，开发区新增默认关闭的一次性“下次整局首战入场自动Stop”：复用既有NCombatRoom.OnCombatSetUp真实回调，在Loading/Opening且实例/CombatState归属匹配时调用公开PlayerLoop.Control(stop)，记录请求/接受/单次消费；后续清理记录OpeningRoomCleared及导航仍禁用。没有自行启动/操控游戏或新增探针平台。
+- 当前RUN-003/build-006，DLL `AE19BDE821FBF8FD89A205709326909A90E9EE607368D63CA723A9E0EE1CB6EA`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-006-19283171.json`，构建0警告0错误、diff检查通过；生命周期/回调需原生实测，不加镜像合同代替。006尚未游戏验证。
+- r4已恢复原manager/context及所比较Continue/Progress，10登记任务全部结束/0取消故障；封存44数据文件及51已知当前文件4,149,576 bytes至`RUN003-post-r4-current-20261102-140423`，相对r3仅settings.save.backup变化，无缺失，root/clip不变、native仍point4。006安装后仅settings.save变化，game0、无restore/自行启动。证据`runtime-verification-r4.json`、`collection-r4.json`、`preparation/post-build006-check.json`，失败原样保留。
+- 下一仅核这条退出边界：开发勾首战入场自动Stop→2adb8306从开局观看并Auto，预期首战原生场景就绪时自动回菜单；重开同起点前进一步再手动Stop，正常退出。不重录/重打胜利或重复听测。通过后合并累计代表结论交PM；其他选项/Neow SL/坏条目实际交互与全部页面组合不外推。
+
+## r3：原生开局纵向链/选择Stop通过，主菜单BGM残留005修复
 
 - r3/004会话28ca75da共213事件、0异常。两次从奖励前输入调用原生新局工厂，CombatChoiceTapeActive=false/RunChoicesOwnSelections=true，r2生命周期修复实际通过。首次手动推进到新叶选择中Stop，7登记任务全部收束、3取消/0故障；原scene/context及所比较Continue/Progress恢复，计划内Complete=false不当失败。
 - 重开后Auto沿原生Neow候选/单张变形→完成页/离开→地图→首战，3项战外资源/RNG严格匹配，首战初态/RNG自然匹配（未读首战checkpoint/注入expected），8步胜利。胜利Back到7/8后重做末击，状态/RNG及两次胜利均通过，共9次动作验证；终点Stop，10登记任务全部完成/0取消故障，整局Complete=true、原context恢复。新叶奖励前初始化/选牌/自然首战已有真实纵向证据，非独立打开首战片替代。
