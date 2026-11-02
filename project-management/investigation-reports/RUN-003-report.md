@@ -1,6 +1,8 @@
 # RUN-003：涅奥奖励与整局观看入口
 
-## 最新摘要 · 2026-11-02 · r1–r5首段代表样本通过，交PM阶段验收
+## 最新摘要 · 2026-11-02 · 首段DONE_WITH_LIMITATIONS，保留006
+
+- PM已核r1/r3/r5关键证据及原生起点、隔离输入、选择、加载/Stop与入口实现，正式接受RUN-003首段DONE_WITH_LIMITATIONS；不要求追加测试/换版/restore。以下各版本累积结论及未测边界保持，006不冒充全链全矩阵。精英/Boss→幕间→第二幕首战仅为下一候选方向，未派发新实现任务；本次提交收尾后停在交接点。
 
 - D-143/RUN-003首段已完成一位角色的代表纵向验证：r1记录实际奖励前新局输入/Progress/Prefs→原生Neow新叶候选与单张打击变铁斩波→地图→首战8步胜利；r3从相同真实初始化输入原生重建、候选/选牌/资源/RNG与自然首战初态/操作/胜利全匹配，未读首战checkpoint补演/注入expected。选择中Stop/同进程重开、胜利后Back末击重做通过。r4用户已确认Neow/首战/回菜单音乐正常。不是全部涅奥/五角色新开局或006全矩阵。
 - r5/006会话e9c13c2c共77事件、0异常。一次性请求确在NCombatRoom.OnCombatSetUp、Loading=true/Opening=true时调用公开Stop并接受，单次开关消费；原生加载实际收尾，OpeningRoomCleared=true，原生turn-loop清理完成，10登记任务全部结束/0取消故障，原scene/manager/context及所比较Continue/Progress恢复。跨房间导航仍false。后续两次重开/手动Stop均正常，各7登记任务全部结束/0取消故障，三次均Error=null；本轮计划内Complete=false不当失败，也不当完整战斗重测。r4的退出误判已按相同实际阶段回归通过，不追改其原FAIL。
