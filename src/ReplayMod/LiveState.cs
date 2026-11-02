@@ -23,12 +23,15 @@ internal static class LiveState
         JsonTypeInfoResolver.Combine(JsonSerializationUtility.Options.TypeInfoResolver??new DefaultJsonTypeInfoResolver(),new DefaultJsonTypeInfoResolver())};
     internal static RunState Run=>RunManager.Instance.DebugOnlyGetState()??throw new InvalidDataException("run-not-present");
     internal static Player Player=>Run.Players.Count==1?Run.Players[0]:throw new InvalidDataException("not-singleplayer");
+    internal static bool CombatRoomType(RoomType type)=>type is RoomType.Monster or RoomType.Elite or RoomType.Boss;
+    internal static bool CombatMapType(MegaCrit.Sts2.Core.Map.MapPointType type)=>type is MegaCrit.Sts2.Core.Map.MapPointType.Monster or
+        MegaCrit.Sts2.Core.Map.MapPointType.Elite or MegaCrit.Sts2.Core.Map.MapPointType.Boss or MegaCrit.Sts2.Core.Map.MapPointType.Unknown;
     internal static bool Playable
     {
         get
         {
             var r=RunManager.Instance.DebugOnlyGetState();var p=r?.Players.FirstOrDefault();var c=CombatManager.Instance;var e=RunManager.Instance.ActionExecutor;
-            return r?.CurrentRoom is CombatRoom {RoomType:RoomType.Monster}&&p?.PlayerCombatState is {Phase:PlayerTurnPhase.Play}&&
+            return r?.CurrentRoom is CombatRoom room&&CombatRoomType(room.RoomType)&&p?.PlayerCombatState is {Phase:PlayerTurnPhase.Play}&&
                 c.IsInProgress&&!c.IsOverOrEnding&&!c.IsPaused&&!c.PlayerActionsDisabled&&c.IsPartOfPlayerTurn(p)&&
                 !e.IsRunning&&!e.IsPaused&&e.CurrentlyRunningAction is null;
         }
@@ -38,17 +41,25 @@ internal static class LiveState
         get
         {
             var r=RunManager.Instance.DebugOnlyGetState();var p=r?.Players.FirstOrDefault();var c=CombatManager.Instance;
-            return r?.CurrentRoom is CombatRoom {RoomType:RoomType.Monster}&&p?.PlayerCombatState is {Phase:PlayerTurnPhase.Play}&&
+            return r?.CurrentRoom is CombatRoom room&&CombatRoomType(room.RoomType)&&p?.PlayerCombatState is {Phase:PlayerTurnPhase.Play}&&
                 c.IsInProgress&&!c.IsOverOrEnding&&!c.IsPaused&&!c.PlayerActionsDisabled&&c.IsPartOfPlayerTurn(p);
         }
     }
     internal static int Turn=>Player.PlayerCombatState?.TurnNumber??0;
+    internal static void BattleContext(Clip clip)
+    {
+        if(clip.Battle is not {} battle)return;
+        Codec.Require(battle.Act==Run.CurrentActIndex&&(battle.ActModel is null||battle.ActModel==Run.Act.Id.ToString())&&
+            (battle.RoomType is null||battle.RoomType==Run.CurrentRoom?.RoomType.ToString())&&
+            (battle.ActFloor is null||battle.ActFloor==Run.ActFloor)&&(battle.TotalFloor is null||battle.TotalFloor==Run.TotalFloor),
+            "battle-act-room-or-floor-mismatch");
+    }
     internal static void Supported()
     {
         var r=Run;var p=Player;
-        Codec.Require(RunManager.Instance.NetService.Type.ToString()=="Singleplayer"&&r.CurrentActIndex==0&&r.AscensionLevel==0&&r.Modifiers.Count==0&&(Format>=9?r.CurrentMapCoord?.row>=1:r.CurrentMapCoord?.row==1)&&
+        Codec.Require(RunManager.Instance.NetService.Type.ToString()=="Singleplayer"&&(Format>=10?r.CurrentActIndex is 0 or 1:r.CurrentActIndex==0)&&r.AscensionLevel==0&&r.Modifiers.Count==0&&(Format>=9?r.CurrentMapCoord?.row>=1:r.CurrentMapCoord?.row==1)&&
             (p.Character.Id.ToString()=="CHARACTER.IRONCLAD"||Format>=4&&p.Character.Id.ToString()=="CHARACTER.SILENT"||Format>=5&&p.Character.Id.ToString()=="CHARACTER.REGENT"||Format>=8&&p.Character.Id.ToString() is "CHARACTER.DEFECT" or "CHARACTER.NECROBINDER")&&p.Deck.Cards.Count is >0 and <=128&&
-            p.Deck.Cards.All(c=>IsCard(c)),"only-act1-monster-five-characters-A0-supported-format");
+            p.Deck.Cards.All(c=>IsCard(c)),"only-act1-or-act2-five-characters-A0-supported-format");
     }
     internal static bool SimpleTarget(TargetType type)=>type is TargetType.None or TargetType.Self or TargetType.AnyEnemy or TargetType.AllEnemies or TargetType.RandomEnemy or TargetType.AnyPlayer or TargetType.AllAllies||Format>=8&&type==TargetType.Osty;
     internal static bool IsCard(CardModel c)=>c.IsMutable&&c.GetType().Assembly==typeof(CardModel).Assembly&&SimpleTarget(c.TargetType)&&c.CurrentUpgradeLevel is >=0 and <=20;

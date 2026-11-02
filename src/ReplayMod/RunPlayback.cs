@@ -59,7 +59,7 @@ internal static class RunPlayback
     internal static bool Stopping=>_stop;
     internal static bool Auto=>_auto;
     internal static bool CompletingOperation=>_whole;
-    internal static string Display=>Active?$"\n路线 · 第{_run.Visits.Single(v=>v.Id==(Current?.Visit??_run.Operations[_index].Visit)).Floor}层 · 操作{_index+1}/{_run.Operations.Count}"+
+    internal static string Display=>Active?$"\n路线 · 第{_run.Visits.Single(v=>v.Id==(Current?.Visit??_run.Operations[_index].Visit)).Act+1}幕{_run.Visits.Single(v=>v.Id==(Current?.Visit??_run.Operations[_index].Visit)).Floor}层 · 操作{_index+1}/{_run.Operations.Count}"+
         (Current?.Attempt is {} attempt?$" · 采用尝试#{attempt}（最终延续路线）":"")+
         (NonCombat?$" · {(_auto?"自动连续":"手动等待／执行")} · 待播{_fine+_wholeRequests}":""):"";
     internal static int StartIndex(RunDocument run)=>run.Operations.FindIndex(o=>o.Kind=="battle"&&o.Status=="complete"&&o.Clip is not null&&o.Battle?.Entry!="event");
@@ -238,7 +238,9 @@ internal static class RunPlayback
         foreach(var point in points)
         {
             var visit=_run.Visits.Single(v=>v.Id==point.Visit);
-            Codec.Require(operation.Visit==point.Visit&&LiveState.Run.CurrentMapCoord is {} coord&&coord.row==visit.Row&&coord.col==visit.Col&&
+            Codec.Require(operation.Visit==point.Visit&&LiveState.Run.CurrentActIndex==visit.Act&&
+                (visit.ActModel is null||visit.ActModel==LiveState.Run.Act.Id.ToString())&&
+                LiveState.Run.CurrentMapCoord is {} coord&&coord.row==visit.Row&&coord.col==visit.Col&&
                 LiveState.Run.CurrentRoom is CombatRoom {IsPreFinished:true},"run-continue-room-boundary-mismatch");
             if(RunRoutes.CompletedEventBattle(_run,point) is {} battle)
             {
@@ -331,6 +333,8 @@ internal static class RunPlayback
                 var point=run.Map.GetPoint(coord)??throw new InvalidDataException("run-map-point-missing");
                 Codec.Require(_index+1<_run.Operations.Count,"run-next-room-recording-missing");
                 var destination=RunRoutes.Destination(_run,operation,_run.Operations[_index+1]);
+                Codec.Require(destination.Visit.Act==run.CurrentActIndex&&
+                    (destination.Visit.ActModel is null||destination.Visit.ActModel==run.Act.Id.ToString()),"run-map-destination-act-mismatch");
                 Codec.Require(point.PointType.ToString()==destination.Visit.MapType,"run-recorded-map-type-mismatch");
                 PlayerLoop.ReleaseBattleForTravel();
                 async Task Enter()
@@ -352,7 +356,7 @@ internal static class RunPlayback
                     }
                     finally{_mapRun=null;}
                 }
-                if(destination.Type=="Monster"&&point.PointType is MapPointType.Monster or MapPointType.Unknown)
+                if(destination.Type is "Monster" or "Elite" or "Boss"&&LiveState.CombatMapType(point.PointType))
                 {
                     Codec.Require(_index+1<_run.Operations.Count&&_run.Operations[_index+1] is {Kind:"battle",Status:"complete",Clip:not null},"run-next-battle-recording-missing");
                     var battle=_run.Operations[_index+1];var clip=Runtime.ReadClip(battle.Clip!);

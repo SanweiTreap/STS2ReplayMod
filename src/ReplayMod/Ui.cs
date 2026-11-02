@@ -38,6 +38,10 @@ internal static class Ui
         box.AddChild(neow);
         var combatStop=new CheckBox{Text="RUN-003：下次整局首战入场自动Stop（仅一次）",ButtonPressed=RunOpening.CombatStopTestArmed};
         combatStop.Toggled+=value=>RunOpening.CombatStopTestArmed=value;box.AddChild(combatStop);
+        var acts=new CheckBox{Text="RUN-004 精英→Boss短路线（仅下一铁甲A0新局）",ButtonPressed=TestEncounter.Armed==TestPreparation.RunActs};
+        acts.Toggled+=value=>{TestEncounter.Armed=value?TestPreparation.RunActs:TestPreparation.None;
+            if(value){RecordedState.Armed=false;RunOpening.NewLeafArmed=false;}
+            Runtime.Status=value?"下一新局：暗港最左首节点精英→原生Boss。当前候选先测精英，胜利不领奖保存退出":"已取消RUN-004准备";};box.AddChild(acts);
         var loadStop=new CheckBox{Text="RUN-002：下次事件SL切换途中自动点Stop（仅一次）",ButtonPressed=EventReturnPresentation.StopTestArmed};
         loadStop.Toggled+=value=>EventReturnPresentation.StopTestArmed=value;box.AddChild(loadStop);
         var rats=Button(box,"CONTENT-006 三鼠召援：关闭",()=>{});

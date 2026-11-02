@@ -70,7 +70,7 @@ internal static class RunRecording
             _run.Continuations.Add(new(DateTimeOffset.UtcNow,_visit,save?.PreFinishedRoom is not null,
                 save is null?"":RecordingJournal.SaveKey(JsonSerializationUtility.ToJson(save)),_unknownLoad?"unmatched-anchor":"native-continue",_run.Operations.Count+1,
                 _run.Branches is {ActiveAttempt:>0} b?b.ActiveAttempt:null,Progress:RunResources.Progress()));
-            if(_run.Branches is null&&save?.PreFinishedRoom is null&&_run.Visits.LastOrDefault()?.RoomType=="Monster")
+            if(_run.Branches is null&&save?.PreFinishedRoom is null&&_run.Visits.LastOrDefault()?.RoomType is "Monster" or "Elite" or "Boss")
                 Gap("未完战斗从原生开场重进；前次操作不拼接");
         }
         Save();
@@ -99,7 +99,8 @@ internal static class RunRecording
         if(last is not null)_run.Visits[^1]=last with{Status=last.Gap is null?"left":"gap"};
         _visit=_run.Visits.Count+1;
         _run.Visits.Add(new(_visit,run.CurrentActIndex,coord.row+1,coord.row,coord.col,
-            run.Map.GetPoint(coord)!.PointType.ToString(),null,null,1,"entering",null));
+            run.Map.GetPoint(coord)!.PointType.ToString(),null,null,1,"entering",null,
+            ActModel:run.Act.Id.ToString(),ActFloor:run.ActFloor,TotalFloor:run.TotalFloor));
         if(_run.Branches is {} branch)RunRoutes.StartAttempt(_run,_visit,branch.ActiveAttempt>0?branch.ActiveAttempt:null,null,_unknownLoad?"unmatched-native-load":"entry");
         if(_unknownLoad)
         {
@@ -113,6 +114,7 @@ internal static class RunRecording
         if(!Enabled||room.RoomType==RoomType.Map)return;
         if(_visit==0&&LiveState.Run.VisitedMapCoords.Count>0)Entry(LiveState.Run.VisitedMapCoords[^1],room.IsPreFinished,false);
         if(_visit==0)return;var index=_run!.Visits.FindIndex(v=>v.Id==_visit);var visit=_run.Visits[index];
+        visit=visit with{ActModel=LiveState.Run.Act.Id.ToString(),ActFloor=LiveState.Run.ActFloor,TotalFloor=LiveState.Run.TotalFloor};
         if(room is CombatRoom {ParentEventId:not null,ShouldResumeParentEventAfterCombat:true} nested&&
             visit.MapType=="Unknown"&&visit.Model==nested.ParentEventId.ToString())
         {
@@ -130,7 +132,8 @@ internal static class RunRecording
         {
             _run.Visits[index]=visit with{Subrooms=(visit.Subrooms??[]).Append(room.RoomType+":"+room.ModelId).ToArray(),Gap="本轮未支持嵌套房间"};Save();return;
         }
-        var supported=room.RoomType==RoomType.Monster&&visit.MapType is "Monster" or "Unknown"||
+        var supported=room is CombatRoom&&LiveState.CombatRoomType(room.RoomType)&&
+            (room.RoomType.ToString()==visit.MapType||room.RoomType==RoomType.Monster&&visit.MapType=="Unknown")||
             room.RoomType==RoomType.RestSite&&visit.MapType=="RestSite"||room.RoomType is RoomType.Treasure or RoomType.Shop||
             room is EventRoom {CanonicalEvent:not MegaCrit.Sts2.Core.Models.AncientEventModel}&&visit.MapType=="Unknown"||
             room is EventRoom {CanonicalEvent:MegaCrit.Sts2.Core.Models.Events.Neow}&&visit.MapType=="Ancient"&&_run.Opening is not null;

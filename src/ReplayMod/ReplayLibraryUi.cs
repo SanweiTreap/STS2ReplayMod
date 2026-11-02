@@ -53,7 +53,7 @@ internal static class ReplayLibraryUi
             {
                 var run=RunRoutes.Playback(raw);
                 var visits=run.Visits.Where(v=>run.Operations.Any(o=>o.Visit==v.Id)).ToArray();
-                var range=visits.Length==0?"尚未进入房间":$"第{visits.Min(v=>v.Floor)}—{visits.Max(v=>v.Floor)}层";
+                var range=visits.Length==0?"尚未进入房间":$"第{visits[0].Act+1}幕{visits[0].Floor}层—第{visits[^1].Act+1}幕{visits[^1].Floor}层";
                 var gaps=run.Operations.Any(o=>o.Status!="complete")||visits.Any(v=>v.Gap is not null);
                 Button($"{Character(run.Character)} · {run.Created.ToLocalTime():MM-dd HH:mm} · {range}\n"+
                     $"{(RunOpening.Available(run)?"含涅奥开局":"从已记录起点")} · {run.Operations.Count}项 · {(gaps?"含缺口／未完片段":"已记录路线")} · {run.Id[..8]}",()=>Detail(raw));
@@ -68,7 +68,7 @@ internal static class ReplayLibraryUi
     {
         Page($"{Character(raw.Character)} · {raw.Created.ToLocalTime():yyyy-MM-dd HH:mm} · {raw.Id[..8]}",List);
         var run=RunRoutes.Playback(raw);var start=RunPlayback.StartIndex(run);var compatible=RunPlayback.Compatible(run.ModHash);
-        _box.AddChild(Text(string.Join(" → ",run.Visits.Where(v=>run.Operations.Any(o=>o.Visit==v.Id)).Select(v=>$"{v.Floor}层:{v.RoomType??v.MapType}"))));
+        _box.AddChild(Text(string.Join(" → ",run.Visits.Where(v=>run.Operations.Any(o=>o.Visit==v.Id)).Select(v=>$"第{v.Act+1}幕{v.Floor}层:{v.RoomType??v.MapType}"))));
         if(raw.Branches is {} branch)_box.AddChild(Text($"最终延续路线 · 保留{branch.Attempts.Count}次房间尝试，{raw.Operations.Count}项原始记录"));
         var gaps=RunStore.ResourceDiscontinuities(run);
         if(gaps.Length>0)_box.AddChild(Text("有未记录的资源变化：第"+string.Join("、",gaps)+"项之前"));
@@ -85,7 +85,7 @@ internal static class ReplayLibraryUi
         {
             var visit=run.Visits.Single(v=>v.Id==anchor.Visit);
             var problem=AnchorProblem(raw,anchor);
-            var button=Button($"从已记录起点观看 · 第{visit.Floor}层／尝试{anchor.Battle?.Attempt??0}",
+            var button=Button($"从已记录起点观看 · 第{visit.Act+1}幕{visit.Floor}层／尝试{anchor.Battle?.Attempt??0}",
                 ()=>Watch(anchor.Clip!,raw,anchor.SourceSequence??anchor.Sequence));button.Disabled=problem is not null||gaps.Any(s=>s>anchor.Sequence);
             if(problem is not null)_box.AddChild(Text(problem));
         }
@@ -98,7 +98,7 @@ internal static class ReplayLibraryUi
         Page(runId is null?"独立战斗／旧片":"本局分场 · 内部战斗请从父事件前观看",List);
         foreach(var row in _battles.Where(r=>runId is null||r.Battle?.RunId==runId).OrderByDescending(r=>r.CreatedUtc))
         {
-            var button=Button($"{Character(row.Character)} · 第{row.Battle?.Floor??row.Row+1}层 · {row.Operations}步 · {row.Id[..8]}"+
+            var button=Button($"{Character(row.Character)} · 第{(row.Battle?.Act??0)+1}幕{row.Battle?.Floor??row.Row+1}层 · {row.Operations}步 · {row.Id[..8]}"+
                 (row.Problem is {} p?"\n"+p:""),()=>{Close();TaskHelper.RunSafely(PlayerLoop.Open(row.Id,entry:"battle-list"));});
             button.Disabled=row.Problem is not null;
         }

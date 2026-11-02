@@ -12,7 +12,10 @@ public sealed record RunOperation(int Sequence,int Visit,string Kind,RunArgument
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? SourceSequence=null);
 public sealed record RoomVisit(int Id,int Act,int Floor,int Row,int Col,string MapType,string? RoomType,string? Model,
     int Entries,string Status,string? Gap,
-    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string[]? Subrooms=null);
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string[]? Subrooms=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? ActModel=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? ActFloor=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? TotalFloor=null);
 public sealed record RunContinuation(DateTimeOffset At,int Visit,bool PreFinished,string SaveKey,string Status,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? BeforeOperation=null,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? Attempt=null,
@@ -43,7 +46,7 @@ internal sealed class RunStore(string root)
     {
         Codec.Require(point.PreFinished&&point.Status=="native-continue"&&run.Visits.Any(v=>v.Id==point.Visit),"run-unsupported-continue-boundary");
         var eventBattle=RunRoutes.CompletedEventBattle(run,point);
-        Codec.Require(eventBattle is not null||run.Visits.Single(v=>v.Id==point.Visit).RoomType=="Monster","run-unsupported-continue-boundary");
+        Codec.Require(eventBattle is not null||run.Visits.Single(v=>v.Id==point.Visit).RoomType is "Monster" or "Elite" or "Boss","run-unsupported-continue-boundary");
         if(point.BeforeOperation is {} recorded)
         {
             Codec.Require(recorded>=1&&recorded<=run.Operations.Count+1&&

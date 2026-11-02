@@ -236,7 +236,7 @@ internal static class PlayerLoop
         RunManager.Instance.Launch();NAudioManager.Instance?.StopMusic();Runtime.Game.RootSceneContainer.SetCurrentScene(NRun.Create(state));
         await RunManager.Instance.GenerateMap();
         await RunManager.Instance.LoadIntoLatestMapCoord(AbstractRoom.FromSerializable(save.PreFinishedRoom,state));
-        await WaitReady();LiveState.Supported();ChoiceTape.AssertBoundary(0);Check("initial",clip.Initial,LiveState.Capture());BattleEnd.Begin();
+        await WaitReady();LiveState.Supported();LiveState.BattleContext(clip);ChoiceTape.AssertBoundary(0);Check("initial",clip.Initial,LiveState.Capture());BattleEnd.Begin();
         Runtime.Log("playback-character-verified",new{Character=LiveState.Player.Character.Id.ToString(),RecordedCharacter=clip.Character,
             Relics=LiveState.Player.Relics.Select(r=>r.Id.ToString()).ToArray(),NativeCharacterAssets=true,Authority=clip.Authority});
         EnsureRoster();
@@ -254,7 +254,7 @@ internal static class PlayerLoop
         else if(RunPlayback.CompletingOperation)NativeSeek.Control("step");
         async Task Load()
         {
-            await enter();await WaitReady();LiveState.Supported();ChoiceTape.AssertBoundary(0);
+            await enter();await WaitReady();LiveState.Supported();LiveState.BattleContext(clip);ChoiceTape.AssertBoundary(0);
             Check("run-next-battle-initial",clip.Initial,LiveState.Capture());BattleEnd.Begin();EnsureRoster();
             Runtime.Log("run-next-battle-initial-verified",new{clip.Id,InitialAndRngMatched=true,CheckpointLoaded=false,ExpectedStateInjected=false});
         }
