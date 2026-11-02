@@ -15,6 +15,8 @@ using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Saves.Runs;
+using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Models;
 
 namespace ReplayMod;
 
@@ -25,6 +27,11 @@ internal static class RunPatches
     internal static Task? Travel;
     internal static Task? UiTask,ProceedTask,RestAnimation;
     internal static Task<bool>? ResultTask;
+    private static Reward? _selectedReward;
+    internal static bool OwnsRelicAdd(Player player,RelicModel relic)=>RunPlayback.Active&&RunPlayback.NonCombat&&
+        RunPlayback.Current?.Kind=="reward"&&_selectedReward is RelicReward selected&&
+        ReferenceEquals(selected.Relic,relic)&&ReferenceEquals(selected.Player,player)&&ReferenceEquals(player,LiveState.Player)&&
+        Rewards?.Rewards.IndexOf(selected)==RunPlayback.Current.Argument.RewardIndex;
     internal static RunOperation? Record(string kind,Func<RunOperation?> begin)
     {
         try{return begin();}
@@ -117,6 +124,13 @@ internal static class RunPatches
     }
     private static void RewardBefore(Reward __0,out RunOperation? __state)
     {
+        if(RunPlayback.Active)
+        {
+            Codec.Require(RunPlayback.Driving&&RunPlayback.NonCombat&&RunPlayback.Current is {Kind:"reward"} current&&
+                _selectedReward is null&&Rewards?.Rewards.IndexOf(__0)==current.Argument.RewardIndex&&
+                ReferenceEquals(__0.Player,LiveState.Player),"run-reward-selection-outside-operation");
+            _selectedReward=__0;
+        }
         __state=null;if(!RunRecording.Enabled)return;
         if(RunRecording.Pending is {Kind:"treasure-open"}){Runtime.Guard(()=>RunRecording.Unsupported("treasure-extra-reward","附加奖励页尚未接入"));return;}
         var index=Rewards?.Rewards.IndexOf(__0)??-1;
@@ -124,7 +138,13 @@ internal static class RunPatches
         __state=Record("reward",()=>RunRecording.Begin("reward",new(RewardIndex:index,RewardKey:RewardKey(__0))));
     }
     private static void RewardAfter(ref Task<bool> __result,RunOperation? __state)
-    {__result=RunRecording.Wrap(__result,__state);if(RunPlayback.Active){ResultTask=__result;RunPlayback.Track(__result);}}
+    {
+        __result=RunRecording.Wrap(__result,__state);
+        if(!RunPlayback.Active)return;
+        var selected=_selectedReward;__result=Finish(__result);ResultTask=__result;RunPlayback.Track(__result);
+        async Task<bool> Finish(Task<bool> native)
+        {try{return await native;}finally{if(ReferenceEquals(_selectedReward,selected))_selectedReward=null;}}
+    }
     private static void ProceedBefore(out RunOperation? __state)
     {
         var returning=RunEventCombat.IsReturn;
@@ -149,5 +169,5 @@ internal static class RunPatches
     private static void OwnedTask(Task __result)=>RunPlayback.Track(__result);
     private static void RestProceedBefore(out RunOperation? __state)=>__state=Record("rest-proceed",()=>RunRecording.Begin("rest-proceed",new()));
     private static void RestProceedAfter(RunOperation? __state){if(__state is not null)Runtime.Guard(()=>RunRecording.Complete(__state));}
-    internal static void Clear(){Rewards=null;RewardsScreen=null;Travel=null;UiTask=null;ProceedTask=null;ResultTask=null;RestAnimation=null;}
+    internal static void Clear(){Rewards=null;RewardsScreen=null;Travel=null;UiTask=null;ProceedTask=null;ResultTask=null;RestAnimation=null;_selectedReward=null;}
 }
