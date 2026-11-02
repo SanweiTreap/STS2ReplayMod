@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-11-02。**RUN-004已授权启动：精英、Boss与首条跨幕观看链，尚无新运行结论。** 目标是一位角色A0首幕精英/Boss→原生战后/幕间与第二幕入口选择→第二幕首个普通战斗；见[工作包](handoffs/RUN-004.md)。Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)。起点RUN-003按首段代表样本DONE_WITH_LIMITATIONS、保留006至新候选安装，既有结果/限制见[RUN-003报告](investigation-reports/RUN-003-report.md)。
+更新：2026-11-02。**RUN-004进行中：004/r6已从精英合法起点完整自然播放至第二幕首普通胜利；仍待换幕Loading中Stop/重开，未整包验收。** 62战斗动作及12路线操作匹配、原context恢复；仅所测精英/Boss与Orobas/RadiantPearl代表链。范围见[工作包](handoffs/RUN-004.md)，当前版本/限制见[报告最新摘要](investigation-reports/RUN-004-report.md)。Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)。RUN-003旧结果/失败保持，不追加其测试。
 
 ## 已确认的可用基础
 
@@ -30,7 +30,7 @@
 
 ## 随后的方向与主要缺口
 
-RUN-004已派发：共用路径接精英/Boss房型，记录真实战后/换幕与第二幕古神/入口选择，沿同一隔离会话自然进入第二幕首战并严格核状态/RNG；检查Run/Act/访问与真实Continue归属、新边界Stop/重开。跨幕方案尚未实测，不以删白名单或后幕checkpoint补演冒充完成，不把未测涅奥组合全矩阵作为前置。见[整局规划](technical-notes/RUN-REPLAY-PLAN.md)。
+RUN-004/r6已实测精英合法起点→Boss→唯一原生换幕→Orobas第二项RadiantPearl→第二幕普通胜利，后两战自然初态/RNG及整链结果匹配；当前仍仅完成这一代表连续链，换幕Loading中Stop/重开由Implementation在原包继续，不新增矩阵。D-146将D-140自算原生保存点恢复扩至有真实完成战斗Save/Continue关系的地图战斗，两处精英/Boss重载通过；未读录制后战checkpoint或注入expected，r5原失败保持。准备局Opening=null，不当从涅奥完整观看。两次胜利后暗亮对应实录SL的重建淡出入，暂保留，不认所有视觉已接受或提前实施隐藏SL/播放模式。当前原生point12第二幕首普通完成未领奖，无restore；精确恢复点见当前报告。见[整局规划](technical-notes/RUN-REPLAY-PLAN.md)。
 
 用户留存的未来方向：[原始界面输入/简化等效与Auto节奏](technical-notes/PLAYBACK-MODES.md)。现有商店开关等操作记录更接近原始输入过程；暂按实现方便继续，不要求现在拆分模式/补时间线或加验收，不排为紧接下一包的必做任务。
 
