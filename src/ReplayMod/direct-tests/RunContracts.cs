@@ -4,14 +4,16 @@ using ReplayMod;
 
 internal static class RunContracts
 {
-    internal static void Verify(string output,string root,string id)
+    internal static void Verify(string output,string root,string id,int? startSource=null)
     {
         var path=Path.Combine(root,id+".json");var before=File.ReadAllBytes(path);var raw=new RunStore(root).Read(id);var run=RunRoutes.Playback(raw);
         Codec.Require(run.Id==id,"run-id-mismatch");
-        var gaps=RunStore.ResourceDiscontinuities(run);var anchor=run.Operations.FirstOrDefault(o=>o.Kind=="battle"&&o.Status=="complete");
+        var gaps=RunStore.ResourceDiscontinuities(run);var anchor=run.Operations.FirstOrDefault(o=>o.Kind=="battle"&&o.Status=="complete"&&
+            (startSource is null||(o.SourceSequence??o.Sequence)==startSource));
         Codec.Require(anchor is not null,"run-has-no-complete-battle-anchor");
+        Codec.Require(!run.Operations.Any(o=>o.Sequence>=anchor!.Sequence&&(o.Kind=="gap"||o.Status!="complete")),"run-has-unrecorded-gap-after-anchor");
         Codec.Require(!gaps.Any(s=>s>anchor!.Sequence),"run-has-missing-resource-transition-after-anchor");
-        var continuations=run.Continuations.Where(c=>c.PreFinished&&c.Visit>=anchor!.Visit)
+        var continuations=run.Continuations.Where(c=>c.PreFinished&&c.Visit>=anchor!.Visit&&c.BeforeOperation>=anchor.Sequence)
             .Select(c=>new{c.Visit,c.Attempt,BeforeOperation=RunStore.ContinueBefore(run,c),LegacyVisitBoundary=c.BeforeOperation is null,
                 CompletedEventBattleSource=RunRoutes.CompletedEventBattle(run,c)?.SourceSequence,
                 CompletedMapBattleSource=RunRoutes.CompletedMapBattle(run,c)?.SourceSequence}).ToArray();
@@ -20,10 +22,13 @@ internal static class RunContracts
                 return new{Operation=p.First.Sequence,destination.Visit.Id,destination.Visit.MapType,destination.Type,destination.Model};}).ToArray();
         Codec.Require(File.ReadAllBytes(path).SequenceEqual(before),"run-read-mutated-original");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
-        File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_ACTUAL_RUN_PRODUCTION_READ_NOT_NATIVE_PLAYBACK",run.Id,run.Format,
+        var result=startSource is null?"PASS_ACTUAL_RUN_PRODUCTION_READ_NOT_NATIVE_PLAYBACK":"PASS_ACTUAL_RUN_TAIL_PRODUCTION_READ_NOT_NATIVE_PLAYBACK";
+        File.WriteAllBytes(output,Codec.Bytes(new{Result=result,run.Id,run.Format,
             OriginalSHA256=Codec.Hash(before),Visits=run.Visits.Count,Operations=run.Operations.Count,RecordedOperations=raw.Operations.Count,StartSequence=anchor!.Sequence,
+            CoverageStartSource=anchor.SourceSequence??anchor.Sequence,ExplicitTail=startSource is not null,
+            CoveredVisits=run.Operations.Where(o=>o.Sequence>=anchor.Sequence).Select(o=>o.Visit).Distinct().Count(),
             ResourceDiscontinuities=gaps,Continuations=continuations,Destinations=destinations,OriginalUnchanged=true,NativeRuntimeNotExecutedByThisCheck=true}));
-        Console.WriteLine("PASS_ACTUAL_RUN_PRODUCTION_READ_NOT_NATIVE_PLAYBACK");
+        Console.WriteLine(result);
     }
     internal static void Run(string output)
     {

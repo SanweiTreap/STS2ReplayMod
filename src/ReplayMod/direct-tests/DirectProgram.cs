@@ -2,7 +2,7 @@ using System.Reflection;
 using ReplayMod;
 if(args.Length>1&&args[1]=="run-branches"){RunBranchContracts.Run(args[0]);return;}
 if(args.Length>1&&args[1]=="run-envelope"){RunContracts.Run(args[0]);return;}
-if(args.Length>3&&args[1]=="verify-run"){RunContracts.Verify(args[0],args[2],args[3]);return;}
+if(args.Length>3&&args[1]=="verify-run"){RunContracts.Verify(args[0],args[2],args[3],args.Length>4?int.Parse(args[4]):null);return;}
 if(args.Length>1&&args[1]=="enemy-generation"){EnemyGenerationContracts.Run(args[0]);return;}
 if(args.Length>1&&args[1]=="recording-library"){RecordingContracts.Run(args[0]);return;}
 if(args.Length>1&&args[1]=="phase-wait"){await PhaseWaitContracts.Run(args[0]);return;}
@@ -12,6 +12,7 @@ if(args.Length>1&&args[1]=="orbs"){OrbContracts.Run(args[0]);return;}
 if(args.Length>2&&args[1]=="discard-potion"){DiscardPotionContracts.Run(args[0],args[2]);return;}
 if(args.Length>1&&args[1]=="card-tracking"){CardTrackingContracts.Run(args[0]);return;}
 if(args.Length>3&&args[1]=="verify-native-recording"){FullPlaybackContracts.VerifyRecording(args[0],args[2],args[3]);return;}
+if(args.Length>3&&args[1]=="verify-native-fragment"){FullPlaybackContracts.VerifyRecording(args[0],args[2],args[3],interrupted:true);return;}
 if(args.Length>2&&args[1]=="full-playback"){FullPlaybackContracts.Run(args[0],args[2]);return;}
 if(args.Length>2&&args[1]=="operations"){OperationContracts.Run(args[0],args[2]);return;}
 if(args.Length>2&&args[1]=="seek"){SeekContracts.Run(args[0],args[2]);return;}
