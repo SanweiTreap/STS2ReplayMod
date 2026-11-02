@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace ReplayMod;
 
-internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent, NecrobinderContent, EnemySummon, RunRoute, RunRooms, RunShops, RunEvents, RunEventCombat }
+internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent, NecrobinderContent, EnemySummon, RunRoute, RunRooms, RunShops, RunEvents, RunEventCombat, RunActs }
 // Explicit opt-in, consumed by ONE new supported run. Never applied to Continue or playback.
 internal static class TestEncounter
 {
@@ -21,7 +21,8 @@ internal static class TestEncounter
     private static TestPreparation _mode;
     private static RunState? _run;
     internal static string? Preparation=>_run is not null&&ReferenceEquals(_run,RunManager.Instance.DebugOnlyGetState())?
-        (_mode==TestPreparation.RunEventCombat?"RUN002-Ironclad-Underdocks-DefendPlus-2-ImperviousPlus-2-BodySlamPlus-5-innate-retain-EnergyPotion-Monster-Unknown-BattlewornDummy-Monster-native-odds-minus1":
+        (_mode==TestPreparation.RunActs?"RUN004-Ironclad-Underdocks-3-DefendPlus-2-ImperviousPlus-2-BodySlamPlus-7-innate-retain-BagOfPreparation-Lantern-3-EnergyPotion-Elite-connected-to-native-Boss":
+         _mode==TestPreparation.RunEventCombat?"RUN002-Ironclad-Underdocks-DefendPlus-2-ImperviousPlus-2-BodySlamPlus-5-innate-retain-EnergyPotion-Monster-Unknown-BattlewornDummy-Monster-native-odds-minus1":
          _mode==TestPreparation.RunEvents?"RUN002-Ironclad-Underdocks-two-CorpseSlugsWeak-40HP-5-innate-retain-connected-Monster-Unknown-AbyssalBaths-Unknown-DoorsOfLightAndDark-Monster-native-odds-minus1":
          _mode==TestPreparation.RunShops?"RUN002-Ironclad-Underdocks-two-CorpseSlugsWeak-40HP-1000Gold-3-starter-DefendPlus-2-added-BodySlamPlus-5-innate-retain-connected-Monster-Shop-Monster":
          _mode==TestPreparation.RunRooms?"RUN002-Ironclad-Underdocks-two-CorpseSlugsWeak-40HP-3-starter-DefendPlus-2-added-BodySlamPlus-5-innate-retain-connected-Monster-Treasure-Monster":
@@ -53,13 +54,13 @@ internal static class TestEncounter
         var rooms=(RoomSet)AccessTools.Field(typeof(ActModel),"_rooms").GetValue(_run!.Act)!;
         Codec.Require(rooms.normalEncountersVisited==0&&rooms.normalEncounters.Count>0,"test-entry-room-list-not-ready");
         var previous=rooms.normalEncounters[0].Id.ToString();rooms.normalEncounters[0]=_mode==TestPreparation.EnemySummon?ModelDb.Encounter<TwoTailedRatsNormal>():ModelDb.Encounter<CorpseSlugsWeak>();
-        if(_mode is TestPreparation.EnemySummon or TestPreparation.RunRoute or TestPreparation.RunRooms or TestPreparation.RunShops or TestPreparation.RunEvents or TestPreparation.RunEventCombat)
+        if(_mode is TestPreparation.EnemySummon or TestPreparation.RunRoute or TestPreparation.RunRooms or TestPreparation.RunShops or TestPreparation.RunEvents or TestPreparation.RunEventCombat or TestPreparation.RunActs)
         {
             var player=_run.Players[0];var count=_mode==TestPreparation.RunEventCombat?1:3;
             var defense=player.Deck.Cards.OfType<DefendIronclad>().Take(count).Cast<CardModel>().ToArray();
             Codec.Require(defense.Length==count&&defense.All(c=>c.CurrentUpgradeLevel==0),"rat-test-starter-defends");
             var attacks=Enumerable.Range(0,2).Select(_=>_run.CreateCard<BodySlam>(player)).Cast<CardModel>()
-                .Concat(_mode==TestPreparation.RunEventCombat?Enumerable.Range(0,2).Select(_=>_run.CreateCard<Impervious>(player)):[]).ToArray();
+                .Concat(_mode is TestPreparation.RunEventCombat or TestPreparation.RunActs?Enumerable.Range(0,2).Select(_=>_run.CreateCard<Impervious>(player)):[]).ToArray();
             foreach(var card in attacks)player.Deck.AddInternal(card,silent:true);
             foreach(var card in defense.Concat(attacks))
             {
@@ -72,6 +73,12 @@ internal static class TestEncounter
             {Codec.Require(rooms.normalEncounters.Count>=2,"run-test-second-encounter-missing");rooms.normalEncounters[1]=ModelDb.Encounter<CorpseSlugsWeak>();player.Creature.SetCurrentHpInternal(40);}
             if(_mode==TestPreparation.RunShops)player.Gold=1000;
             if(_mode==TestPreparation.RunEventCombat)Codec.Require(player.AddPotionInternal(ModelDb.Potion<EnergyPotion>().ToMutable(),0,silent:true).success,"event-combat-energy-potion");
+            if(_mode==TestPreparation.RunActs)
+            {
+                player.AddRelicInternal(ModelDb.Relic<BagOfPreparation>().ToMutable(),silent:true);
+                player.AddRelicInternal(ModelDb.Relic<Lantern>().ToMutable(),silent:true);
+                for(var slot=0;slot<3;slot++)Codec.Require(player.AddPotionInternal(ModelDb.Potion<EnergyPotion>().ToMutable(),slot,silent:true).success,"run-acts-energy-potion");
+            }
         }
         if(_mode==TestPreparation.NecrobinderContent)
         {
@@ -217,7 +224,8 @@ internal static class TestEncounter
             DeckOwnersAndRunRegistrationValid=_run.Players[0].Deck.Cards.All(c=>ReferenceEquals(c.Owner,_run.Players[0])&&_run.ContainsCard(c)),
             Deck=_run.Players[0].Deck.Cards.Select(c=>new{Model=c.Id.ToString(),c.CurrentUpgradeLevel,Saved=c.ToSerializable()}).ToArray(),
             Relics=_run.Players[0].Relics.Select(r=>r.Id.ToString()).ToArray(),Potions=_run.Players[0].PotionSlots.Select(p=>p?.Id.ToString()).ToArray()});
-        Runtime.Status=_mode==TestPreparation.RunEventCombat?"事件内部战斗短路线已准备：首普通→问号训练假人→普通；能量药水留给假人":
+        Runtime.Status=_mode==TestPreparation.RunActs?"RUN-004：最左首节点精英，后接原生Boss；七张先天保留牌。本候选先测精英并停在奖励页":
+            _mode==TestPreparation.RunEventCombat?"事件内部战斗短路线已准备：首普通→问号训练假人→普通；能量药水留给假人":
             _mode==TestPreparation.RunEvents?"事件短路线已准备：首普通→问号深渊浴场→问号光暗之门→普通；仅新局准备原生概率":
             _mode==TestPreparation.RunShops?"商店SL短路线已准备：首普通→商店→普通；初始1000金币；保留每次尝试":
             _mode==TestPreparation.RunRooms?"宝箱SL短路线已准备：首普通→宝箱→普通；保留每次尝试":
@@ -235,6 +243,16 @@ internal static class TestEncounter
     }
     internal static void ConfigureRunRoute(MegaCrit.Sts2.Core.Map.ActMap map)
     {
+        if(!PlayerLoop.Active&&_mode==TestPreparation.RunActs&&Preparation is not null&&_run!.CurrentActIndex==0)
+        {
+            var elite=map.GetPointsInRow(1).Where(p=>p.PointType==MegaCrit.Sts2.Core.Map.MapPointType.Monster).OrderBy(p=>p.coord.col).First();
+            elite.PointType=MegaCrit.Sts2.Core.Map.MapPointType.Elite;
+            foreach(var child in elite.Children.ToArray())elite.RemoveChildPoint(child);
+            elite.AddChildPoint(map.BossMapPoint);
+            Runtime.Log("test-run-acts-route-prepared",new{BeforeRecordingCheckpoint=true,ActualAct=_run.Act.Id.ToString(),
+                Elite=new{Row=elite.coord.row,Col=elite.coord.col},Boss=new{Row=map.BossMapPoint.coord.row,Col=map.BossMapPoint.coord.col},
+                NativeEncountersUnchanged=true,PreparedMapSerialized=true,SkippedMiddleActNotRecorded=true});return;
+        }
         if(PlayerLoop.Active||_mode is not (TestPreparation.RunRoute or TestPreparation.RunRooms or TestPreparation.RunShops or TestPreparation.RunEvents or TestPreparation.RunEventCombat)||Preparation is null)return;
         var first=map.GetPointsInRow(1).Where(p=>p.PointType==MegaCrit.Sts2.Core.Map.MapPointType.Monster).OrderBy(p=>p.coord.col).First();
         var camp=first.Children.OrderBy(p=>p.coord.col).First();var second=camp.Children.OrderBy(p=>p.coord.col).First();

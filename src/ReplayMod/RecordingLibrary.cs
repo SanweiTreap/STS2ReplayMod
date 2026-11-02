@@ -6,7 +6,11 @@ namespace ReplayMod;
 
 public sealed record BattleRecording(string RunId,int Battle,int Attempt,int Act,int Floor,long RunStartTime,string Entry,string Completion,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? ParentEvent=null,
-    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] bool? ResumeParent=null);
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] bool? ResumeParent=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? ActModel=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? RoomType=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? ActFloor=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? TotalFloor=null);
 public sealed record ClipListing(string Id,DateTimeOffset CreatedUtc,string Character,string Encounter,int Row,int Operations,bool Victory,BattleRecording? Battle,string? Problem=null);
 
 // This journal belongs to Replay. No identifier is written into the native run save.

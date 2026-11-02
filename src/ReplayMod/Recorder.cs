@@ -36,7 +36,7 @@ internal static class Recorder
         RunEventCombat.Clear();
         ResetSegment();_enabled=false;_attempted=false;_continueSave=null;
         if(fresh){_loadedSave=null;_loadedJson=null;Runtime.CheckEnvironment();Runtime.Journal.NewRun();RecordedState.NewRun();_enabled=true;RunRecording.Attach(false);}
-        Runtime.Status="自动录制：五角色A0首幕普通战斗，每场胜利独立保存；支持保存退出后继续";
+        Runtime.Status="自动录制：五角色A0第一、二幕战斗，每场胜利独立保存；支持保存退出后继续";
     }
     internal static void Continue(SerializableRun save)
     {
@@ -101,9 +101,9 @@ internal static class Recorder
         if(Active||_waiting)Interrupt();
         ResetSegment(preserveAuthority:true);_attempted=false;
         var run=LiveState.Run;
-        if(preFinished||run.CurrentActIndex!=0||run.AscensionLevel!=0||run.Modifiers.Count!=0||run.CurrentMapPoint?.PointType is not (MapPointType.Monster or MapPointType.Unknown))
+        if(preFinished||run.CurrentActIndex is not (0 or 1)||run.AscensionLevel!=0||run.Modifiers.Count!=0||run.CurrentMapPoint is not {} point||!LiveState.CombatMapType(point.PointType))
         {
-            _continueSave=null;Runtime.Status="本房间不录制；进入下一场受支持的首幕普通战斗时自动恢复";return;
+            _continueSave=null;Runtime.Status="本房间不录制；进入下一场受支持战斗时自动恢复";return;
         }
         _captureEntry=true;_unknownEntry=run.CurrentMapPoint?.PointType==MapPointType.Unknown;
         if(!saveGame)
@@ -175,6 +175,8 @@ internal static class Recorder
         if(_entry?.IsCompletedSuccessfully!=true||ActionMonitor.StartTurnTask?.IsCompletedSuccessfully!=true||!LiveState.Playable)return;
         var ready=LiveState.Format>=5?new RecordingTiming("checkpoint-stopwatch-elapsed-realtime-v1",RecordingClock.Now,true,true,true):null;
         ChoiceTape.AssertBoundary(0);_clip=_clip! with{Encounter=((MegaCrit.Sts2.Core.Rooms.CombatRoom)LiveState.Run.CurrentRoom!).Encounter.Id.ToString(),Initial=LiveState.Capture(),Timing=ready};
+        if(_clip.Battle is {} battle)_clip=_clip with{Battle=battle with{ActModel=LiveState.Run.Act.Id.ToString(),
+            ActFloor=LiveState.Run.ActFloor,TotalFloor=LiveState.Run.TotalFloor,RoomType=LiveState.Run.CurrentRoom!.RoomType.ToString()}};
         _waiting=false;Active=true;BattleEnd.Begin();RecordedState.Begin();
         // Capture the parent option's result at this exact initial boundary,
         // before any player input can change the newly playable combat state.

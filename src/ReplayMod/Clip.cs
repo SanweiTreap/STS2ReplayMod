@@ -49,7 +49,11 @@ public static class Codec
         Require(clip.Authority is null||clip.Character=="CHARACTER.IRONCLAD"&&clip.Format==3&&clip.Authority=="STATE001-first-Defend-v1"&&
             clip.Operations[0] is {Kind:OperationKind.Card,Card:"CARD.DEFEND_IRONCLAD",Turn:1,Victory:false,CardState.Upgrade:0},"unsupported-authority-point");
         var victory=clip.Operations[^1].Victory;
-        Require(clip.Format>=9?clip.Battle is {Battle:>0,Attempt:>0,Act:0,Floor:>0,RunStartTime:>0} battle&&
+        Require(clip.Format>=9?clip.Battle is {Battle:>0,Attempt:>0,Act:>=0,Floor:>0,RunStartTime:>0} battle&&
+            (clip.Format>=10?battle.Act<=1:battle.Act==0)&&
+            (battle.RoomType is null or "Monster" or "Elite" or "Boss")&&
+            (battle.ActModel is null||Regex.IsMatch(battle.ActModel,"^ACT\\.[A-Z0-9_]+$"))&&
+            (battle.ActFloor is null||battle.ActFloor==battle.Floor)&&(battle.TotalFloor is null or >0)&&
             Regex.IsMatch(battle.RunId,"^[a-f0-9]{32}$")&&battle.Floor==clip.Row+1&&
             battle.Entry is "map" or "continue-known" or "continue-unmatched" or "event"&&battle.Completion==(victory?"victory":"interrupted")&&
             (battle.Entry=="event"?battle.ParentEvent is {Length:>0}&&battle.ResumeParent==true:battle.ParentEvent is null&&battle.ResumeParent is null):clip.Battle is null,"battle-recording-metadata");

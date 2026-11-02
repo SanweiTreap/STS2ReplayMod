@@ -52,6 +52,29 @@ internal static class RecordingContracts
             [new(1,OperationKind.Card,1,0,"CARD.DEFEND_IRONCLAD",null,projection,CardState:new(1,0,new string('A',64),"Self"),Timing:new(10,20))],Choices:[],
             Timing:new("checkpoint-stopwatch-elapsed-realtime-v1",0,true,true,true),Battle:new(Guid.NewGuid().ToString("N"),3,2,0,6,100,"continue-known","interrupted"));
         var root=Path.Combine(dir,"clips");var store=new ClipStore(root);
+        Test("act-and-room-metadata-retain-identity-at-reused-coordinates-without-expanding-legacy-format",()=>
+        {
+            var first=journal.Begin(0,5,0,6,100,"map");var next=journal.Begin(1,5,0,6,100,"map");
+            Need(first.RunId==next.RunId&&first.Battle!=next.Battle&&next.Attempt==1,"acts-merged-at-reused-coordinate");
+            var modern=System.Text.Json.Nodes.JsonNode.Parse(projection)!;
+            modern["Mechanics"]!["CombatUnits"]!["Enemies"]=new System.Text.Json.Nodes.JsonArray();
+            var state=modern.ToJsonString(Codec.Json);
+            var current=clip with{Format=10,Initial=state,Operations=[clip.Operations[0] with{After=state}],
+                Battle=clip.Battle! with{Act=1,ActModel="ACT.HIVE",RoomType="Monster",ActFloor=6,TotalFloor=20}};
+            foreach(var room in new[]{"Monster","Elite","Boss"})
+            {
+                var value=current with{Battle=current.Battle! with{RoomType=room}};
+                Codec.Validate(value,"game","mod","scope");
+                var read=JsonSerializer.Deserialize<Clip>(Codec.Bytes(value),Codec.Json)!;
+                Need(read.Battle==value.Battle,"act-room-identity-lost-on-read");
+            }
+            foreach(var bad in new[]{clip with{Battle=clip.Battle! with{Act=1}},current with{Battle=current.Battle! with{Act=2}},
+                current with{Battle=current.Battle! with{RoomType="Event"}},current with{Battle=current.Battle! with{ActModel="EVENT.NEOW"}},
+                current with{Battle=current.Battle! with{ActFloor=0}}})
+            {var rejected=false;try{Codec.Validate(bad,"game","mod","scope");}catch(InvalidDataException ex) when(ex.Message=="battle-recording-metadata"){rejected=true;}Need(rejected,"unsupported-act-or-room-accepted");}
+            var legacy=JsonSerializer.Serialize(clip.Battle,Codec.Json);
+            Need(!legacy.Contains("ActModel")&&!legacy.Contains("RoomType")&&!legacy.Contains("ActFloor")&&!legacy.Contains("TotalFloor"),"legacy-metadata-bytes-changed");
+        });
         Test("event-battle-keeps-parent-and-cannot-masquerade-as-independent-map-entry",()=>
         {
             var native=clip with{Battle=clip.Battle! with{Entry="event",ParentEvent="EVENT.DUMMY",ResumeParent=true}};
