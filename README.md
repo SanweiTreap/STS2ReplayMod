@@ -4,6 +4,8 @@
 
 目前为开发原型，固定目标 **STS2 public-beta v0.111.0**。**CONTENT-005五角色基础战斗支持已按代表样本阶段验收**：自动录制、独立原生回放、选择界面、已访问操作点恢复和原生续播；已测储君资源/可变牌、球、Osty首次创建/死亡重召及Doom结算。
 
+[RUN-003首段](project-management/investigation-reports/RUN-003-report.md)已验证涅奥开局和整局观看入口：主页“回放”进入整局列表/详情，具备真实奖励前输入的新记录可从开局观看；旧记录保持已有合法起点及分场入口，准备归开发区。铁甲A0新叶样本沿原生初始化、候选/单张变形、地图到首战胜利，状态/RNG匹配；选择中Stop、首战入场途中Stop、重开及战斗Back重做已有证据，菜单/战斗音乐切换已听测。仅此代表范围，其他涅奥奖励/选牌类型、Neow SL及全部界面组合未全覆盖；非战斗Back与跨房间Seek仍未开放。
+
 [RUN-002：宝箱、商店、问号与SL尝试归属](project-management/investigation-reports/RUN-002-report.md)已按单人A0首幕铁甲代表样本完成（DONE_WITH_LIMITATIONS）。宝箱已验证成功存盘锚点匹配、连续SL的独立尝试、白星领取/跳过及下一普通战斗原生播放、待选时Stop和重开；默认只播放最终延续路线，旧尝试原件保留。新记录保存实际账户Progress输入，以正确重现提示/SL保留的发现记录；缺少关键上下文的旧样本保持明确缺口，不忽略资源差异。
 
 商店代表样本已验证原生买卡/药水/遗物、会员卡动态折扣、删牌取消和确认，核库存/价格/资源/RNG；真实入口SL后改买其他牌，最终路线不带入已放弃交易/删牌效果，原生衔接下一战并匹配初态/RNG。货架待购买时Stop及重开已测；商店删牌窗口进行中的Stop、特殊遗物附加选择/自动套购等未单独覆盖。其他宝箱遗物/附加奖励未全覆盖，以下RUN-001结论保持原有代表样本边界。
@@ -16,7 +18,7 @@
 
 RUN-001已完成铁甲A0首幕两条短路线的代表验证：同一观看会话以`>`、`>>`或Auto原生顺播普通战斗胜利、领奖或跳卡、地图选路、营火升级或休息及下一普通战斗，下一战初态与RNG自然产生并核对。合法战斗完成保存点的真正重启Continue、后续领奖续录与完整回放通过，原房间/战斗没有重复；奖励和营火选牌中的Stop、重开亦有实测。Auto到记录终点关闭并保留画面，手动Stop恢复原观看前上下文。战外Back/跨房间Seek暂未开放，旧Continue记录只兼容能够唯一确定位置的完成房间边界。
 
-尚未完成完整整局通关、全部内容/难度、所有敌方召唤/多阶段、任意文件点恢复或可移植导入。公开的是开发快照，不是正式发布包。当前状态/版本边界见[项目状态](project-management/CURRENT_STATUS.md)、[战斗录制报告](project-management/investigation-reports/CONTENT-006-report.md)与[当前任务报告](project-management/investigation-reports/RUN-001-report.md)。
+尚未完成完整整局通关、全部内容/难度、所有敌方召唤/多阶段、任意文件点恢复或可移植导入。公开的是开发快照，不是正式发布包。当前状态/版本边界见[项目状态](project-management/CURRENT_STATUS.md)、[战斗录制报告](project-management/investigation-reports/CONTENT-006-report.md)与[当前任务报告](project-management/investigation-reports/RUN-003-report.md)。
 
 ## 目录
 
