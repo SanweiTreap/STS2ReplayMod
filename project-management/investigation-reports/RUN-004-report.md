@@ -2,13 +2,13 @@
 
 ## 当前摘要（2026-11-02）
 
-- 本包进行中，**build-003 跨幕候选已安装待测**，源码 `ce24af2`。r3/002精英完整16步/胜利/40金币与血瓶领奖全匹配，误报已消除，Stop后原manager/context及所比较Continue/Progress恢复。r2的内部遗物误报mixed FAIL保留，不追改。
+- 本包进行中，保留 **build-003**，源码 `ce24af2`。r4同Run精确Continue首幕Boss完成点→实际奖励→原生换幕→第二幕Orobas第二项→首普通24步胜利完整录制，零错误，生产读取通过；**连续观看/新增换幕Stop尚待验证**。r3精英完整观看与领奖误报修复通过，r2内部误报mixed FAIL保留。
 - r3真正Continue精确匹配原point4，仍同一Run，保留旧领取5/6为原始事实而不纳入最终路线；新领奖/跳卡→原生地图→瀑布巨人Boss22步胜利自动封存，未领奖。Boss当前仅录制/生产读取通过，未观看；精英四次Back/重做已在r2通过，无需复测旧卡矩阵。
-- 当前局 `2b0f7e321a3a4dcd9caf9ee83435a06f`，种子KTRJB2SKRSYV；原生fingerprint精确匹配point7，首幕Boss完成未领奖，57HP/139金币。root原始12操作，最终selected `[1,2,3,4,7,8,9,10,11,12]`，3访问/4attempt。Boss片 `27099a921185492ca48419b00b23a80f`、精英片 `be74f0a6bbb943578c3ec700c328bfbd`。
-- 003沿Boss奖励页原生SetLocalPlayerReady→唯一原生Vote→EnterNextAct任务记录/播放act-proceed，实际加载Task收束后核同Run第二幕MapRoom/空地图访问；不直接重复调用EnterAct、不读后幕checkpoint。接第二幕Ancient实际入口/原生选项和首普通战斗；新增默认关闭换幕加载中公开Stop一次性开关。**这些新增路径尚无原生动态结论**。
+- 当前局 `2b0f7e321a3a4dcd9caf9ee83435a06f`，种子KTRJB2SKRSYV；原生fingerprint精确匹配point12，第二幕首普通完成未领奖。root原始20操作，最终selected18操作（旧领奖5/6仍只保留为原始事实），5访问/7attempt。三片为精英 `be74f0a6bbb943578c3ec700c328bfbd`、Boss `27099a921185492ca48419b00b23a80f`、第二幕普通 `4c538903df5241cf9451bcc87fd7c779`；前两片hash未改。
+- 003沿Boss奖励页原生SetLocalPlayerReady→原生Vote→EnterNextAct任务记录/播放act-proceed，不重复调用EnterAct、不读后幕checkpoint；r4实际只录到一次act-proceed，Before/After幕索引0→1，第二幕Ancient与普通访问身份独立且正确。播放的唯一投票/任务收束、自然初态/RNG及新增默认关闭换幕Stop开关仍需实测。
 - 当前已有精英/Boss共用录制、输入/Back与format10第一二幕身份；可选ActModel/RoomType/原生ActFloor/TotalFloor保持旧片省略字段。短准备改暗港首节点为精英并连到本幕原生Boss，牌组/遗物/药水在checkpoint前创建；准备前涅奥虽保留操作，Opening=null，不伪称从涅奥完整重建。普通新局RUN-003路径保留。非战斗Back/跨房间Seek仍禁用。
-- r3证据 `evidence/run-004/runtime-verification-r3.json`、`checks/r3-run.json`、`checks/r3-boss.json`；补存 `RUN004-post-r3-current-20261102-221110`，343数据文件、51已知文件/4,159,131 bytes，零缺失，game0，无restore。modded1原生录制更新及已知modded2三项新文件均保留，单列；不称全账户不变。Cloud本轮用户确认关闭，无新进度，另一账户排除。
-- 下一步：安装003后用户Continue同一Boss胜利点，正常奖励/换幕→实际第二幕Orobas选择→首普通战斗胜利不领奖并正常退出；一次观看合并验证精英起点至第二幕自然链、Boss及第二幕状态/RNG。之后以同片作新增换幕Stop/重开，不要求重打整幕。
+- r4证据 `evidence/run-004/runtime-verification-r4.json`、`checks/r4-run.json`、`checks/r4-act2-clip.json`；最新补存 `RUN004-post-r4-current-20261102-222133`，132数据文件、51已知文件/4,169,988 bytes，零缺失，game0，无restore。r4仅modded1录制/原生进度及settings.backup共6项变化；r3已保留modded2更新，本轮未再变。Cloud本轮用户确认关闭，另一账户排除。
+- 下一步：现003从精英合法起点Auto全链至第二幕胜利并Stop；启用一次性换幕Stop后从Boss合法起点Auto，核换幕途中公开Stop/实际加载退出，再重开前进一步Stop。未要求重录/重打整幕。
 
 ## 首候选实现边界
 
@@ -55,3 +55,13 @@
 主体/DirectContracts Release均0warnings/0errors；12项branch合同及11项run-envelope通过，新增合同只证明Boss因果操作和第二幕新visit/真实save分支关系，不当原生换幕证据。r3实际root/Boss片生产reader通过；001/002精确已知录制build显式兼容。证据 `checks/build-003-branches.json`、`checks/build-003-run.json`。
 
 003安装收据 `preparation/build-003-5d10c7a3.json`：DLL `BAE17032415D20C4F7844779B921379D8994ABC7C3BE69AC9106988EDADDA70B`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。`mods/ReplayMod`唯一pair与封存003一致、原002另存核hash；51已知文件安装后仅settings.save变化、零缺失、game0、无restore，见 `preparation/post-build003-check.json`。本轮先续录跨幕与第二幕首普通胜利；换幕Stop开发开关暂不启用，等待该实际链有录像后再合并观看验证。
+
+## r4：真实Boss奖励、换幕、Orobas与第二幕首普通录制（003）
+
+会话 `a049368624d04d3fab96def089abfac8`，126事件、零observer-error/failed/difference/gap/missing。真正新进程Continue读取原生Boss完成保存point7，仍同Run，创建attempt5；Boss领取100金币并选择CARD.UNMOVABLE。只出现一次原生act-proceed（原始操作15，Visit3归因Boss），Before.current_act_index=0、After=1；之后地图实际进入新Visit4/Act1/ACT.HIVE/EVENT.OROBAS，无同坐标并入首幕或新Run。
+
+Orobas实际候选GLASS_EYE / RADIANT_PEARL / TOUCH_OF_OROBAS，选第二项RELIC.RADIANT_PEARL，完成原生选择/离开与地图进入Visit5 `ENCOUNTER.EXOSKELETONS_WEAK`；24步/5回合胜利自动封存format10片 `4c538903df5241cf9451bcc87fd7c779`。实际RoomType=Monster、Act=1、ActModel=ACT.HIVE、ActFloor=2、TotalFloor=5。古神候选与效果未强制，第一项额外领奖页/第三项替换遗物未测，不外推。
+
+root20原始操作、selected18操作、5visit/7attempt，selected `[1,2,3,4,7,8,9,10,11,12,13,14,15,16,17,18,19,20]`；跨幕因果完整在选中分支中，旧两项领取不重复执行。current_run精确匹配最新成功point12完整selected路径、第二幕首普通胜利未领奖；point9/10为第二幕古神前/完成，point11为首普通战前。文件root2,810,210 bytes、第二幕clip1,686,782 bytes；生产reader与资源连续性检查通过、精英/Boss原片hash不变。**本轮仅录制/文件实读，不当跨幕观看成功。**
+
+备份132数据文件、51已知文件/4,169,988 bytes，全部哈希读回、零缺失、game0，无restore；原生modded1 latest/current_run/progress及各backup和settings.backup共6项预期更新保留，modded2本轮无新增变化。证据 `runtime-verification-r4.json`、`collection-r4.json`、`checks/r4-run.json`、`checks/r4-act2-clip.json`。
