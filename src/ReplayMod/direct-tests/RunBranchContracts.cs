@@ -16,6 +16,26 @@ internal static class RunBranchContracts
             RunRoutes.Append(run,operation);return operation;
         }
         var run=Fresh();RunRoutes.StartAttempt(run,1,null,null,"entry");Add(run,1,"battle","victory");Add(run,1,"map","chest");
+        Test("act-transition-keeps-boss-cause-and-new-act-visit-through-observed-load",()=>
+        {
+            var sample=Fresh();
+            sample.Visits[0]=sample.Visits[0] with{MapType="Boss",RoomType="Boss",Row=16,Floor=17,ActModel="ACT.UNDERDOCKS"};
+            sample.Visits[1]=sample.Visits[1] with{Act=1,MapType="Ancient",RoomType="Event",Row=0,Floor=1,ActModel="ACT.HIVE",Model="EVENT.OROBAS"};
+            RunRoutes.StartAttempt(sample,1,null,null,"entry");Add(sample,1,"battle","boss-victory");
+            Add(sample,1,"reward","actual-native-claim");Add(sample,1,"act-proceed","native-vote-result");
+            var travel=Add(sample,1,"map","next-act-start") with{Argument=new(0,0)};sample.Operations[3]=travel;
+            RunRoutes.StartAttempt(sample,2,1,null,"entry");sample.Branches!.Attempts[1]=sample.Branches.Attempts[1] with{RoomType="Event",Model="EVENT.OROBAS"};
+            var entry=RunRoutes.Observe(sample,2,2,[1,2,3,4],"act2-disk","act2-load","actual-save",false);
+            Add(sample,2,"event-choice","old-choice");
+            Need(RunRoutes.Restore(sample,"act2-load")?.Id==entry.Id,"act2-load-lost-actual-anchor");
+            sample.Continuations.Add(new(DateTimeOffset.UtcNow,2,false,"actual-save","native-continue",6,sample.Branches.ActiveAttempt,"actual-progress"));
+            Add(sample,2,"event-choice","new-choice");var view=RunRoutes.Playback(sample);
+            var target=RunRoutes.Destination(view,view.Operations[3],view.Operations[4]);
+            Need(view.Operations.Select(o=>o.SourceSequence).SequenceEqual(new int?[]{1,2,3,4,6})&&
+                view.Operations.Count(o=>o.Kind=="act-proceed")==1&&view.Operations[2].Visit==1&&target.Visit.Act==1&&
+                target.Visit.ActModel=="ACT.HIVE"&&target.Model=="EVENT.OROBAS"&&
+                RunRoutes.ProgressBefore(view,view.Continuations.Single())==4,"act-cause-duplicated-or-entry-load-context-misplaced");
+        });
         RunRoutes.StartAttempt(run,2,1,null,"entry");var point=RunRoutes.Observe(run,2,2,[1,2],"disk","load","semantic",false);
         Add(run,2,"treasure-open","offer");Add(run,2,"treasure-pick","A");
         var original=Codec.Bytes(run.Operations);

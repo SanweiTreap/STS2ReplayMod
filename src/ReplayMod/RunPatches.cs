@@ -87,6 +87,7 @@ internal static class RunPatches
         RunMerchants.Install(h);
         RunEvents.Install(h);
         RunOpening.Install(h);
+        RunActs.Install(h);
     }
     private static void RoomTypeChosen(MapPointType __0,RoomType __result)=>Runtime.Guard(()=>
     {
