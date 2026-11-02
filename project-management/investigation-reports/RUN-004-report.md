@@ -2,7 +2,7 @@
 
 ## 当前摘要（2026-11-02）
 
-- 本包进行中；**build-002 待安装**。r2 精英16步胜利、四次Back/原生重做、40金币和血瓶自然领取资源/RNG匹配，用户接受视觉；但血瓶新增触发内部遗物归属误报，完整观看保留mixed FAIL，不能称无错通过。Boss/跨幕仍未完成。RUN-003/006 的验收不外推到本包。
+- 本包进行中；**build-002 已安装待测**，源码 `28c6b3a`。r2 精英16步胜利、四次Back/原生重做、40金币和血瓶自然领取资源/RNG匹配，用户接受视觉；但血瓶新增触发内部遗物归属误报，完整观看保留mixed FAIL，不能称无错通过。Boss/跨幕仍未完成。RUN-003/006 的验收不外推到本包。
 - 共用录制入口、输入可用边界、地图播放分派、完成房间 Continue、文件读取接入 Elite/Boss；format10 允许第一、二幕。新增可选幕模型、实际房型、原生 ActFloor/TotalFloor；旧片缺字段不补历史，省略空字段保持旧序列化。观看核同幕/模型/房型/楼层及既有完整状态/RNG。
 - 默认关闭的一次性新局准备：铁甲 A0 暗港，原生首节点改精英并与本幕原生 Boss 节点相连；不替换精英/Boss 模型，不在观看中改地图或杀怪。三张防御+、两张岿然不动+、两张全身撞击+先天保留，准备背包、灯笼及三瓶能量药水；全部在录制战前 checkpoint 前创建/登记。起点为精英战前，跳过的幕中房间和之前涅奥不当连续录播证明。
 - 首候选只安排精英记录/独立起点观看；Boss 奖励离开、换幕同步、第二幕 Ancient 选择及 Continue 跨幕归属仍待实现/验证，不把放开房型当跨幕完成。非战斗 Back/跨房间 Seek 仍禁用。
@@ -39,3 +39,5 @@
 原因：既有 RelicMembership 只登记宝箱、商店、事件来源，未登记战后 RelicReward.OnSelect → RelicCmd.Obtain 的原生来源；原生领取继续且资源比对通过，但观察器留下错误。002沿实际奖励Task补同一实例归属，不修改领取业务、效果、RNG或Back。证据 `evidence/run-004/runtime-verification-r2.json`、`collection-r2.json`。
 
 用户询问涅奥未一并播放：本样本实际涅奥选择/离开已在root操作1/2中，`Opening=null`，因为 RunOpening.Capture 对 TestEncounter.Armed 的准备局尚不捕获可重建的新局输入。准备会在工厂内额外改首幕、牌组/遗物/药水和地图；从未经准备的普通新局重建会失配，所以本次保留精英战前合法起点。正常无该准备的新局仍走已验RUN-003奖励前捕获，不是普通新局能力回退；不事后给此片编造Opening。当前优先沿此合法起点证明精英→Boss→实际第二幕链，不要求再重录涅奥。
+
+002 安装收据 `preparation/build-002-260da47d.json`：DLL `69A1529F939E9452F2FF4AB96A753C532153C287378C63E01CE69154753CC0E7`，manifest 保持 `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一 `mods/ReplayMod` pair 与封存002一致，原001备存核hash；51已知文件安装后仅settings.save变化、零缺失、game0、无restore，见 `preparation/post-build002-check.json`。现有精英片无需重录；下一步仅Auto旧片确认领取归属，再沿真实Continue进入Boss并正常录制。
