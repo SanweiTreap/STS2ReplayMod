@@ -136,7 +136,8 @@ internal static class RunRecording
             (room.RoomType.ToString()==visit.MapType||room.RoomType==RoomType.Monster&&visit.MapType=="Unknown")||
             room.RoomType==RoomType.RestSite&&visit.MapType=="RestSite"||room.RoomType is RoomType.Treasure or RoomType.Shop||
             room is EventRoom {CanonicalEvent:not MegaCrit.Sts2.Core.Models.AncientEventModel}&&visit.MapType=="Unknown"||
-            room is EventRoom {CanonicalEvent:MegaCrit.Sts2.Core.Models.Events.Neow}&&visit.MapType=="Ancient"&&_run.Opening is not null;
+            room is EventRoom {CanonicalEvent:MegaCrit.Sts2.Core.Models.AncientEventModel}&&visit.MapType=="Ancient"&&
+                (visit.Act==1||_run.Opening is not null);
         _run.Visits[index]=visit with{RoomType=room.RoomType.ToString(),Model=room.ModelId?.ToString(),Status="entered",
             Gap=supported?visit.Gap:"本轮未支持的实际房间"};Save();
     }

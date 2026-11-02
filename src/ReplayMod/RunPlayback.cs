@@ -51,7 +51,8 @@ internal static class RunPlayback
     internal const string EventStopBuild="A91D084118A288EEFF21E7CE1D7AE47E68B6FA9942066AAC3F5A4C3B959F07E4";
     internal const string NeowRecordingBuild="6FA1CE6B4D74C6290A3A264D3E7524EB29E848FE00A0BE13334738B177CDFBF1";
     internal const string EliteRecordingBuild="8178809C473A012396E85374C9BD2865AD126F7179BCF9DF48DEAFFF719189CC";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild;
+    internal const string BossRecordingBuild="69A1529F939E9452F2FF4AB96A753C532153C287378C63E01CE69154753CC0E7";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild;
     internal static bool BattleVerified(int source)=>VerifiedBattles.Contains(source);
     internal static bool NeedsComputedSave(int source)=>NeededComputedSaves.Contains(source);
     internal static RunOperation? Current;
@@ -94,7 +95,7 @@ internal static class RunPlayback
         foreach(var point in _continuations.Values.SelectMany(p=>p))
             if(RunRoutes.CompletedEventBattle(run,point) is {} child)NeededComputedSaves.Add(child.SourceSequence??child.Sequence);
     }
-    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();}
+    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();RunActs.Clear();}
     internal static string? InitialProgress()
     {
         if(!_progressContexts.Remove(_run.Operations[_index].Sequence,out var points))return Current?.Progress;
@@ -207,7 +208,7 @@ internal static class RunPlayback
                 ApplyContinuations(Current);
                 if(_rewardsRoom is {} room&&room.Encounter.ShouldGiveRewards)
                 {
-                    Codec.Require(Current.Kind is "reward" or "proceed","run-missing-reward-operation");
+                    Codec.Require(Current.Kind is "reward" or "proceed" or "act-proceed","run-missing-reward-operation");
                     await TakePhase("显示战斗奖励");
                     _allowRewards=true;
                     try{Native(()=>AccessTools.Method(typeof(NCombatUi),"OnCombatWon").Invoke(NCombatRoom.Instance!.Ui,[room]));}
@@ -265,10 +266,10 @@ internal static class RunPlayback
     {if(operation.Before is {} expected)Compare(operation.Sequence,"before",expected,RunResources.Capture());}
     private static async Task Execute(RunOperation operation)
     {
-        if(operation.Kind is "reward" or "proceed")await RewardsReady(requireVisible:false);
+        if(operation.Kind is "reward" or "proceed" or "act-proceed")await RewardsReady(requireVisible:false);
         if(operation.Kind=="map")await Wait(()=>NMapScreen.Instance is {IsOpen:true,IsTravelEnabled:true} map&&!TweenRunning(map,"_tween")&&!TweenRunning(map,"_actAnimTween"),"run-map-not-ready");
         if(operation.Kind=="rest")await Wait(()=>NRestSiteRoom.Instance is not null,"run-rest-site-not-ready");
-        await TakePhase(operation.Kind switch{"reward"=>"领取奖励","map"=>"地图选路","rest"=>"营火选择","treasure-open"=>"打开宝箱","treasure-pick"=>"领取遗物",
+        await TakePhase(operation.Kind switch{"reward"=>"领取奖励","act-proceed"=>"前往下一幕","map"=>"地图选路","rest"=>"营火选择","treasure-open"=>"打开宝箱","treasure-pick"=>"领取遗物",
             "merchant-open"=>"打开商店","merchant-close"=>"关闭商店","merchant-buy"=>"购买商品","merchant-remove"=>"商店删牌","event-choice"=>"事件选项","event-return"=>"返回事件",
             "proceed" or "rest-proceed" or "treasure-proceed" or "merchant-proceed" or "event-proceed"=>"离开房间",_=>operation.Kind});
         if(operation.Progress is {} progress)
@@ -290,6 +291,7 @@ internal static class RunPlayback
             case "merchant-open":case "merchant-close":case "merchant-proceed":case "merchant-buy":case "merchant-remove":
                 await RunMerchants.Play(operation);break;
             case "event-choice":case "event-proceed":await RunEvents.Play(operation);break;
+            case "act-proceed":await RunActs.Play();break;
             case "event-return":
                 _rewardsRoom=null;
                 if(eventLoad is {} load)await RunEventCombat.RestoreCompletedReturn(load.Point,load.Battle,operation);
@@ -330,7 +332,8 @@ internal static class RunPlayback
                 Native(()=>AccessTools.Method(typeof(NRestSiteRoom),"OnProceedButtonReleased").Invoke(NRestSiteRoom.Instance,[null]));break;
             case "map":
                 var coord=new MapCoord(operation.Argument.Col!.Value,operation.Argument.Row!.Value);var run=LiveState.Run;
-                Codec.Require(run.CurrentMapPoint!.Children.Any(p=>p.coord.Equals(coord)),"run-recorded-route-not-reachable");
+                Codec.Require(run.CurrentMapPoint is {} source?MapTravel.GetTravelablePointsFrom(run,source).Any(p=>p.coord.Equals(coord)):
+                    run.CurrentRoom is MapRoom&&coord.Equals(run.Map.StartingMapPoint.coord),"run-recorded-route-not-reachable");
                 var point=run.Map.GetPoint(coord)??throw new InvalidDataException("run-map-point-missing");
                 Codec.Require(_index+1<_run.Operations.Count,"run-next-room-recording-missing");
                 var destination=RunRoutes.Destination(_run,operation,_run.Operations[_index+1]);
@@ -365,7 +368,8 @@ internal static class RunPlayback
                 }
                 else
                 {
-                    Codec.Require(point.PointType is MapPointType.RestSite or MapPointType.Treasure or MapPointType.Shop or MapPointType.Unknown&&
+                    Codec.Require(point.PointType==MapPointType.Ancient&&destination.Type=="Event"&&destination.Visit.Act==1||
+                        point.PointType is MapPointType.RestSite or MapPointType.Treasure or MapPointType.Shop or MapPointType.Unknown&&
                         destination.Type is "RestSite" or "Treasure" or "Shop" or "Event","run-next-room-unsupported");await Enter();
                 }
                 Codec.Require(run.CurrentRoom?.RoomType.ToString()==destination.Type&&run.CurrentRoom?.ModelId?.ToString()==destination.Model,

@@ -2,17 +2,13 @@
 
 ## 当前摘要（2026-11-02）
 
-- 本包进行中；**build-002 已安装待测**，源码 `28c6b3a`。r2 精英16步胜利、四次Back/原生重做、40金币和血瓶自然领取资源/RNG匹配，用户接受视觉；但血瓶新增触发内部遗物归属误报，完整观看保留mixed FAIL，不能称无错通过。Boss/跨幕仍未完成。RUN-003/006 的验收不外推到本包。
-- 共用录制入口、输入可用边界、地图播放分派、完成房间 Continue、文件读取接入 Elite/Boss；format10 允许第一、二幕。新增可选幕模型、实际房型、原生 ActFloor/TotalFloor；旧片缺字段不补历史，省略空字段保持旧序列化。观看核同幕/模型/房型/楼层及既有完整状态/RNG。
-- 默认关闭的一次性新局准备：铁甲 A0 暗港，原生首节点改精英并与本幕原生 Boss 节点相连；不替换精英/Boss 模型，不在观看中改地图或杀怪。三张防御+、两张岿然不动+、两张全身撞击+先天保留，准备背包、灯笼及三瓶能量药水；全部在录制战前 checkpoint 前创建/登记。起点为精英战前，跳过的幕中房间和之前涅奥不当连续录播证明。
-- 首候选只安排精英记录/独立起点观看；Boss 奖励离开、换幕同步、第二幕 Ancient 选择及 Continue 跨幕归属仍待实现/验证，不把放开房型当跨幕完成。非战斗 Back/跨房间 Seek 仍禁用。
-- 原生已确认：Boss 奖励页按钮直接经 ActChangeSynchronizer.SetLocalPlayerReady → VoteToMoveToNextActAction → EnterNextAct → EnterAct；不调用普通 ProceedFromTerminalRewardsScreen。后续须单独记录这次实际输入/其自然结果，避免双执行。
-- 用户已确认本轮 Cloud 关闭、无新进度；实读当前仍铁甲种子 QL4MLA7ZADU6、首幕首战完成未领奖。game0，补存 `RUN004-pre-build001-current-20261102-194404`，51 文件/4,149,576 bytes，与 RUN003/r5 补存相比零变化/零缺失，全部哈希读回；不 restore，另一账户排除。006 保留至新候选安装，唯一目录 mods/ReplayMod。
-- Release 主体与 DirectContracts 构建均 0 warnings/0 errors；15 项 library、11 项 run-envelope、11 项 run-branches 合同通过，新合同区分同坐标不同幕、保留可选身份、旧格式省略新增字段，并按预期 metadata 错误拒绝越界。旧 RUN-003 root/format10 clip 用生产 reader 校验通过且未改原文件；均不是原生动态通过。证据 `evidence/run-004/checks/build-001-*.json`。
-- 安装收据 `evidence/run-004/preparation/build-001-d20df527.json`：DLL `8178809C473A012396E85374C9BD2865AD126F7179BCF9DF48DEAFFF719189CC`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。pair 已封存在 `builds/build-001`，006 原 pair 安装前另存并核 hash，根 mods 无第二份；安装后 51 已知文件仅 settings.save 发生预期变化，零缺失、game0，未 restore。见 `preparation/post-build001-check.json`。
-- 最新实况：r1 用户额外领取40金币和血瓶，两个 reward 均 complete、未破坏录像，无需重录。当前原生存档 fingerprint 精确匹配 point4 `[1,2,3,4]` 精英胜利未领奖，未包含随后操作5/6；不把录像内领取说成原生持久化，后续 Continue 依实际 point4 恢复所选分支。
-- 002 修复：在实际 SelectLocalReward 开始到原生 Task 结束期间，按本地玩家、reward集合位置、当前reward操作和同一 RelicReward.Relic 实例登记归属；只放行该 AddRelicInternal，不删总保护、不按血瓶硬编码。主体Release 0 warnings/0 errors；显式兼容001原片/根格式，未改原件，修复动态结论待测。
-- 下一步：002先Auto现有精英录像到领奖终点并Stop，确认误报消除；然后Continue同一局，从实际point4重新领奖、选原生Boss节点，获胜不领奖保存退出，建立新Boss保存点再接跨幕。最新补存 `RUN004-post-r2-current-20261102-201144`：446数据文件、51已知文件/4,166,194 bytes，仅settings.backup变化、零缺失、game0、无restore。
+- 本包进行中，**build-003 跨幕候选待安装**。r3/002精英完整16步/胜利/40金币与血瓶领奖全匹配，误报已消除，Stop后原manager/context及所比较Continue/Progress恢复。r2的内部遗物误报mixed FAIL保留，不追改。
+- r3真正Continue精确匹配原point4，仍同一Run，保留旧领取5/6为原始事实而不纳入最终路线；新领奖/跳卡→原生地图→瀑布巨人Boss22步胜利自动封存，未领奖。Boss当前仅录制/生产读取通过，未观看；精英四次Back/重做已在r2通过，无需复测旧卡矩阵。
+- 当前局 `2b0f7e321a3a4dcd9caf9ee83435a06f`，种子KTRJB2SKRSYV；原生fingerprint精确匹配point7，首幕Boss完成未领奖，57HP/139金币。root原始12操作，最终selected `[1,2,3,4,7,8,9,10,11,12]`，3访问/4attempt。Boss片 `27099a921185492ca48419b00b23a80f`、精英片 `be74f0a6bbb943578c3ec700c328bfbd`。
+- 003沿Boss奖励页原生SetLocalPlayerReady→唯一原生Vote→EnterNextAct任务记录/播放act-proceed，实际加载Task收束后核同Run第二幕MapRoom/空地图访问；不直接重复调用EnterAct、不读后幕checkpoint。接第二幕Ancient实际入口/原生选项和首普通战斗；新增默认关闭换幕加载中公开Stop一次性开关。**这些新增路径尚无原生动态结论**。
+- 当前已有精英/Boss共用录制、输入/Back与format10第一二幕身份；可选ActModel/RoomType/原生ActFloor/TotalFloor保持旧片省略字段。短准备改暗港首节点为精英并连到本幕原生Boss，牌组/遗物/药水在checkpoint前创建；准备前涅奥虽保留操作，Opening=null，不伪称从涅奥完整重建。普通新局RUN-003路径保留。非战斗Back/跨房间Seek仍禁用。
+- r3证据 `evidence/run-004/runtime-verification-r3.json`、`checks/r3-run.json`、`checks/r3-boss.json`；补存 `RUN004-post-r3-current-20261102-221110`，343数据文件、51已知文件/4,159,131 bytes，零缺失，game0，无restore。modded1原生录制更新及已知modded2三项新文件均保留，单列；不称全账户不变。Cloud本轮用户确认关闭，无新进度，另一账户排除。
+- 下一步：安装003后用户Continue同一Boss胜利点，正常奖励/换幕→实际第二幕Orobas选择→首普通战斗胜利不领奖并正常退出；一次观看合并验证精英起点至第二幕自然链、Boss及第二幕状态/RNG。之后以同片作新增换幕Stop/重开，不要求重打整幕。
 
 ## 首候选实现边界
 
@@ -41,3 +37,19 @@
 用户询问涅奥未一并播放：本样本实际涅奥选择/离开已在root操作1/2中，`Opening=null`，因为 RunOpening.Capture 对 TestEncounter.Armed 的准备局尚不捕获可重建的新局输入。准备会在工厂内额外改首幕、牌组/遗物/药水和地图；从未经准备的普通新局重建会失配，所以本次保留精英战前合法起点。正常无该准备的新局仍走已验RUN-003奖励前捕获，不是普通新局能力回退；不事后给此片编造Opening。当前优先沿此合法起点证明精英→Boss→实际第二幕链，不要求再重录涅奥。
 
 002 安装收据 `preparation/build-002-260da47d.json`：DLL `69A1529F939E9452F2FF4AB96A753C532153C287378C63E01CE69154753CC0E7`，manifest 保持 `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一 `mods/ReplayMod` pair 与封存002一致，原001备存核hash；51已知文件安装后仅settings.save变化、零缺失、game0、无restore，见 `preparation/post-build002-check.json`。现有精英片无需重录；下一步仅Auto旧片确认领取归属，再沿真实Continue进入Boss并正常录制。
+
+## r3：精英修复通过、真正Continue后Boss录制（002）
+
+会话 `fcd1c11225b442d880598f7be95ec84d`，338事件、零observer-error/failed/difference。原001精英片16操作原生结果/RNG全部匹配，两项reward完整匹配，血瓶在当前reward对应同一实例的原生Obtain内获归属，完整终点Auto关闭、Stop恢复无错。后续Continue在该新进程读取真实保存表示，point4精确命中，MatchedObservedSave=true，保留同Run、创建attempt3，原始操作5/6不删除/不拼接。
+
+重领奖金币/血瓶、跳过奖励卡、Proceed与原生地图进入 `ENCOUNTER.WATERFALL_GIANT_BOSS`，记录22步胜利format10片 `27099a921185492ca48419b00b23a80f`。Battle.Act=0、ActModel=ACT.UNDERDOCKS、RoomType=Boss、ActFloor=17、TotalFloor=3，明确区分短准备的地图层与实际访问数。根原始12操作、selected10操作、3访问/4attempt；当前原生精确匹配point7 `[1,2,3,4,7,8,9,10,11,12]`，Boss完成未领奖。root/clip生产读取通过，尚非Boss观看实证；后续实际第二幕配置为ACT.HIVE/EVENT.OROBAS。
+
+补存343数据文件、51已知当前文件，相对r2有modded1 latest.mcr/current_run及backup/progress及backup、settings.backup正常录制更新；已知modded2 latest.mcr/progress及backup另有更新（文件时间21:54–21:55），已原样补存，不说全账户零写入、不自动restore、不扩扫history。当前游戏进程0。未产生其他账户读取。证据 `runtime-verification-r3.json`、`collection-r3.json`。
+
+## 003：原生换幕与第二幕入口候选（待动态验证）
+
+新增RunActs只包装原生因果：记录实际Boss奖励页SetLocalPlayerReady输入为一次act-proceed；原生VoteToMoveToNextActAction仍进本体队列，驱动EnterNextAct/EnterAct/SetActInternal。播放沿原生按钮，仅接受当前本地玩家、同Run、同源幕、唯一投票与唯一转换Task，等待真实原生加载/场景/AfterActEntered结束，严格核下一幕MapRoom与清空访问，不额外调用EnterAct。不加载后幕checkpoint、不注入预期资源/RNG。
+
+第二幕地图首点在CurrentMapPoint=null时只接受本体StartingMapPoint，随后仍沿MapTravel实际可达节点；目的访问核Act/ActModel，Ancient实际房型/模型、候选/页面/RNG及选择结果沿RunEvents/RunChoices。实际第二幕Orobas当前只计划选原生第二项代表奖励，不外推其他古神奖励布局；原有自定义布局/额外reward页保护保持。新增Stop开关在原生SetActInternal完成但EnterAct场景未结束时调用公开Stop，直接等待已提交原生转换完成后清理；默认关闭，不让用户抢帧。真实Stop结果待有片后验证。
+
+主体/DirectContracts Release均0warnings/0errors；12项branch合同及11项run-envelope通过，新增合同只证明Boss因果操作和第二幕新visit/真实save分支关系，不当原生换幕证据。r3实际root/Boss片生产reader通过；001/002精确已知录制build显式兼容。证据 `checks/build-003-branches.json`、`checks/build-003-run.json`。

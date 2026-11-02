@@ -38,6 +38,8 @@ internal static class Ui
         box.AddChild(neow);
         var combatStop=new CheckBox{Text="RUN-003：下次整局首战入场自动Stop（仅一次）",ButtonPressed=RunOpening.CombatStopTestArmed};
         combatStop.Toggled+=value=>RunOpening.CombatStopTestArmed=value;box.AddChild(combatStop);
+        var actStop=new CheckBox{Text="RUN-004：下次换幕加载中自动Stop（仅一次）",ButtonPressed=RunActs.StopTestArmed};
+        actStop.Toggled+=value=>RunActs.StopTestArmed=value;box.AddChild(actStop);
         var acts=new CheckBox{Text="RUN-004 精英→Boss短路线（仅下一铁甲A0新局）",ButtonPressed=TestEncounter.Armed==TestPreparation.RunActs};
         acts.Toggled+=value=>{TestEncounter.Armed=value?TestPreparation.RunActs:TestPreparation.None;
             if(value){RecordedState.Armed=false;RunOpening.NewLeafArmed=false;}

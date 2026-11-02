@@ -104,6 +104,8 @@ internal static class Patches
     private static void Entry(Task __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Entry(__result));}
     private static bool Queue(GameAction __0)
     {
+        if(RunPlayback.Active&&__0 is VoteToMoveToNextActAction actVote)
+        {var owned=false;Runtime.Guard(()=>owned=RunActs.OwnsVote(actVote));return owned;}
         if(RunPlayback.Active&&__0 is PickRelicAction pick)
         {var owned=false;Runtime.Guard(()=>owned=RunTreasures.OwnsPick(pick));return owned;}
         if(RunPlayback.Active&&__0 is VoteForMapCoordAction or MoveToMapCoordAction)

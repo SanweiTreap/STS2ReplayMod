@@ -31,7 +31,8 @@ internal static class RunEvents
     private static bool Input()=>!RunPlayback.Active||RunPlayback.Driving;
     private static EventModel Model=>RunManager.Instance.EventSynchronizer.GetLocalEvent();
     internal static bool InOrdinaryEvent=>LiveState.Run.CurrentRoom is EventRoom {CanonicalEvent:not AncientEventModel};
-    internal static bool InSupportedEvent=>InOrdinaryEvent||LiveState.Run.CurrentRoom is EventRoom {CanonicalEvent:MegaCrit.Sts2.Core.Models.Events.Neow};
+    internal static bool InSupportedEvent=>InOrdinaryEvent||LiveState.Run.CurrentRoom is EventRoom {CanonicalEvent:AncientEventModel}&&
+        LiveState.Run.CurrentActIndex is 0 or 1;
     internal static void Install(Harmony h)
     {
         void Patch(Type type,string method,string? before=null,string? after=null)=>h.Patch(AccessTools.DeclaredMethod(type,method),
@@ -141,7 +142,7 @@ internal static class RunEvents
         {
             while(!(bool)AccessTools.Property(typeof(NAncientEventLayout),"IsDialogueOnLastLine").GetValue(ancient)!)
             {
-                await RunPlayback.TakePhase("涅奥对话");
+                await RunPlayback.TakePhase("古神对话");
                 await RunPlayback.Wait(()=>RunPatches.Field(ancient,"_contentTween") is not Tween tween||!tween.IsRunning(),"ancient-dialogue-not-ready");
                 RunPlayback.Native(()=>AccessTools.Method(typeof(NAncientEventLayout),"OnDialogueHitboxClicked").Invoke(ancient,[null]));
             }
