@@ -1,15 +1,15 @@
 # RUN-004：精英、Boss与首条跨幕链
 
-## 当前摘要（2026-11-02）
+## 当前摘要（2026-11-03）
 
-- 本包进行中，保留 **build-004**，源码 `3a82316`（主体修复 `9b07bd1`）。**r6精英合法起点→奖励→Boss→奖励/原生换幕→第二幕Orobas第二项→首普通胜利完整观看PASS**：62战斗动作与12路线操作全匹配、零错误、Stop恢复通过；仍差原定换幕Loading中公开Stop/重开。r2误报与r5 Continue边界FAIL均保留。
-- r3真正Continue精确匹配原point4，仍同一Run，保留旧领取5/6为原始事实而不纳入最终路线；新领奖/跳卡→原生地图→瀑布巨人Boss22步胜利自动封存，未领奖。Boss当前仅录制/生产读取通过，未观看；精英四次Back/重做已在r2通过，无需复测旧卡矩阵。
+- **本包预定验证完成，待PM阶段收束；保留build-004**，源码 `3a82316`（主体修复 `9b07bd1`）。r6精英合法起点→奖励→Boss→奖励/原生换幕→第二幕Orobas第二项→首普通胜利完整观看PASS，62战斗动作/12路线操作全匹配；r7新增换幕Loading中公开Stop及重开一步Stop通过，零错误、任务退出/原context恢复。r2误报与r5 Continue边界FAIL保留。
+- r3/r4真正跨进程Continue分别精确匹配原point4/7，仍同一Run，保留旧领取5/6为原始事实而不纳入最终路线；随后录制Boss及换幕/第二幕，r6连续观看已验证。精英四次Back/重做在r2通过；不新增旧卡矩阵。
 - 当前局 `2b0f7e321a3a4dcd9caf9ee83435a06f`，种子KTRJB2SKRSYV；原生fingerprint精确匹配point12，第二幕首普通完成未领奖。root原始20操作，最终selected18操作（旧领奖5/6仍只保留为原始事实），5访问/7attempt。三片为精英 `be74f0a6bbb943578c3ec700c328bfbd`、Boss `27099a921185492ca48419b00b23a80f`、第二幕普通 `4c538903df5241cf9451bcc87fd7c779`；前两片hash未改。
-- r6唯一原生Boss奖励页投票、EnterNextAct/EnterAct自然换幕与实际第二幕地图/古神匹配；Boss、第二幕首普通自然初态/RNG匹配，未读后幕checkpoint。新加载Stop开关仍未测；第二幕只覆盖Orobas/RadiantPearl及ExoskeletonsWeak代表样本。
+- r6唯一原生Boss奖励页投票、EnterNextAct/EnterAct自然换幕与实际第二幕地图/古神匹配；Boss、第二幕首普通自然初态/RNG匹配，未读后幕checkpoint。r7一次性开关在SetActInternal已完成、EnterAct场景未完成时公开Stop，8个owner任务实际结束0取消/0fault后恢复；重开Boss前进一步Stop通过。仅此加载时机，不外推任意中断；第二幕只覆盖Orobas/RadiantPearl及ExoskeletonsWeak代表样本。
 - 当前已有精英/Boss共用录制、输入/Back与format10第一二幕身份；可选ActModel/RoomType/原生ActFloor/TotalFloor保持旧片省略字段。短准备改暗港首节点为精英并连到本幕原生Boss，牌组/遗物/药水在checkpoint前创建；准备前涅奥虽保留操作，Opening=null，不伪称从涅奥完整重建。普通新局RUN-003路径保留。非战斗Back/跨房间Seek仍禁用。
 - r4证据 `evidence/run-004/runtime-verification-r4.json`、`checks/r4-run.json`、`checks/r4-act2-clip.json`；最新补存 `RUN004-post-r4-current-20261102-222133`，132数据文件、51已知文件/4,169,988 bytes，零缺失，game0，无restore。r4仅modded1录制/原生进度及settings.backup共6项变化；r3已保留modded2更新，本轮未再变。Cloud本轮用户确认关闭，另一账户排除。
 - r6两次战后Continue均先核本次战斗，再载本次播放原生保存边界的自算快照，同隔离manager原生重建奖励，资源/RNG通过。精英/Boss战后暗亮对应这两处显式淡出/淡入。**D-147用户澄清：当前最终延续demo应剪去SL/Continue重建的观看过程，两次暗亮是暂留呈现偏差，未获目标效果接受。** 后台必要恢复保持，本轮暂缓呈现修改，继续既定退出测试；稍后由用户/PM讨论两种播放方式，不新增隐藏过场测试。
-- 下一步：保留004，启用现有换幕一次性Stop开关，从Boss起点Auto验证新增加载Stop；回菜单后重开一步Stop。无需重录/整链再测。r6证据 `runtime-verification-r6.json`，最新补存 `RUN004-post-r6-current-20261102-234618`，887数据文件/51已知文件，较r5仅settings.backup变化；root/三片hash不变、native仍point12、game0、无restore。
+- 下一步：停止本包新增实现/测试，向PM提交现有代表材料；准备局Opening=null、其他精英/Boss/古神/五角色/Act2内Continue未专测、非战斗Back/跨房间Seek禁用及D-147视觉偏差均保留，不扩大验收矩阵。r7证据 `runtime-verification-r7.json`，最新补存 `RUN004-post-r7-current-20261103-000240`，380数据文件/51已知文件，较r6仅settings.backup变化；root/三片hash和004pair保持、native仍point12、game0、无restore。
 
 ## 首候选实现边界
 
@@ -90,3 +90,13 @@ Release主体与DirectContracts均0warnings/0errors；13项branch合同通过，
 精英及Boss分别在原始battle4/12原生SaveRun边界捕获本次播放自算快照；已核战斗完成后，按真实记录的Continue原生重建，使用相同隔离SaveManager，无录制后战checkpoint/expected注入，两个nativeLoad实际成功收束。显示上各有一次主动RoomFadeOut/RoomFadeIn；最初已解释对应录制SL而非每场胜利固定插入。随后D-147明确最终延续demo应剪去此观看过程，所以这两次过场是暂留呈现偏差，不是目标视觉已接受；后台必要恢复与观众展示须分开，暂不改实现、不加测试，待用户/PM讨论播放方式后处理。
 
 根Complete=true、Error=null，最后第二幕胜利AllOperationsMatched=true；22个已拥有任务均完成、0取消/0fault，Stop后原manager/context与所比较Continue/Progress恢复通过。root/三片SHA与r4保持，当前native精确point12。887数据文件及51已知文件补存，较r5仅settings.backup变化，无缺失/无restore/game0。剩余原定换幕加载Stop/重开未测，未提前标包完成；代表性限制及旧失败保留。证据 `runtime-verification-r6.json`、`collection-r6.json`。
+
+## r7：新增换幕Loading中公开Stop与重开通过（004）
+
+会话 `4eb35b1c7fd04d5eaf65d1b756e1e313`，374事件、零observer-error/failed/difference。三次打开：先从精英起点进入后手动Stop（0步）；再从Boss合法战前起点Auto，22步Boss胜利/完成Continue自算恢复和两项领奖通过，唯一原生换幕投票后SetActInternal完成、ACT.HIVE地图已生成但EnterAct场景未结束时，一次性测试开关调用公开PlayerLoop.Control(stop)。Stop在当前非战斗act-proceed（投影13/原始15）获接受，提交的原生加载继续到实际结束，8个owner任务全部完成0取消/0fault，随后原manager/context及所比较Continue/Progress恢复。
+
+第三次重开同一Boss起点，原生一步结果/RNG匹配后手动Stop，0待退任务、恢复通过；一次性自动Stop只触发一次，后续重开不沿用旧Task。三次RunComplete=false均为计划提前Stop，Error=null，不是整链失败/新全链重测；r6完整观看结论独立保留。用户确认本轮符合预期。
+
+原root/三片hash与r4保持，当前native精确point12第二幕首普通胜利未领奖，已安装004 DLL/manifest与封存一致。380数据文件及51已知当前文件/4,169,988 bytes补存，较r6仅settings.backup变化、零缺失、game0、无restore、另一账户未读。证据 `runtime-verification-r7.json`、`collection-r7.json`。保留004，无新代码/构建/还原，README同步本轮已测稳定范围；预定验证齐备，向PM交接。
+
+本包代表范围：铁甲Standard A0，准备的暗港精英SkulkingColony→原生瀑布巨人Boss→原生奖励/换幕→蜂巢Orobas第二项RadiantPearl→ExoskeletonsWeak普通战斗。未覆盖全部精英/Boss多阶段/古神奖励类型、其他角色新跨幕链、第二幕内Continue、新任意加载Stop或完整通关。准备前涅奥不可作为此片完整开局；用户D-147要求最终demo剪去两次SL重建观看过程，当前暗亮为明确暂留偏差，本轮不实现隐藏过场或播放模式拆分。
