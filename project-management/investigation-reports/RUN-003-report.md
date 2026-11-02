@@ -1,6 +1,14 @@
 # RUN-003：涅奥奖励与整局观看入口
 
-## 最新摘要 · 2026-11-02 · r4 BGM听测通过，开场Stop误判待006回归
+## 最新摘要 · 2026-11-02 · r1–r5首段代表样本通过，交PM阶段验收
+
+- D-143/RUN-003首段已完成一位角色的代表纵向验证：r1记录实际奖励前新局输入/Progress/Prefs→原生Neow新叶候选与单张打击变铁斩波→地图→首战8步胜利；r3从相同真实初始化输入原生重建、候选/选牌/资源/RNG与自然首战初态/操作/胜利全匹配，未读首战checkpoint补演/注入expected。选择中Stop/同进程重开、胜利后Back末击重做通过。r4用户已确认Neow/首战/回菜单音乐正常。不是全部涅奥/五角色新开局或006全矩阵。
+- r5/006会话e9c13c2c共77事件、0异常。一次性请求确在NCombatRoom.OnCombatSetUp、Loading=true/Opening=true时调用公开Stop并接受，单次开关消费；原生加载实际收尾，OpeningRoomCleared=true，原生turn-loop清理完成，10登记任务全部结束/0取消故障，原scene/manager/context及所比较Continue/Progress恢复。跨房间导航仍false。后续两次重开/手动Stop均正常，各7登记任务全部结束/0取消故障，三次均Error=null；本轮计划内Complete=false不当失败，也不当完整战斗重测。r4的退出误判已按相同实际阶段回归通过，不追改其原FAIL。
+- 入口方面，r1新主页“回放”→整局列表/旧局详情/合法起点完整播放有实证，旧记录OpeningAvailable=false、不伪造开场；新2adb8306从开局观看/退出/重开已实用。分场仍接原入口，内部战斗冷加载禁令保持。旧局/坏文件存储隔离有合同与旧实录读取验证，但坏条目和独立分场按钮的全部实际页面点击/输入焦点组合未另跑；不把源代码/合同当全部GUI验收。
+- 当前保留RUN-003/build-006，源码10362e1，DLL `AE19BDE821FBF8FD89A205709326909A90E9EE607368D63CA723A9E0EE1CB6EA`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-006-19283171.json`，已核安装pair不变、单文件夹mods/ReplayMod。r5封存81数据文件及51已知当前文件4,149,576 bytes至`RUN003-post-r5-current-20261102-144015`；相对r4仅settings.save.backup变化，无缺失，root/clip逐hash不变，native仍point4首战完成未领奖，game0、无restore/自行启动/另账号读取。证据`runtime-verification-r5.json`、`collection-r5.json`；001未运行、003选择归属失败、004音乐呈现失败和005退出误判各自保留，不因最终通过追改。
+- 限制与交接：实测仅铁甲Standard A0、首幕新叶一张变形及所录普通首战；测试准备为默认关闭、在真实输入内记录的原生DebugOption替换，不能外推无准备/全部候选组合、树叶药膏多张变形/其他奖励窗口、Neow SL或其他古神。新增涅奥非战斗Back/选择页Seek/跨房间Seek仍禁用。精英/Boss/跨幕/完整通关与播放模式拆分不在本首段。累计证据足以交阶段核阅，不自行扩大矩阵或开始下一包；待PM按上述边界验收，保留006及原进度。
+
+## r4：BGM听测通过，开场Stop误判与006修复
 
 - r4/005会话709a327b共40事件。用户确认进入Neow停止主菜单BGM、首战音乐和Stop回菜单音乐均正常，MenuMusicStopRequested=true，音频修复按所测通过；r3完整开局/选牌/首战RNG及胜利Back证据保持。本轮在首战尚处Opening时Stop，界面正常回菜单，但日志记录`run-cross-room-opening-navigation-disabled`，整轮保留混合结果，不把听测接受写成退出无异常。
 - 根因：自然进新战斗的LoadEnteredBattle将所有opening reset回调都设为“禁止跨房间导航”；LoadOpening在Stop清理时也调用此回调。006为它提供仅NativeSeek.Stopping允许的实际清理，退出按RunPlayback的正常取消路径返回；真正Back/Seek仍拒绝。已提交的原生地图/场景Task直接等待其实际生命周期，避免Stop只退出外层包装后原生加载仍运行；开场Stop可在实际原生选择UI等待处清理（无需等其交互准备完成），继续禁止强截资产加载及回放旧任务。
