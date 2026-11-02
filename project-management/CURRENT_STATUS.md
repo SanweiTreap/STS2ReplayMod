@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-11-03。**RUN-004按代表样本验收为DONE_WITH_LIMITATIONS，保留build-004。** 精英合法起点→Boss→原生换幕→Orobas/RadiantPearl→第二幕普通胜利，以及换幕Loading中Stop/重开已通过；D-147两次SL重建暗亮仍是暂留呈现偏差。当前无新增实现/必测，下一步先与用户讨论播放方式。证据/限制见[报告最新摘要](investigation-reports/RUN-004-report.md)。Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)，停在交接点。
+更新：2026-11-03。**RUN-005已授权启动完整三幕录制与结局闭环，尚无新运行结论；PM同期与用户讨论原生UI。** 见[工作包](handoffs/RUN-005.md)。Implementation：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)。起点RUN-004按代表样本DONE_WITH_LIMITATIONS，保留004至新候选安装；旧结果/限制见[报告](investigation-reports/RUN-004-report.md)。主菜单“回放”明确仅开发临时入口，正式功能须重新编排融入原生内容，最终入口未定。
 
 ## 已确认的可用基础
 
@@ -38,16 +38,20 @@
 
 ## 随后的方向与主要缺口
 
-RUN-004已收束，不自行继续扩内容或追加测试。下一步先与用户讨论两种播放方式及SL呈现：路线看哪些尝试、界面过程是否简化、时间如何推进分别定义，不能把“最终路线”误当必须展示Continue重建；D-147当前目标已明确剪掉该观看过程，具体无缝衔接方案尚未实现。不自动派发新模式或隐藏过场任务，见[讨论材料](technical-notes/PLAYBACK-MODES.md)与[整局规划](technical-notes/RUN-REPLAY-PLAN.md)。
+完整对局录制尚未完成，且不只是缺长测：当前Recorder只录第一/二幕（Act索引0/1）A0、无modifier的支持战斗，RunActs仅第一幕→第二幕。第三幕/第二次换幕与最终胜利/死亡收尾仍待。整局容器、自动逐房间录制/跨进程续录及已验代表链不等于完整三幕可重放；UI必须显示范围/缺口，不能冒充完整录像。
 
-正在讨论[原始界面输入/简化等效与Auto节奏](technical-notes/PLAYBACK-MODES.md)，未派实现。D-149简化边界保持：省浏览/界面往返与取消重选，保留每次生效动作/顺序/必要展示；战斗查地图/牌组与商店/删牌页往返归同类。D-150用户最新收窄为三组合：原始操作＋原始节奏、原始操作＋自定义节奏、简化过程＋自定义节奏；禁止简化＋原始，不再讨论被省浏览时间如何映射。参数/动画倍率/默认项仍待，当前记录不保证覆盖全部浏览/原始时间，不自动实施或追加验收。
+RUN-004已收束。RUN-005接第二次换幕/第三幕、真正胜利/死亡/主动放弃分类与落盘、合法保存点Continue及原生观看闭环；先可测后段增量，完整目标最终需一份真实新局至终局的连续记录，不拼接准备前缺口。仍先单人A0代表样本，不扩全角色/难度/所有机制矩阵。PM与用户同期讨论原生UI，不阻塞录制实现；三种过程/节奏模式及D-147隐藏SL呈现不交本包顺手实施，见[讨论材料](technical-notes/PLAYBACK-MODES.md)与[整局规划](technical-notes/RUN-REPLAY-PLAN.md)。
+
+正在讨论[原始界面输入/简化等效与Auto节奏](technical-notes/PLAYBACK-MODES.md)，这些模式/UI尚未派实现。D-149简化边界保持；D-150只提供原始＋原始节奏、原始＋自定义、简化＋自定义三组合。D-151按具体动作独立配节奏，用户已认可相邻出牌输入投递计间隔/原生排队与选择可读后停留，数值边测边调。D-153已明确Implementation做RUN-005完整录制、PM同期讨论正式UI；当前记录不保证覆盖全部浏览/原始时间。
+
+D-153用户进一步纠正：当前主菜单“回放”只供开发临时使用，所有正式功能必须重新编排交互并融入STS2原生内容；撤回把它预定为正式主入口的建议。设置/历史/观看等使用路径和最终位置由PM与用户讨论，尚未确认；现有开发入口为Implementation测试保留。
 
 其余场景/难度/精英Boss与后续幕/玩家失败、孵化复活/全部组合、跨房间导航、通用权威文件恢复/纠偏、未访问Seek、原始/分类节奏/倍速、完整路线图/录像库管理/导入与发布性能仍待。当前主要是观看内存恢复和原生保存边界，STATE-001只有旧单点冷恢复证明。多人MVP后优先，跨版本其次；接管不纳入MVP。
 
 ## 工作入口
 
 - D-141安装整理已完成，RUN-003实际确认目录识别：现用RUN-004/004固定`<游戏>/mods/ReplayMod/`、无根目录第二份；9套退休探针/不用的SBWEI/旧日志仍在游戏外归档。版本身份按当前报告/收据，见[安装维护](maintenance/MOD-INSTALLATION.md)。
-- [当前任务与授权](handoffs/RUN-004.md)、[TODO](TODO.md)、[MVP](MVP.md)、[Roadmap](ROADMAP.md)、[工作流](WORKFLOW.md)。PM按阶段更新，普通bug由Implementation自主完成，不逐轮审批。
+- [当前实现任务与授权](handoffs/RUN-005.md)、[UI/播放讨论](technical-notes/PLAYBACK-MODES.md)、[TODO](TODO.md)、[MVP](MVP.md)、[Roadmap](ROADMAP.md)、[工作流](WORKFLOW.md)。PM按阶段更新，普通bug由Implementation自主完成，不逐轮审批。
 - 源码`src/ReplayMod`；固定反编译`C:/Example/STS2ReplayMod-local/decompiled/v0.111.0-41cef1ea-0861BFA1/src`。历史按问题查报告/DECISIONS，不默认全读。
 - D-092备份后自主实验/安装/短测授权保持；用户手动操作游戏，换DLL先正常退出，无Computer Use/替代GUI自动化/自行headless；Cloud按实况，另一账号排除。
 - [公开仓库](https://github.com/SanweiTreap/STS2ReplayMod)只存源码/文档，原始数据/备份/反编译留本地。Git一个index写入者、精确路径、不reset/clean/force；不擅自新建对话或改模型。
