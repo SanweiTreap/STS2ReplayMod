@@ -1,6 +1,14 @@
 # RUN-003：涅奥奖励与整局观看入口
 
-## 最新摘要 · 2026-11-02 · r1新叶单张变形录制/旧路线观看通过，003待开局观看
+## 最新摘要 · 2026-11-02 · r2涅奥选择被战斗观察器误接，004修复候选待测
+
+- r2/003会话8b0a9671共19事件，首次开局观看失败，保留FAIL。原生NGame新局工厂已从真实奖励前输入到Neow，shouldSave=false、同一隔离manager、未读首战checkpoint；首个`>`后首项Before资源/RNG及Neow候选校验通过，进入原生NewLeaf.Obtain→FromDeckForTransformation时触发`choice-reserved-outside-supported-command`，尚未完成奖励或进入首战，不能当纵向链通过。
+- 原因是PlayerLoop.Open把未来首战clip的ChoiceTape.Play提前用于开局。ChoiceTape.Begin已把战外选择交RunChoices，但仍启用的战斗ReserveChoiceId观察器要求战斗scope，引发误判；7登记任务最终全部收束（1取消/2故障对应本次失败），原scene/manager及所比较Continue/Progress恢复。004只调整生命周期：涅奥前明确Clear战斗tape，真正进入首战仍由既有LoadEnteredBattle启用该clip；不放宽Reserved/Synced或原生选择/资源/RNG校验。开局增加战外选择归属断言及日志，供确认修复确实到达。
+- 当前RUN-003/build-004，DLL `772A61846217C01D925C00D77203A307146633404E45ED85896E721DF8A21FB6`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`，收据`preparation/build-004-16ff947e.json`，保持mods/ReplayMod单文件夹。构建0警告0错误，保留原录制002的精确兼容；仅源码生命周期修复，不加镜像合同，不把构建当原生回归通过。004尚未游戏验证。
+- r2封存23数据文件及51已知当前文件4,149,576 bytes至`RUN003-post-r2-current-20261102-130453`；相对r1仅settings.save.backup变化，无缺失，root/clip逐hash不变、native精确匹配point4首战完成未领奖。004安装后51项复核仅settings.save变化，game0，无restore/自行启动/另账号读取。证据`runtime-verification-r2.json`、`collection-r2.json`、`preparation/post-build004-check.json`；旧候选与失败保持。
+- 下一仍复用2adb8306“从开局观看”：Auto关，用`>`进入变形窗口，确认前Stop；重开同一起点Auto到首战胜利，Back一次并`>>`重做末击，Stop并正常退出。无需重录，新增选择Stop/首战初态与结果/RNG、完整开局链仍待测。
+
+## r1：新叶单张变形录制/旧路线观看通过，003候选
 
 - r1/002会话d86ad1f2共331事件，0 observer-error/缺口/缺失操作。新Run `2adb83061a15459782c838e27caa8c0b`，Seed QL4MLA7ZADU6、铁甲Standard A0、三幕实际输入及Progress/Prefs在新局工厂前冻结。第1层原生Ancient/Neow→第2层普通缩小甲虫，4项event-choice/event-proceed/map/battle均complete，selected[1,2,3,4]，2访问/2尝试，成功原生保存点1–4，未发生Continue/猜测SL归属；真正奖励前起点已录，未将首战checkpoint当开局。
 - Neow实际候选NEW_LEAF/POMANDER/NEOWS_BONES，选择索引0新叶；deck-transform在10张原生候选中最终选索引4的一张未升级打击，原生变为IRON_WAVE，牌组仍10张，新增NEW_LEAF遗物。首战checkpoint自然保留该结果，8项原生操作胜利并自动封存clip `68196feda91f42cfa9030aeba3e2c253`。资源连续性/生产读取/checksum通过；开局观看候选及首战初态/RNG重现仍未测，记录成功不代替观看通过。
