@@ -2029,6 +2029,18 @@ r6两处捕获与消费hash一致，随后Boss/第二幕首战自然初态与62�
 
 用户澄清当前这种Continue场景应是demo被剪掉的部分，SL重建过场不在预期观看范围；现在不急改，稍后讨论前述两种播放方式。因此D-146中“是否隐藏留讨论”按本条更新：当前最终延续路线应剪去SL/Continue重建的观看过程，RUN-004两次暗亮为暂留呈现偏差，不是目标效果已接受。后台为状态正确性需要的原生恢复与观众是否看到重建分别处理，不能靠省掉必要恢复伪装无缝。此次不阻塞RUN-004剩余测试，不派隐藏过场/模式拆分任务；具体衔接与其他播放方式展示范围稍后再定。
 
+## D-148：RUN-004代表链与换幕退出验收，保留呈现缺口
+
+日期：2026-11-03，Asia/Shanghai
+
+状态：Accepted；RUN-004 DONE_WITH_LIMITATIONS，保留build-004，不追加测试/实现
+
+PM累计核r6完整自然跨幕、D-146自算保存点恢复diff/证据及r7换幕Loading公开Stop与RunActs实际Task等待。铁甲A0精英合法起点→Boss→唯一原生奖励投票/换幕→Orobas第二项RadiantPearl→第二幕ExoskeletonsWeak胜利，62战斗动作/12路线操作匹配，后两战初态/RNG自然生成；精英Back与r3/r4真实跨进程Continue沿已有代表证据收束，不新跑旧矩阵。
+
+r7在SetActInternal已完成、第二幕地图已生成且EnterAct场景未结束时触发公开Stop，8个owner任务实际完成、无取消/故障后恢复原manager/context及所比较Continue/Progress；同Boss重开一步匹配后Stop正常。三次Complete=false为计划内提前Stop，不当失败或r7完整链复测；r2误报和r5真实Continue差异原FAIL保留。准备局Opening=null，不拼接其他样本冒充从涅奥完整录播；其他敌人/多阶段/古神/角色、第二幕内Continue、任意Stop/完整通关及非战斗Back/跨房间Seek仍未获证。
+
+D-147两次SL重建暗亮仍是最终路线不应展示的暂留偏差，后台必要恢复另算；用户允许本轮暂缓修改，收束不代表接受该视觉目标。保留004唯一pair与原生point12第二幕首普通完成未领奖，无restore；r7root/三片保持，51已知文件相对r6仅settings.save.backup变化，不称全账户不变。下一步先与用户讨论播放方式/SL呈现，不自行派新模式、隐藏过场或内容扩包。
+
 ## 尚未决策
 
 - 是否在跨版本 milestone 前提供 v0.107 的独立同版本构建。

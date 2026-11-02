@@ -11,7 +11,7 @@ Slay the Spire 2/mods/
     ReplayMod.json
 ```
 
-目录整理时保留RUN-002/build-011原pair不改内容，未修改存档、profile选择或启用配置、未启动游戏。随后RUN-003沿此布局更新为build-006，实际人工启动和录播已确认识别；仅有一份ReplayMod manifest、无根目录第二份，版本身份见RUN-003报告/安装收据。
+目录整理时保留RUN-002/build-011原pair不改内容，未修改存档、profile选择或启用配置、未启动游戏。随后RUN-003沿此布局更新并实际确认识别；2026-11-03当前保留RUN-004/build-004，仅有一份ReplayMod manifest、无根目录第二份，版本身份见当前报告/安装收据。
 
 归档位置：`C:/Projects/STS2ReplayMod-local/archives/mods/MODS-20261101-53fae5b1/`。移出9套已退休SPIKE的18个DLL/manifest、用户确认不用的2个SBWEI文件及159份AscensionUnlocker旧日志，共179文件/1,718,739 bytes；移动后逐hash读回。该目录另留现用pair整理前副本，`moves.json`保存精确原路径/归档路径/hash，`summary.json`为收据，`RESTORE.txt`说明恢复方式。不删除源码、实验报告、录像、项目证据或恢复点。
 
