@@ -2,14 +2,14 @@
 
 ## 当前摘要（2026-11-02）
 
-- 本包进行中，**build-004 已安装待测**，源码 `3a82316`（主体修复 `9b07bd1`）。r5/003完整观看在精英胜利后真实Continue边界FAIL：16步/胜利匹配，唯一差异discovered_enemies（原生胜利存盘早于首次发现统计，观看保留了存盘后列表），已安全退回菜单。r4跨幕代表链录制仍完整；连续观看/换幕Stop尚待通过。r2误报与r5 FAIL均保留。
+- 本包进行中，保留 **build-004**，源码 `3a82316`（主体修复 `9b07bd1`）。**r6精英合法起点→奖励→Boss→奖励/原生换幕→第二幕Orobas第二项→首普通胜利完整观看PASS**：62战斗动作与12路线操作全匹配、零错误、Stop恢复通过；仍差原定换幕Loading中公开Stop/重开。r2误报与r5 Continue边界FAIL均保留。
 - r3真正Continue精确匹配原point4，仍同一Run，保留旧领取5/6为原始事实而不纳入最终路线；新领奖/跳卡→原生地图→瀑布巨人Boss22步胜利自动封存，未领奖。Boss当前仅录制/生产读取通过，未观看；精英四次Back/重做已在r2通过，无需复测旧卡矩阵。
 - 当前局 `2b0f7e321a3a4dcd9caf9ee83435a06f`，种子KTRJB2SKRSYV；原生fingerprint精确匹配point12，第二幕首普通完成未领奖。root原始20操作，最终selected18操作（旧领奖5/6仍只保留为原始事实），5访问/7attempt。三片为精英 `be74f0a6bbb943578c3ec700c328bfbd`、Boss `27099a921185492ca48419b00b23a80f`、第二幕普通 `4c538903df5241cf9451bcc87fd7c779`；前两片hash未改。
-- 003沿Boss奖励页原生SetLocalPlayerReady→原生Vote→EnterNextAct任务记录/播放act-proceed，不重复调用EnterAct、不读后幕checkpoint；r4实际只录到一次act-proceed，Before/After幕索引0→1，第二幕Ancient与普通访问身份独立且正确。播放的唯一投票/任务收束、自然初态/RNG及新增默认关闭换幕Stop开关仍需实测。
+- r6唯一原生Boss奖励页投票、EnterNextAct/EnterAct自然换幕与实际第二幕地图/古神匹配；Boss、第二幕首普通自然初态/RNG匹配，未读后幕checkpoint。新加载Stop开关仍未测；第二幕只覆盖Orobas/RadiantPearl及ExoskeletonsWeak代表样本。
 - 当前已有精英/Boss共用录制、输入/Back与format10第一二幕身份；可选ActModel/RoomType/原生ActFloor/TotalFloor保持旧片省略字段。短准备改暗港首节点为精英并连到本幕原生Boss，牌组/遗物/药水在checkpoint前创建；准备前涅奥虽保留操作，Opening=null，不伪称从涅奥完整重建。普通新局RUN-003路径保留。非战斗Back/跨房间Seek仍禁用。
 - r4证据 `evidence/run-004/runtime-verification-r4.json`、`checks/r4-run.json`、`checks/r4-act2-clip.json`；最新补存 `RUN004-post-r4-current-20261102-222133`，132数据文件、51已知文件/4,169,988 bytes，零缺失，game0，无restore。r4仅modded1录制/原生进度及settings.backup共6项变化；r3已保留modded2更新，本轮未再变。Cloud本轮用户确认关闭，另一账户排除。
-- 004将已证D-140原生保存边界的自算快照重载路径接到有真实成功保存/恢复证据的普通/精英/Boss战后Continue：先核本次战斗胜利，再载本次播放在原生SaveRun边界深冻结的自算快照，同一隔离manager，原生FromSerializable/FinishedCombat重建奖励。保留discoveries完整比较，不清空/注入expected、不读录制后战checkpoint。源码/合同通过，动态结果待测。
-- 下一步：先只用004原片从精英起点Auto整链并Stop/正常退出，暂不启用换幕Stop开关；核通过后再做原定换幕自动Stop/重开。无需重录或再打战斗。最新补存 `RUN004-post-r5-current-20261102-222611`，231数据文件、51已知文件，较r4仅settings.backup变化、game0、无restore；当前原生仍point12。
+- r6两次战后Continue均先核本次战斗，再载本次播放原生保存边界的自算快照，同隔离manager原生重建奖励，资源/RNG通过。用户所见精英/Boss战后暗亮，恰好为这两处显式淡出/淡入遮住真实重建；未Recorded-Continue的第二幕胜利未插此段。现为已解释呈现选择，长远是否隐去待产品讨论，不因能播完声明全部视觉已接受。
+- 下一步：保留004，启用现有换幕一次性Stop开关，从Boss起点Auto验证新增加载Stop；回菜单后重开一步Stop。无需重录/整链再测。r6证据 `runtime-verification-r6.json`，最新补存 `RUN004-post-r6-current-20261102-234618`，887数据文件/51已知文件，较r5仅settings.backup变化；root/三片hash不变、native仍point12、game0、无restore。
 
 ## 首候选实现边界
 
@@ -82,3 +82,11 @@ RunCombatLoads只在所需且本次正在播放的普通/精英/Boss胜利原生
 Release主体与DirectContracts均0warnings/0errors；13项branch合同通过，新增普通/Elite/Boss保存证据归属、异幕拒绝及非完成边界不猜；实际root生产读取通过并明确两处源操作，均为结构检查非运行通过。证据 `checks/build-004-branches.json`、`checks/build-004-actual-run.json`。
 
 004安装收据 `preparation/build-004-d0fabcad.json`：DLL `7B7410D2A03968C5C8032E1351B078A8508D44348306F314848695BEDFE4E0B1`，manifest仍 `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`；唯一pair已封存/安装核对、原003另存核hash，51已知文件安装后仅settings.save变化、零缺失、game0、无restore。001/002/003精确录制build显式兼容，可直接沿原root/三片重测，不改旧数据。见 `preparation/post-build004-check.json`。
+
+## r6：精英到第二幕首普通完整原生观看通过（004）
+
+会话 `2022f62e9da4494fbacd5e903aae6eb0`，881事件、零observer-error/failed/difference。从精英合法战前入口开始，16/22/24三个战斗原生driver全部完成、AllOperationsMatched=true、三次胜利；12个非战斗操作包括精英奖励/跳卡、地图、Boss奖励选卡、一次act-proceed、第二幕Orobas第二项/离开/首普通地图均资源与RNG精确匹配。Boss及第二幕普通自然初态核对通过，CheckpointLoaded=false/ExpectedStateInjected=false。原生换幕只拥有一次当前幕/玩家投票，实际同Run0→1/ACT.HIVE正确，无额外EnterAct。
+
+精英及Boss分别在原始battle4/12原生SaveRun边界捕获本次播放自算快照；已核战斗完成后，按真实记录的Continue原生重建，使用相同隔离SaveManager，无录制后战checkpoint/expected注入，两个nativeLoad实际成功收束。显示上各有一次主动RoomFadeOut/RoomFadeIn；用户问是否正常，已说明对应录制SL而非每场胜利固定插入，不把该问题转成私自改产品交互或要求重录。
+
+根Complete=true、Error=null，最后第二幕胜利AllOperationsMatched=true；22个已拥有任务均完成、0取消/0fault，Stop后原manager/context与所比较Continue/Progress恢复通过。root/三片SHA与r4保持，当前native精确point12。887数据文件及51已知文件补存，较r5仅settings.backup变化，无缺失/无restore/game0。剩余原定换幕加载Stop/重开未测，未提前标包完成；代表性限制及旧失败保留。证据 `runtime-verification-r6.json`、`collection-r6.json`。
