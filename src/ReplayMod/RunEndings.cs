@@ -37,6 +37,8 @@ internal static class RunEndings
         h.Patch(AccessTools.DeclaredMethod(typeof(NRun),"ShowGameOverScreen"),
             prefix:new HarmonyMethod(typeof(RunEndings),nameof(GameOverBefore)),
             postfix:new HarmonyMethod(typeof(RunEndings),nameof(GameOver)));
+        h.Patch(AccessTools.DeclaredMethod(typeof(NGameOverScreen),"MoveCreaturesToDifferentLayerAndDisableUi"),
+            prefix:new HarmonyMethod(typeof(RunEndings),nameof(ModelTransfer)));
         h.Patch(AccessTools.DeclaredMethod(typeof(TheArchitect),"PlayCurrentLine"),
             postfix:new HarmonyMethod(typeof(RunEndings),nameof(DialogueTask)));
         h.Patch(AccessTools.DeclaredMethod(typeof(RunManager),"EnterRoom"),
@@ -140,6 +142,11 @@ internal static class RunEndings
     private static void GameOverBefore()
     {
         if(_kind=="death"&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))GameOverVisuals.Capture("before-native-game-over");
+    }
+    private static void ModelTransfer()
+    {
+        if(_kind=="death"&&_owner is not null&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))
+            Runtime.Guard(GameOverVisuals.RetireOldCoordinateTweens);
     }
     private static void GameOver()
     {

@@ -2,15 +2,15 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包进行中，当前 **build-011，原生死亡观看候选，待手测**。**010/r13死亡末动作录制/生产读取通过**：首普通1HP、只EndTurn一次，Defeat=true/Completion=death，原生history win=false/was_abandoned=false。用户观察倒下正常、死亡结算页铁甲模型消失；**根因及视觉仍未通过**，011加入移层前后只读节点状态，不臆造显示修复。009/r11/r12胜利尾段/详情/only-Stop及终局在途退出已有证；主动放弃与真正完整新局三幕继续原包，不当整包完成。
+- 本包进行中，当前 **build-012，死亡结算模型坐标修复候选，待手测**。**011/r14原生死亡动作/详情/EOF/Stop恢复已通过，视觉FAIL保留**：模型移层时位置正确，旧AnimShake随后把新父节点下的局部位置写回(0,0)，不是被删除/隐藏。012只在原生移层前结束这段旧坐标抖动，保留原倒下动画/HUD淡出/原生Reparent。010/r13死亡录制已获证，009/r11/r12胜利尾段/only-Stop/在途退出已有证；主动放弃与真正完整新局三幕仍待，不当整包完成。
 - Act0/1/2及两次换幕代表链已有证；最后奖励投票/EnterNextAct分支原生进入TheArchitect，独立visit/attempt，不增加幕索引/强制房型/加载后幕checkpoint。与Boss共用原生地图坐标，楼层取实际值（r6 Boss15层/终局16层），不自行增减楼层。
-- Lifecycle的Continue/saved-exit及死亡录制已有证；胜利After冻结真正OnEnded(true)前资源/RNG，末动作等待WinRun后续强杀/gameover。死亡After冻结真正OnEnded(false)前LiveState和RunResources，r13与同visit/attempt原始来源位置的Lifecycle严格相同。011观看复用原致死EndTurn及原生结算，核同边界资源/RNG和死亡投影、保留ShouldSave=false隔离manager；未获实际观看证据。终局强杀不误记死亡，主动放弃仍待独立样本。
+- Lifecycle的Continue/saved-exit及死亡录制/观看已有证；胜利After冻结真正OnEnded(true)前资源/RNG，末动作等待WinRun后续强杀/gameover。死亡After冻结真正OnEnded(false)前LiveState和RunResources，r13与同visit/attempt原始来源位置的Lifecycle严格相同。011/r14实际复用原致死EndTurn/结算，同边界资源/RNG/死亡投影匹配，ShouldSave=false隔离manager，4个任务完成/零取消故障后恢复所比较Continue/Progress；不能因此把模型视觉当通过。主动放弃仍待独立样本。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
 - 原生TheArchitect为Combat布局但不是内部可战斗场景；003只开放该确切原生事件布局与实际按钮/选择任务，视觉生物不纳入战斗召唤追踪。结算页演出/摘要任务加入本次owner收束，原生返回菜单/时间线出口交现有Stop；终局演出中一次公开Stop开关供之后短测，未改正式UI/模式。
 - 主体/DirectContracts Release最终均0warnings/0errors；011九项死亡数据策略、r13真实死亡片/合法source5起点root及原r6胜利片生产reader通过，原件不变。死亡片当前开放原生观看；这些数据检查不当原生观看通过。旧策略/分支结果与失败保留，不重复无关矩阵。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
-- 新死亡Run `b77bd626b0614153a25adf0c598099eb`，clip `80f28133c9b44249ba764fc1d3e32ca4`，raw5/battle source5、Opening=null、显式准备gap，不当完整新局。r13归档32文件、49已知文件：本次真实死亡正常更新原生replay、Progress及backup、settings及backup，未自动恢复。011唯一pair核对，010另存，原胜利/本次死亡history均不变、Continue/backup仍无；最新补存 `RUN005-post-build011-current-20261103-192812`，安装前相对r13全不变、安装后仅settings.save变化，game0。
-- 下一步：不重录，从最新死亡局source5首战起点Auto至原生结算详情，观察模型、Stop，再重开Step一步/Stop。用实际移层状态定位视觉问题；致死动作开始后暂禁Back/Seek，终点前进/Auto关闭、仅Stop退出。随后主动放弃及真正完整新局。胜利尾段不重测；测试自动Stop开关不定义普通Auto终点。
+- 死亡Run `b77bd626b0614153a25adf0c598099eb`、clip `80f28133c9b44249ba764fc1d3e32ca4`、root及原片不变；Opening=null、显式准备gap，不当完整新局。r14归档65文件、49已知文件相对011安装仅settings及backup变化；真实死亡的Progress保留，无restore。012唯一pair核对、011另存，原胜利/死亡history均不变、Continue/backup仍无；最新补存 `RUN005-post-build012-current-20261103-202443`，安装前相对r14全不变、安装后仅settings.save变化，game0。
+- 下一步：复用同死亡局Auto观察倒下后模型在结算页留位，Stop，重开Step一步/Stop（r14会话只观察到一次Auto，未获重开短测记录）。致死动作开始后暂禁Back/Seek，终点前进/Auto关闭、仅Stop退出。随后主动放弃及真正完整新局；不重录本片/重跑胜利矩阵。
 
 ## 首候选实现与边界
 
@@ -179,6 +179,22 @@ GameOverVisuals仅在死亡页出现前、原生Visuals移层后、AnimateIn完�
 主体及DirectContracts Release最终0warnings/0errors；最初只读观测将NCreature当Node2D导致编译拒绝，改为其共同CanvasItem后通过，无显示写入。九项死亡数据策略、实际死亡片/合法source5起点root、原r6胜利片生产reader均通过，原件校验保持；见 `checks/build011-death-policy.json`、`build011-actual-death-read.json`、`build011-actual-death-run.json`、`build011-old-victory-read.json`。尚未执行原生死亡观看/详情/Stop，不将Admission或数据PASS充作运行验证。
 
 安装 `preparation/build-011-b933c506.json`：DLL `48E8DD06A917B6BE803EECE38435075D1E2F318F8DE2E56E180A47EC3526D7E2`、manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一mods/ReplayMod pair一致、无平铺重复，原010另存核hash；原胜利/新死亡history hash均不变、Continue/backup仍无。49已知文件安装前相对r13全不变，安装后仅settings.save变化，无restore/game0。补存 `RUN005-pre-build011-current-20261103-192755` / `RUN005-post-build011-current-20261103-192812`，安装前后收据/核对见 `preparation/*build011*.json`。
+
+## r14：死亡原生观看/详情/Stop通过，模型移层后坐标失败
+
+会话 `894e0b16689d491f87dca216164de8a1`，60事件，零observer/播放/退出失败。source5单步EndTurn原生死亡，OnEnded资源/RNG与Lifecycle及录制终局投影严格匹配。Auto到原生gameover后调用原生Continue一次展开详情，Auto关闭/待播0/前进禁用/留场；gameover-entry和summary-completed均NativeButtonDisabled=true、OnlyStopExits=true。Stop后4个owner任务完成、0取消故障，turn loop完成，恢复原manager/所比较Continue/Progress，Complete=true。只观察到这一次Auto/Stop，重开Step短测未获日志，不补造通过。
+
+模型视觉失败有明确定位：同一Visuals节点始终Visible/VisibleInTree=true、alpha1、scale1、未Queued；原生Reparent到结算_creatureContainer后仍在(479.77255,740)，AnimateIn完成后却变成(-6.114194e-13,0)，Body随之到(5,-19)。不是节点被删、藏起或缩放。固定原生NCreature.AnimShake的_shakeTween持续一秒，将Visuals.Position写为Right*10*sin(4t)*sin(t/2)，本来只在NCreature局部空间有效；结算页仅Reparent Visuals、没有结束仍绑定旧NCreature的Tween。其终点t=2π的float结果-6.1141934e-13与日志X在1e-18内一致，Y恒0，形成精确写回指纹。
+
+证据 `runtime-verification-r14.json`、`collection-r14.json`；65数据文件归档、49已知文件补存，只有settings及backup变化，root/clip/原生死亡history不变，game0、无restore/另一账号读取。最新 `RUN005-post-r14-current-20261103-202206`。本次证明死亡业务/EOF/退出代表链，视觉仍FAIL；没有因此宣称无模组原版视觉已实测。
+
+## 012：结束移层前旧局部坐标Tween（待视觉复测）
+
+在原生NGameOverScreen.MoveCreaturesToDifferentLayerAndDisableUi之前，对本次真实死亡所属Run、原生即将移走的CreatureNodes，仅Kill仍在运行的NCreature._shakeTween。原生AnimShake为void、没有业务等待者；结束它不取消致死动作/原生任务。保留此时模型姿态与全局坐标，由原方法执行原来的Reparent。没有重建模型、强设最终坐标、重放Spine动画、改血条淡出或延期gameover；正常录制和观看均处理相同交接。只读三处节点日志继续保留以核修复后实际位置，不在逐帧补写坐标。
+
+主体Release0warnings/0errors，git diff检查通过。此增量只有两个显示/终局hook源码文件，无格式/资源/RNG/数据reader变化，未重复无关合同矩阵；原生视觉仍待用户复用同片观看，不能把构建当修复通过。
+
+安装 `preparation/build-012-70c6b317.json`：DLL `A4C4C327519CB21AE787C1D95189D2756A1511978BF6B70F0944223CD57EDF79`、manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一mods/ReplayMod pair一致、无平铺重复，原011另存核hash，原胜利/死亡history均不变、Continue/backup仍无。49已知文件安装前相对r14全不变，安装后仅settings.save变化，game0、无restore/另一账号读取。备份 `RUN005-pre-build012-current-20261103-202404` / `RUN005-post-build012-current-20261103-202443`，核对见 `preparation/*build012*.json`。
 
 ## 后续必须完成
 
