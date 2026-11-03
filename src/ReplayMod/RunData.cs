@@ -134,9 +134,12 @@ internal sealed class RunStore(string root)
         Codec.Require(run.Format==1&&Regex.IsMatch(run.Id,"^[a-f0-9]{32}$")&&run.Visits.Count<=256&&run.Operations.Count<=2048,"unsupported-run-file");
         Codec.Require(run.Operations.Select(o=>o.Sequence).SequenceEqual(Enumerable.Range(1,run.Operations.Count)),"run-operation-order");
         Codec.Require(run.Operations.All(o=>run.Visits.Any(v=>v.Id==o.Visit)),"run-operation-visit-missing");
-        Codec.Require(run.Operations.All(o=>o.Terminal is null||o is {Terminal:"victory",Kind:"event-choice",After:not null}&&
-            run.Visits.Any(v=>v.Id==o.Visit&&v is {Act:2,MapType:"Victory",RoomType:"Event",Model:"EVENT.THE_ARCHITECT"})&&
-            RunLifecycle.AtOperation(run,o) is {Kind:"victory"} fact&&fact.State==o.After),
+        Codec.Require(run.Operations.All(o=>o.Terminal is null||o is {After:not null,Status:"complete"}&&
+            (o is {Terminal:"victory",Kind:"event-choice"}&&
+                run.Visits.Any(v=>v.Id==o.Visit&&v is {Act:2,MapType:"Victory",RoomType:"Event",Model:"EVENT.THE_ARCHITECT"})||
+             o is {Terminal:"abandoned",Kind:"abandon",Argument.Option:"native-confirm-popup"}&&
+                run.Visits.Any(v=>v.Id==o.Visit&&v.RoomType is "Monster" or "Elite" or "Boss"))&&
+            RunLifecycle.AtOperation(run,o) is {} fact&&fact.Kind==o.Terminal&&fact.State==o.After),
             "run-terminal-operation-unsupported");
         if(run.Opening is {} opening)Codec.Require(opening.Character==run.Character&&opening.Seed.Length is >0 and <=128&&
             opening.Acts.Length is >0 and <=4&&opening.Acts.All(a=>Regex.IsMatch(a,"^ACT\\.[A-Z0-9_]+$"))&&

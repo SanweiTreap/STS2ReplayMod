@@ -192,10 +192,11 @@ internal static class RunRecording
     internal static void Complete(RunOperation operation,bool? success=null,bool compareAfter=true)
     {
         if(!Enabled||Pending?.Sequence!=operation.Sequence)return;
-        var current=Pending;var terminal=RunEndings.RecordingVictory(current);
-        Replace(current with{Status="complete",Success=success,Terminal=terminal is null?null:"victory",
+        var current=Pending;var terminal=RunEndings.RecordingTerminal(current);
+        Replace(current with{Status="complete",Success=success,Terminal=terminal is null?null:current.Kind=="abandon"?"abandoned":"victory",
             After=terminal??(compareAfter?RunResources.Capture():null)});
         Pending=null;Save();Runtime.Log("run-operation-recorded",new{Run=_run!.Id,operation.Sequence,operation.Visit,operation.Kind,success});
+        if(current.Kind=="abandon"&&terminal is not null)Runtime.Status="主动放弃已记录；已保留之前完成的战斗动作，可正常结算返回主菜单";
     }
     internal static void Decision(RunDecision decision)
     {

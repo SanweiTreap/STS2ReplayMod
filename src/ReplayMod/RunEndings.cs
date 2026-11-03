@@ -37,9 +37,10 @@ internal static class RunEndings
     internal static bool SummaryStarted=>_summary is not null;
     internal static SerializableRun ActualTerminalRun=>_actualTerminalRun??throw new InvalidDataException("native-terminal-run-not-captured");
     internal static void ResetSummary(){_summary=null;_summaryAuto=false;_continueInvoking=false;}
-    internal static void Clear(){_owner=null;_kind=null;_state=null;_operation=null;_gameOver=false;_historyCreated=false;_actualTerminalRun=null;_openingModel=null;_opening=null;_openingEntry=null;ResetSummary();ClipTasks.Clear();EndingPlayback.Clear();}
+    internal static void Clear(){_owner=null;_kind=null;_state=null;_operation=null;_gameOver=false;_historyCreated=false;_actualTerminalRun=null;_openingModel=null;_opening=null;_openingEntry=null;ResetSummary();ClipTasks.Clear();EndingPlayback.Clear();RunAbandon.Clear();}
     internal static void Install(Harmony h)
     {
+        RunAbandon.Install(h);
         h.Patch(AccessTools.DeclaredMethod(typeof(RunManager),"OnEnded"),
             prefix:new HarmonyMethod(typeof(RunEndings),nameof(NativeEnd)),
             postfix:new HarmonyMethod(typeof(RunEndings),nameof(NativeHistory)));
@@ -124,8 +125,9 @@ internal static class RunEndings
                 {
                     Codec.Require(RunPlayback.Active,"native-victory-without-run-route");
                     var operation=RunPlayback.Current;var fact=RunPlayback.TerminalFact();
-                    Codec.Require(operation is {Terminal:"victory",Kind:"event-choice"}&&isVictory&&
-                        _owner.CurrentRoom?.IsVictoryRoom==true&&fact is {Kind:"victory"}&&fact.State==_state&&operation.After==_state,
+                    var supported=_kind=="victory"?operation is {Terminal:"victory",Kind:"event-choice"}&&isVictory&&_owner.CurrentRoom?.IsVictoryRoom==true:
+                        _kind=="abandoned"&&operation is {Terminal:"abandoned",Kind:"abandon"}&&!isVictory&&__instance.IsAbandoned;
+                    Codec.Require(supported&&fact?.Kind==_kind&&fact.State==_state&&operation!.After==_state,
                         "native-terminal-kind-position-resources-or-rng-mismatch");
                     _operation=operation!.Sequence;
                     Runtime.Log("run-native-terminal-verified",new{operation.Sequence,operation.SourceSequence,Kind=_kind,
@@ -154,7 +156,7 @@ internal static class RunEndings
         Runtime.Guard(()=>
         {
             Codec.Require(PlayerLoop.Error is null&&!__instance.ShouldSave&&ReferenceEquals(SaveManager.Instance,PlayerLoop.IsolatedManager)&&
-                _state is not null&&(_kind=="victory"&&isVictory||_kind=="death"&&!isVictory),"native-game-over-history-owner-or-kind");
+                _state is not null&&(_kind=="victory"&&isVictory||_kind=="death"&&!isVictory||_kind=="abandoned"&&!isVictory&&__instance.IsAbandoned),"native-game-over-history-owner-or-kind");
             // ShouldSave=false skips this native factory along with account statistics,
             // uploads and Continue deletion. Run ONLY the factory against the current
             // isolated manager, using the ACTUAL result of this native OnEnded call.
@@ -174,18 +176,19 @@ internal static class RunEndings
     }
     private static void GameOverBefore()
     {
-        if(_kind=="death"&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))GameOverVisuals.Capture("before-native-game-over");
+        if(_kind is "death" or "abandoned"&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))GameOverVisuals.Capture("before-native-game-over");
     }
     private static void ModelTransfer()
     {
-        if(_kind=="death"&&_owner is not null&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))
+        if(_kind is "death" or "abandoned"&&_owner is not null&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))
             Runtime.Guard(GameOverVisuals.RetireOldCoordinateTweens);
     }
     private static void GameOver()
     {
         if(_owner is null||!ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))return;
         _gameOver=true;
-        if(_kind=="death"){BattleEnd.DeathScreen();GameOverVisuals.Capture("after-native-model-transfer");}
+        if(_kind=="death")BattleEnd.DeathScreen();
+        if(_kind is "death" or "abandoned")GameOverVisuals.Capture("after-native-model-transfer");
         if(PlayerLoop.Active&&NOverlayStack.Instance?.Peek() is NGameOverScreen screen)DisableNativeControls(screen,"game-over-entry");
         Runtime.Log("run-native-game-over-shown",new{Kind=_kind,Operation=_operation,Playback=PlayerLoop.Active,
             NativeScreen=true,VictoryRoom=_owner.CurrentRoom?.IsVictoryRoom==true});
@@ -195,7 +198,7 @@ internal static class RunEndings
         if(!ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))return;
         Track(__result);
         if(__originalMethod.Name=="AnimateIn")EndingPlayback.ScreenOpened(__instance,__result);
-        if(_kind=="death"&&__originalMethod.Name=="AnimateIn")_=GameOverVisuals.After(__result,_owner!,"native-game-over-animation-completed");
+        if(_kind is "death" or "abandoned"&&__originalMethod.Name=="AnimateIn")_=GameOverVisuals.After(__result,_owner!,"native-game-over-animation-completed");
     }
     private static void SummaryTask(NGameOverScreen __instance,ref Task __result)
     {
@@ -286,17 +289,18 @@ internal static class RunEndings
             Faulted=ClipTasks.Count(t=>t.IsFaulted),BeforeOriginalManagerRestored=true});
         ClipTasks.Clear();
     }
-    internal static string? RecordingVictory(RunOperation operation)
+    internal static string? RecordingTerminal(RunOperation operation)
     {
-        if(_kind!="victory"||_operation!=operation.Sequence||!ReferenceEquals(_owner,LiveState.Run))return null;
-        Codec.Require(_gameOver&&operation is {Kind:"event-choice"}&&_owner.CurrentRoom?.IsVictoryRoom==true&&_state is not null,
-            "recording-native-victory-task-or-screen-incomplete");
+        if(_kind is not ("victory" or "abandoned")||_operation!=operation.Sequence||!ReferenceEquals(_owner,LiveState.Run))return null;
+        Codec.Require(_gameOver&&_state is not null&&(_kind=="victory"?operation.Kind=="event-choice"&&_owner.CurrentRoom?.IsVictoryRoom==true:
+            operation.Kind=="abandon"&&RunManager.Instance.IsAbandoned),
+            "recording-native-terminal-task-or-screen-incomplete");
         return _state;
     }
-    internal static string PlaybackVictory(RunOperation operation)
+    internal static string PlaybackTerminal(RunOperation operation)
     {
-        Codec.Require(operation.Terminal=="victory"&&_kind=="victory"&&_operation==operation.Sequence&&
-            ReferenceEquals(_owner,LiveState.Run)&&_gameOver&&_state is not null,"playback-native-victory-task-or-screen-incomplete");
+        Codec.Require(operation.Terminal is "victory" or "abandoned"&&_kind==operation.Terminal&&_operation==operation.Sequence&&
+            ReferenceEquals(_owner,LiveState.Run)&&_gameOver&&_state is not null,"playback-native-terminal-task-or-screen-incomplete");
         return _state!;
     }
 }

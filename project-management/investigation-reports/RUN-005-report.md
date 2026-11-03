@@ -2,15 +2,15 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包进行中，当前 **build-013，死亡说明/结算翻页动作及原生终局摘要修复候选，待手测**。**012/r15模型修复及六次死亡观看/恢复通过**，旧坐标视觉FAIL保留；另发现ShouldSave=false遗漏原生History工厂，死因缺失导致调试兜底文案。用户新明确“继续”不能直接点、须由>/>>/Back控制，PM已同步规格。013在隔离内存生成本次真实终局History，结局0→1翻页用原生handler、Back只重建展示overlay、不复活战斗；尚无此新路径实测。主动放弃及真正完整新局三幕仍待，不当整包完成。
+- 本包进行中，当前 **build-014，主动放弃候选，待首个实际录制样本**。**013/r16死亡说明/详情控制与隔离History修复已通过**：手动>/>>、两次Back、Auto、Stop，原生CombatDeath/正确击杀者，实际原history/Progress/Continue保持；13/4个任务全完成零取消故障。012/r15模型修复保留，旧FAIL不追改。014接稳定战斗前缀后的原生确认放弃/终局冻结/通用结算，不当原生放弃已测。真正完整新局三幕仍待，不当整包完成。
 - Act0/1/2及两次换幕代表链已有证；最后奖励投票/EnterNextAct分支原生进入TheArchitect，独立visit/attempt，不增加幕索引/强制房型/加载后幕checkpoint。与Boss共用原生地图坐标，楼层取实际值（r6 Boss15层/终局16层），不自行增减楼层。
-- Lifecycle的Continue/saved-exit及死亡录制/观看已有证；胜利/死亡均在原生OnEnded前冻结实际资源/RNG，死亡还核同visit/attempt原始来源Lifecycle。r15六次手动/Auto死亡核对及Stop恢复正常，任务各自收束/零取消故障；模型在移层后仍留原位。原生死因文案及新翻页控制仍待013运行；主动放弃待独立样本。
+- Lifecycle的Continue/saved-exit及胜利/死亡录制观看已有代表证；OnEnded前冻结真实资源/RNG，与同visit/attempt原始来源Lifecycle核对。r16实际用原生工厂在隔离内存生成终局History，旧普通history物理hash保持，调试文案消失；结局Back严格核同RunState/资源RNG不变，不重复致死或OnEnded。主动放弃014尚未原生取证。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
 - 原生TheArchitect为Combat布局但不是内部可战斗场景；003只开放该确切原生事件布局与实际按钮/选择任务，视觉生物不纳入战斗召唤追踪。结算页演出/摘要任务加入本次owner收束，原生返回菜单/时间线出口交现有Stop；终局演出中一次公开Stop开关供之后短测，未改正式UI/模式。
-- 主体013 Release最终0warnings/0errors，git diff检查通过；DirectContracts及011数据reader既有结果保持。r15原件字节/校验保持，无格式变化，不为013原生UI增量重复数据合同；新history工厂、说明/详情>/>>/Back/Auto及退出恢复仍待实际短测。
+- 主体/DirectContracts 014 Release均0warnings/0errors，git diff检查通过；15项run-envelope含新abandoned terminal必须有原生确认标记/同位置同状态同kind事实，否则拒绝。旧胜利source45及死亡source5实际root生产reader通过、原件不变。数据PASS不当主动放弃原生运行，未重跑旧首幕/角色/视觉矩阵。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
-- 死亡Run `b77bd626b0614153a25adf0c598099eb`、clip `80f28133c9b44249ba764fc1d3e32ca4`及原片不变；Opening=null、显式准备gap，不当完整新局。r15归档354文件/349事件，49已知文件相对012安装仅settings及backup变化，原生Progress/history保持。013唯一pair核对、012另存，胜利/死亡history不变、Continue/backup仍无；最新补存 `RUN005-post-build013-current-20261103-205451`，安装前相对r15全不变、安装后仅settings.save变化，game0、无restore/另一账号读取。
-- 下一步：复用死亡局，手动到说明页确认原生“继续”锁定；>/>>入详情、完成后Back回说明，再用另一种前进重做，核无调试兜底文案后Stop；重开Auto至详情/Stop并退出。致死动作之后仍不回退复活战斗，结局Back仅回退展示；随后主动放弃及真正完整新局。
+- 死亡Run `b77bd626b0614153a25adf0c598099eb`、clip `80f28133c9b44249ba764fc1d3e32ca4`及原片不变；Opening=null、显式准备gap，不当完整新局。r16归档165文件/160事件，49已知文件相对013安装仅settings及backup变化，原生Progress/history保持。014唯一pair核对、013另存，胜利/死亡history不变、Continue/backup仍无；最新补存 `RUN005-post-build014-current-20261103-231006`，安装前相对r16全不变、安装后仅settings.save变化，game0、无restore/另一账号读取。
+- 下一步：开发工具启用默认关闭的主动放弃短测，下一铁甲A0新局正常涅奥→首普通打一张防御→等待完成→暂停菜单放弃并确认→正常结算回菜单/退出。先核真实封存/Lifecycle/history，再复用该片观看。死亡代表链已收束不重录；放弃当前只覆盖有稳定完整动作前缀的直接战斗，主菜单放弃/事件内战斗/在途取消不宣称支持。随后真正完整新局三幕。
 
 ## 首候选实现与边界
 
@@ -217,6 +217,26 @@ Back在详情原生任务完成后可用：把原生移进overlay的现有Creatu
 主体Release最终0warnings/0errors（新Back显示检查的nullable编译错误已通过显式节点owner检查修正），git diff检查通过；无数据格式变化，未重复无关合同。新原生History工厂、手动翻页/Back/Auto和账户恢复仍未手测，不把编译当运行通过；后续须核实际NativeGameOverType=CombatDeath与原死亡history物理hash不变。
 
 安装 `preparation/build-013-1de19212.json`：DLL `7BBF061A5668779C5FA6669727B7ADBD8166C01923A3A668B0F2E34739B694D5`、manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一mods/ReplayMod pair一致，无平铺重复；012另存核hash，原胜利/死亡history均不变、Continue/backup仍无。49已知文件安装前相对r15全不变，安装后仅settings.save变化，game0、无restore/另一账号读取。备份 `RUN005-pre-build013-current-20261103-205315` / `RUN005-post-build013-current-20261103-205451`，收据/核对见 `preparation/*build013*.json`。
+
+## r16：D-166死亡说明/详情节点与隔离History通过
+
+会话 `d4e0394322dd477ea786f8852fc6050b`，160事件零失败。首轮手动两次>及一次>>调用原生继续、两次Back回信息页；每次Back保持同RunState、严格资源/RNG不变、不重复OnEnded/致死或重播战斗。第二轮Auto同路径展开详情、Auto关闭留场。两个原生OnEnded分别只生成一次实际隔离History，NativeGameOverType=CombatDeath、KilledByEncounter=CorpseSlugsWeak；4次gameover显示含两次UI Back重建，不混为4次死亡。
+
+用户确认原生Continue不可直接操作、翻页正常、调试文案消失；原生信息就绪/详情完成等节点继续锁定Continue/Menu。两次Stop分别13/4个owner任务完成、0取消故障，原manager与所比较Continue/Progress恢复，原生胜利/死亡history物理hash及root/clip严格保持。Godot缺死因“How did the game end??”告警为0。该最短死亡录制/原生观看/模型/结算控制/退出代表链收束，不外推全部死亡机制或从死亡恢复战斗。
+
+证据 `runtime-verification-r16.json`、`collection-r16.json`：165数据文件归档、49已知文件补存，只有settings及backup变化，无restore/另一账号读取，game0。最新 `RUN005-post-r16-current-20261103-225326`。已向PM作死亡分段handoff；本包继续主动放弃及真正新局三幕，不等待UI分线或新包。
+
+## 014：原生确认主动放弃候选（待首个实际样本）
+
+RunAbandon只在实际NAbandonRunConfirmPopup确认回调触发RunManager.Abandon时，从已完成、无在途动作/选择的直接战斗封存原完成前缀（Completion=interrupted），再新建abandon操作；不把force-kill当新的手动卡牌或EndTurn。等待实际AbandonInternal task结束及原生gameover，Terminal=abandoned/After取同次OnEnded(false)前冻结的真实RunResources，Lifecycle仍据IsAbandoned区别死亡/保存退出。数据reader必须同时有native-confirm-popup标记、直接战斗visit和同原始位置/尝试的abandoned事实/相同After，否则拒绝。缺稳定前缀/事件嵌套等场合明确gap，不伪造成功。
+
+播放从原战前checkpoint重放该完成前缀，再经原生确认popup与OnYesButtonPressed调用同RunManager.Abandon/AbandonInternal；精细>可停确认窗，整项>>/Auto仍沿同一原生确认路径。原生IsAbandoned、终局资源/RNG/Lifecycle严格核对，ShouldSave=false及同隔离manager约束保持；原生History工厂按实际abandoned生成，既有D-166结局0↔1及Stop复用，不用预期状态补写结果。在确认窗Stop走原生取消回调清理modal；这些播放/退出路径尚未实际运行。
+
+默认关闭“RUN-005 主动放弃短测（下一铁甲A0新局）”，沿既有新局准备只把首普通改双蛞蝓、原牌组和生命不另改。正常涅奥后打一张防御、待动作完成，再暂停菜单放弃并确认；初次只录/读取，之后复用文件观看。准备局Opening=null，不能替代真正完整新局证据。死亡准备的旧过期“未开放观看”提示一并改正。
+
+主体及DirectContracts Release均0warnings/0errors；15项run-envelope含新放弃约束及错误kind/位置/结果/输入/房型拒绝，原胜利source45和死亡source5实际root reader/原件保持通过。证据 `checks/build014-run-envelope.json`、`build014-old-victory-run.json`、`build014-old-death-run.json`；仅数据机制，原生放弃录制/观看/物理history与Progress保持均待后续取证，不提前PASS。
+
+安装 `preparation/build-014-9aab21c3.json`：DLL `5EF89002446D5E464717FC8E8A2F87845C3805871332274FE75FB6FAC1C9760B`、manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一mods/ReplayMod pair一致、无平铺重复，013另存核hash，既有胜利/死亡history不变、Continue/backup仍无。49已知文件安装前相对r16全不变，安装后仅settings.save变化，game0、无restore/另一账号读取。备份 `RUN005-pre-build014-current-20261103-230838` / `RUN005-post-build014-current-20261103-231006`，核对见 `preparation/*build014*.json`。
 
 ## 后续必须完成
 

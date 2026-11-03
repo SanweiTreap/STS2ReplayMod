@@ -45,7 +45,11 @@ internal static class Ui
         var death=new CheckBox{Text="RUN-005 死亡录制短测（下一铁甲A0新局，首普通1HP）",ButtonPressed=TestEncounter.Armed==TestPreparation.DeathRecording};
         death.Toggled+=value=>{TestEncounter.Armed=value?TestPreparation.DeathRecording:TestPreparation.None;
             if(value){RecordedState.Armed=false;RunOpening.NewLeafArmed=false;}
-            Runtime.Status=value?"下一铁甲A0新局：首普通战前1HP，只结束回合到原生死亡；此候选先核录制，不开放死亡观看":"已取消死亡录制准备";};box.AddChild(death);
+            Runtime.Status=value?"下一铁甲A0新局：首普通战前1HP，只结束回合到原生死亡，再正常结算返回菜单":"已取消死亡录制准备";};box.AddChild(death);
+        var abandon=new CheckBox{Text="RUN-005 主动放弃短测（下一铁甲A0新局）",ButtonPressed=TestEncounter.Armed==TestPreparation.AbandonRecording};
+        abandon.Toggled+=value=>{TestEncounter.Armed=value?TestPreparation.AbandonRecording:TestPreparation.None;
+            if(value){RecordedState.Armed=false;RunOpening.NewLeafArmed=false;}
+            Runtime.Status=value?"下一铁甲A0：首普通打一张防御，动作完成后经暂停菜单放弃并确认；正常结算返回菜单":"已取消主动放弃准备";};box.AddChild(abandon);
         var tail=new CheckBox{Text="RUN-005 后段准备：Continue当前第二/三幕普通后直连Boss（明确前缀缺口）",ButtonPressed=RunTailPreparation.Armed};
         tail.Toggled+=value=>{RunTailPreparation.Armed=value;Runtime.Status=value?
             "仅下次Continue当前第二/三幕普通保存点：地图直连原生Boss，原资源/RNG不改；这不是完整三幕样本":"已取消后段准备";};box.AddChild(tail);
