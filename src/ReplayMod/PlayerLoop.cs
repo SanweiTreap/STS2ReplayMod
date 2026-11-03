@@ -47,6 +47,7 @@ internal static class PlayerLoop
     internal static void Control(string control)
     {
         var cursor=Cursor;if(!Active||cursor is null||TearingDown)return;
+        if(EndingPlayback.Active&&control!="stop"){EndingPlayback.Control(control);return;}
         if(RunPlayback.Active&&(RunPlayback.NonCombat||control=="stop"||NativeSeek.Finished&&control is "fine" or "step" or "auto"))
         {RunPlayback.Control(control);return;}
         if(NativeSeek.Enabled){NativeSeek.Control(control);return;}

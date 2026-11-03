@@ -277,11 +277,14 @@ internal static class RunPlayback
         var autoAtEnd=_auto;
         _endpoint=true;_fine=0;_wholeRequests=0;_whole=false;_continuation=false;
         Runtime.Log("run-recorded-end-reached",new{Operation=Current!.Sequence,AutoAtArrival=autoAtEnd,
-            Pending=0,AdvanceDisabled=true,NativeGameOver=RunEndings.GameOverActive});
-        if(autoAtEnd&&RunEndings.GameOverActive)await RunEndings.OpenSummaryAutomatically();
+            Pending=0,RecordedOperationsExhausted=true,NativeGameOver=RunEndings.GameOverActive});
         _auto=false;
-        Runtime.Status=RunEndings.GameOverActive?(RunEndings.SummaryComplete?"录像与结算详情播放结束；点Stop退出观看":
-            "已到录像终点；可点原生继续查看结算，点Stop退出观看"):"已到记录终点；可Stop返回菜单";
+        if(RunEndings.GameOverActive)
+        {
+            try{await EndingPlayback.Run(autoAtEnd);}
+            catch(OperationCanceledException) when(_stop){return true;}
+        }
+        Runtime.Status="已到记录终点；可Stop返回菜单";
         Runtime.Log("run-playback-endpoint",new{Operation=Current.Sequence,Auto=false,AwaitingStop=true,SceneKeptOpen=true,
             Pending=0,AdvanceDisabled=true,NativeGameOverControls=RunEndings.GameOverActive,
             AutoAtArrival=autoAtEnd,NativeSummaryCompleted=RunEndings.SummaryComplete});

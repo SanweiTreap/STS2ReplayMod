@@ -206,13 +206,24 @@ internal static class Ui
         if(Valid(_menuStatus))_menuStatus!.Text=Runtime.Status;
         if(Valid(_playStatus))
         {
-            _playStatus!.Text=Runtime.Status+RunPlayback.Display+(NativeSeek.Enabled?NativeSeek.Pending:DecisionRoute.Enabled?DecisionRoute.PendingDisplay:"");
+            _playStatus!.Text=Runtime.Status+RunPlayback.Display+(EndingPlayback.Active?EndingPlayback.Display:NativeSeek.Enabled?NativeSeek.Pending:DecisionRoute.Enabled?DecisionRoute.PendingDisplay:"");
             _choiceStatus!.Text=ChoiceTape.VisibleDisplay;_choiceStatus.Visible=_choiceStatus.Text.Length>0;
             var cursor=PlayerLoop.Cursor;
             var choosing=ChoiceTape.Controllable;
             _inputBlock!.MouseFilter=(DecisionRoute.Enabled?DecisionRoute.Ready:choosing)?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
             _inject!.Disabled=!PlayerLoop.CanInject;_inject.Text=PlayerLoop.InjectOnContinue?"STATE扰动：已启用，点播放检验纠偏":"STATE扰动：关闭";
             _inject.Visible=PlayerLoop.CanInject;
+            if(EndingPlayback.Active)
+            {
+                _inputBlock.MouseFilter=Control.MouseFilterEnum.Stop;
+                _step!.Disabled=!EndingPlayback.CanStep;_fine!.Disabled=!EndingPlayback.CanStep;
+                _step.Text=RunEndings.SummaryComplete?">> 已到终点":">> 继续到结算";
+                _auto!.Disabled=!EndingPlayback.CanAuto;_auto.Text=EndingPlayback.Auto?"Auto：开启":"Auto：关闭";
+                _back!.Disabled=!EndingPlayback.CanBack;_back.Text="Back · 结局信息";
+                _stop!.Disabled=PlayerLoop.TearingDown||RunPlayback.Stopping||NativeSeek.Stopping;
+                _seekCover!.Visible=false;_inject.Visible=false;
+                if(_seekPoints is not null)_seekPoints.Disabled=true;if(_seekGo is not null)_seekGo.Disabled=true;return;
+            }
             if(RunPlayback.NonCombat)
             {
                 _inputBlock.MouseFilter=RunPlayback.Finished&&RunEndings.GameOverActive?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
