@@ -234,7 +234,10 @@ internal static class RunPlayback
                     _allowRewards=true;
                     try{Native(()=>AccessTools.Method(typeof(NCombatUi),"OnCombatWon").Invoke(NCombatRoom.Instance!.Ui,[room]));}
                     finally{_allowRewards=false;_rewardsRoom=null;}
-                    await RewardsReady(requireVisible:true);
+                    // A native empty/completed terminal reward set hides its
+                    // rewards window and leaves only Proceed. A recorded next
+                    // reward still requires the actual visible offer.
+                    await RewardsReady(requireVisible:Current.Kind=="reward");
                     // Give the fully presented page a readable Auto interval.
                     _phaseAt=Stopwatch.GetTimestamp();
                 }
@@ -413,6 +416,9 @@ internal static class RunPlayback
         await Wait(()=>RunPatches.Rewards is not null&&RunPatches.RewardsScreen is {} screen&&GodotObject.IsInstanceValid(screen)&&screen.IsNodeReady()&&screen.IsVisibleInTree()&&
             ReferenceEquals(NOverlayStack.Instance?.Peek(),screen)&&!TweenRunning(screen,"_fadeTween")&&
             ((!requireVisible&&screen.IsComplete)||((Control)RunPatches.Field(screen,"_rewardsWindow")!).Modulate.A>=.99f),"run-reward-screen-not-presented");
+        Runtime.Log("run-rewards-ready",new{Operation=Current?.Sequence,Kind=Current?.Kind,RequireVisibleOffer=requireVisible,
+            RunPatches.RewardsScreen!.IsComplete,Rewards=RunPatches.Rewards!.Rewards.Count,
+            NativeCompletedStateAccepted=!requireVisible&&RunPatches.RewardsScreen.IsComplete});
         // Node readiness and tween completion can precede this frame's draw.
         await Runtime.NextFrame();CheckStop();await Runtime.NextFrame();
     }
