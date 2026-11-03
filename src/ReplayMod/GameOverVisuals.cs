@@ -6,9 +6,26 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace ReplayMod;
 
-// Bounded observations at native death/overlay boundaries. Never move or repair a model.
+// Native game-over reparenting ends the lifetime of writes in the creature's old local space.
 internal static class GameOverVisuals
 {
+    internal static void RetireOldCoordinateTweens()
+    {
+        if(NCombatRoom.Instance is not {} room)return;
+        foreach(var creature in room.CreatureNodes)
+        {
+            // AnimShake writes Visuals.Position relative to NCreature for one second.
+            // Native game-over immediately reparents Visuals into its own container;
+            // letting that tween finish there would move the model to (0,0).
+            // Keep the current pose for the ORIGINAL Reparent call. The spine death
+            // animation, HUD fade and native game-over tasks remain untouched.
+            if(RunPatches.Field(creature,"_shakeTween") is not Tween shake||!GodotObject.IsInstanceValid(shake)||!shake.IsRunning())continue;
+            var position=creature.Visuals.GlobalPosition;shake.Kill();
+            Runtime.Log("native-game-over-coordinate-tween-retired",new{Playback=PlayerLoop.Active,Model=creature.Entity.ModelId.ToString(),
+                Tween="NCreature.AnimShake",BeforeNativeReparent=true,PreservedX=position.X,PreservedY=position.Y,
+                DeathAnimationChanged=false,NativeReparentReplaced=false});
+        }
+    }
     internal static void Capture(string phase)
     {
         try
