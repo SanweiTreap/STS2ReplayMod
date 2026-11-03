@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-11-03。**RUN-005进行中，002/r4第二幕Boss→第二次换幕→第三幕古神/首普通的后段录播与第三幕跨进程续录已有证；真正终局/死亡与新局至终局同份完整证据仍待。** 当前范围/版本见[报告最新摘要](investigation-reports/RUN-005-report.md)，任务见[工作包](handoffs/RUN-005.md)。Implementation继续原任务、不等UI：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)。用户认可原生入口，但将三栏管理布局视为临时调试方案，期待更有设计感、拟用手绘表达；PM继续引导概念设计，未派UI实现。历史播放/收藏、百科大全同级管理页只收收藏/主动导入等边界保持，主菜单“回放”仍仅开发临时入口。
+更新：2026-11-03。**RUN-005进行中：007/r9真正终局后段播放、原生详细结算/主菜单安全退出已测；D-159用户新选Auto自动展开详细结算后停留，已交同包补齐、尚未验证。** 终局在途Stop、死亡/放弃及真实新局三幕完整证据仍待，旧FAIL保持。版本/限制见[报告最新摘要](investigation-reports/RUN-005-report.md)，任务见[工作包](handoffs/RUN-005.md)。Implementation继续、不等UI：[Replay Mod 后退一步](codex://threads/01a17814-d254-7df0-8c01-affe43d0e04c)。管理页视觉未定，用户拟手绘；历史播放/收藏、百科大全同级管理页只收收藏/主动导入等边界保持，主菜单回放仍仅开发临时入口。
 
 ## 已确认的可用基础
 
@@ -38,11 +38,15 @@
 
 ## 随后的方向与主要缺口
 
-完整对局录制仍未完成。RUN-005已将共用录制/观看接到Act0/1/2，第二次原生换幕、第三幕古神/首普通及真正新进程Continue已有代表证据；TheArchitect真正WinRun、死亡末动作/观看及完整新局至原生终局仍待。原A0无modifier及代表内容范围保持；整局容器/后段片段不能冒充完整三幕录像，UI须如实显示范围/缺口。
+完整对局闭环仍未完成。RUN-005已将共用录制/观看接到Act0/1/2，第二次换幕/第三幕古神与首普通/真正Continue及r6胜利录制已有证；r9终局后段原生观看/详细结算与临时退出通过，终局在途Stop、死亡末动作/放弃和完整新局至终局仍待。原A0无modifier及代表内容范围保持，UI须如实显示范围/缺口，不能将后段片段当完整三幕。
 
 RUN-004已收束。RUN-005/r4后段两次原生完整播放：Boss19步、第三幕普通5步及8路线操作匹配，5次Back与三次Stop/重开通过。r3发现CARD.SLOTH的原FAIL保留；002对同次播放checkpoint同步回退隔离Progress的六个发现/FTUE集合，修复原生seen门控与Player回退不一致，未注入expected/忽略差异。源报告仍以准备gap后的Boss合法起点计，不冒充开局。当前原生point20第三幕首普通完成未领奖、game0、无restore；版本/恢复点见报告。
 
-Implementation继续TheArchitect原生终局、死亡/放弃分类与完整新局至终局证据，不重跑已答后段或全机制矩阵；普通修复原包自主。PM与用户同期讨论原生UI，不阻塞录制；三种模式/节奏及D-147隐藏SL仍不扩入本包，见[讨论材料](technical-notes/PLAYBACK-MODES.md)与[整局规划](technical-notes/RUN-REPLAY-PLAN.md)。
+r6最终Boss六牌准备在原生战前保存读回并明确gap：Aeonglass13步→独立TheArchitect visit的原生选择/演出→OnEnded(true)/gameover，history实际win=true/未放弃，真实普通Continue/backup由原生通关删除，并非观看破坏或缺文件失败；历史与当前状态已补存，无restore。该Run仍Opening=null，不是完整新局证明。005为首句自动开放选项的两个真实异步时刻增加严格核对/任务收束，旧录原件保留，静态reader通过不当动态观看已通过。
+
+Implementation直接复用现成Boss尾段做终局观看/演出Stop重开，随后死亡/放弃及完整新局证据；不重录已答后段/不为测观看恢复通关前存档，不逐候选交PM批准。UI讨论不阻塞录制，三种模式/节奏及D-147隐藏SL不扩入本包，见[讨论材料](technical-notes/PLAYBACK-MODES.md)与[整局规划](technical-notes/RUN-REPLAY-PLAN.md)。
+
+r9技术核对：原生“继续”展开摘要，当前“主菜单”桥接Stop不请求普通保存，13个owner任务完成/无取消故障后恢复原manager及所比较Continue/Progress，root/片/原生胜利历史保持；普通Continue仍因真实通关不存在。通用EOF清待播/关Auto/留scene符合旧规格，但停哪一结算页原先未定。D-159用户已选Auto自动展开详细结算后停留、不自动退出；手动仍自行继续。此新行为同包实现/窄回归，正式来源返回/文案另议，不把r9技术PASS当产品或整包验收。
 
 正在讨论[原始界面输入/简化等效与Auto节奏](technical-notes/PLAYBACK-MODES.md)，这些模式/UI尚未派实现。D-149简化边界保持；D-150只提供原始＋原始节奏、原始＋自定义、简化＋自定义三组合。D-151按具体动作独立配节奏，用户已认可相邻出牌输入投递计间隔/原生排队与选择可读后停留，数值边测边调。D-153已明确Implementation做RUN-005完整录制、PM同期讨论正式UI；当前记录不保证覆盖全部浏览/原始时间。
 
