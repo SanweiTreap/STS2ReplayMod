@@ -27,7 +27,11 @@ internal static class RunContracts
             OriginalSHA256=Codec.Hash(before),Visits=run.Visits.Count,Operations=run.Operations.Count,RecordedOperations=raw.Operations.Count,StartSequence=anchor!.Sequence,
             CoverageStartSource=anchor.SourceSequence??anchor.Sequence,ExplicitTail=startSource is not null,
             CoveredVisits=run.Operations.Where(o=>o.Sequence>=anchor.Sequence).Select(o=>o.Visit).Distinct().Count(),
-            ResourceDiscontinuities=gaps,Continuations=continuations,Destinations=destinations,OriginalUnchanged=true,NativeRuntimeNotExecutedByThisCheck=true}));
+            ResourceDiscontinuities=gaps,NativeFinalOpeningTransitions=run.Operations.Zip(run.Operations.Skip(1))
+                .Where(p=>RunStore.NativeFinalOpening(run,p.First,p.Second)).Select(p=>new{From=p.First.Sequence,To=p.Second.Sequence,
+                    Source=p.First.SourceSequence??p.First.Sequence,OnlyNativeFirstOptionBecameAvailable=true,
+                    BothSnapshotsStillRequireNativeRuntimeComparison=true}).ToArray(),
+            Continuations=continuations,Destinations=destinations,OriginalUnchanged=true,NativeRuntimeNotExecutedByThisCheck=true}));
         Console.WriteLine(result);
     }
     internal static void Run(string output)
@@ -147,6 +151,22 @@ internal static class RunContracts
             Reject(terminal with{Operations=[operation with{After="other-state"}]});
             Reject(terminal with{Visits=[visit with{RoomType="Boss",MapType="Boss"}]});
             Reject(terminal with{Lifecycle=[fact with{Kind="death"}]});
+        });
+        Test("legacy-final-entry-allows-only-native-first-option-opening-not-resource-or-rng-changes",()=>
+        {
+            var ready=JsonNode.Parse("""{"players":[{"hp":80}],"rng":{"counter":1},"event_state":{"Model":"EVENT.THE_ARCHITECT","Options":[{"TextKey":"THE_ARCHITECT.dialogue.0","IsLocked":false,"IsProceed":false,"WasChosen":false}],"Rng":{"Counter":1}}}""")!;
+            var entered=ready.DeepClone();entered["event_state"]!["Options"]=new JsonArray();
+            var entry=new RunOperation(1,1,"act-proceed",new(),"before",entered.ToJsonString(),"complete",[]);
+            var choice=new RunOperation(2,2,"event-choice",new(RewardKey:ready["event_state"]!.ToJsonString(),Option:"THE_ARCHITECT.dialogue.0"),ready.ToJsonString(),null,"complete",[]);
+            var value=run with{Visits=[new(1,2,15,14,3,"Boss","Boss","ENCOUNTER.AEONGLASS_BOSS",1,"left",null),
+                new(2,2,16,14,3,"Victory","Event","EVENT.THE_ARCHITECT",1,"entered",null)],Operations=[entry,choice],Continuations=[]};
+            Need(RunStore.NativeFinalOpening(value,entry,choice)&&RunStore.ResourceDiscontinuities(value).Length==0,"native-first-speech-opening-treated-as-unrecorded-choice");
+            var changedRng=ready.DeepClone();changedRng["rng"]!["counter"]=2;
+            var changedHp=ready.DeepClone();changedHp["players"]![0]!["hp"]=79;
+            foreach(var changed in new[]{choice with{Before=changedRng.ToJsonString()},choice with{Before=changedHp.ToJsonString()},
+                choice with{Argument=choice.Argument with{Option="another-choice"}},choice with{Argument=choice.Argument with{RewardKey="{}"}}})
+                Need(RunStore.ResourceDiscontinuities(value with{Operations=[entry,changed]}).SequenceEqual(new[]{2}),"resource-rng-or-choice-difference-hidden-as-native-opening");
+            Need(!RunStore.NativeFinalOpening(value with{Visits=[value.Visits[0] with{Act=1},value.Visits[1]]},entry,choice),"ordinary-act-change-treated-as-final-opening");
         });
         var opening=new RunStartInput(run.Character,"actual-seed",["ACT.UNDERDOCKS"],"Standard",0,"actual-progress","actual-prefs","NEW_LEAF");
         Test("new-run-inputs-roundtrip-with-preparation-and-account-inputs-without-changing-operations",()=>

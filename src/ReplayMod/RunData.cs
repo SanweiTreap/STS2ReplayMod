@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace ReplayMod;
@@ -89,8 +90,27 @@ internal sealed class RunStore(string root)
         Codec.Require(next is not null&&next.Visit==point.Visit&&next.Status=="complete"&&next.Kind is "reward" or "proceed","run-legacy-continue-boundary-ambiguous");
         return next!.Sequence;
     }
+    internal static bool NativeFinalOpening(RunDocument run,RunOperation first,RunOperation next)
+    {
+        if(first is not {Kind:"act-proceed",Status:"complete",After:not null}||
+            next is not {Kind:"event-choice",Status:"complete",Before:not null}||next.Argument.Option!="THE_ARCHITECT.dialogue.0"||
+            !run.Visits.Any(v=>v.Id==first.Visit&&v is {Act:2,RoomType:"Boss"})||
+            !run.Visits.Any(v=>v.Id==next.Visit&&v is {Act:2,MapType:"Victory",RoomType:"Event",Model:"EVENT.THE_ARCHITECT"}))return false;
+        var after=JsonNode.Parse(first.After);var before=JsonNode.Parse(next.Before);
+        if(after?["event_state"] is not JsonObject entry||before?["event_state"] is not JsonObject ready||
+            entry["Model"]?.GetValue<string>()!="EVENT.THE_ARCHITECT"||ready["Model"]?.GetValue<string>()!="EVENT.THE_ARCHITECT"||
+            entry["Options"] is not JsonArray {Count:0}||ready["Options"] is not JsonArray {Count:1} options||
+            options[0]?["TextKey"]?.GetValue<string>()!=next.Argument.Option||next.Argument.RewardKey is null||
+            !JsonNode.DeepEquals(ready,JsonNode.Parse(next.Argument.RewardKey)))return false;
+        // The original OnRoomEnter starts PlayCurrentLine independently and
+        // restores its first option on completion. No resource/RNG difference
+        // is allowed across that autonomous native opening, even in old clips.
+        entry.Remove("Options");ready.Remove("Options");
+        return JsonNode.DeepEquals(after,before);
+    }
     internal static int[] ResourceDiscontinuities(RunDocument run)=>run.Operations.Zip(run.Operations.Skip(1))
-        .Where(pair=>pair.First is {Status:"complete",After:not null}&&pair.Second is {Status:"complete",Before:not null}&&pair.First.After!=pair.Second.Before)
+        .Where(pair=>pair.First is {Status:"complete",After:not null}&&pair.Second is {Status:"complete",Before:not null}&&
+            pair.First.After!=pair.Second.Before&&!NativeFinalOpening(run,pair.First,pair.Second))
         .Select(pair=>pair.Second.Sequence).ToArray();
     internal void Save(RunDocument run)
     {

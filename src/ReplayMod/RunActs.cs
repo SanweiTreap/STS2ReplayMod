@@ -17,6 +17,7 @@ internal static class RunActs
     private static RunState? _owner;
     private static int _source;
     private static bool _ready,_voted;
+    private static string? _after;
     internal static void Install(Harmony h)
     {
         h.Patch(AccessTools.DeclaredMethod(typeof(ActChangeSynchronizer),"SetLocalPlayerReady"),
@@ -60,8 +61,17 @@ internal static class RunActs
         if(RunPlayback.Active)
             Codec.Require(_ready&&_voted&&_transition is null&&ReferenceEquals(_owner,LiveState.Run)&&RunPlayback.Current?.Kind=="act-proceed",
                 "act-transition-without-native-vote");
-        __result=RunRecording.Wrap(__result,operation);
+        var native=__result;__result=RunRecording.Wrap(Boundary(),operation);
         if(RunPlayback.Active){_transition=__result;RunPlayback.Track(__result);}
+        async Task Boundary()
+        {
+            await native;
+            if(LiveState.Run.CurrentRoom?.IsVictoryRoom==true)await RunEndings.FinishOpening();
+            // Legacy recordings froze at EnterNextAct completion, while the
+            // initial speech still ran. Verify that actual snapshot as well as
+            // the following choice's actual ready state, rather than ignoring it.
+            if(RunPlayback.Active)_after=RunPlayback.HasNativeFinalOpening?RunEndings.OpeningEntry():RunResources.Capture();
+        }
     }
     private static void ActSet(int actIndex,ref Task __result)
     {
@@ -88,7 +98,7 @@ internal static class RunActs
         var run=LiveState.Run;
         Codec.Require(run.CurrentActIndex is >=0 and <=2&&run.CurrentRoom is CombatRoom {RoomType:RoomType.Boss,IsPreFinished:true}&&
             run.Acts.Count==3,"act-proceed-not-at-supported-completed-boss");
-        _owner=run;_source=run.CurrentActIndex;_transition=null;_ready=false;_voted=false;
+        _owner=run;_source=run.CurrentActIndex;_transition=null;_ready=false;_voted=false;_after=null;
         PlayerLoop.ReleaseBattleForTravel();
         try
         {
@@ -115,5 +125,6 @@ internal static class RunActs
         }
         finally{_owner=null;}
     }
-    internal static void Clear(){_recorded=null;_transition=null;_owner=null;_ready=false;_voted=false;}
+    internal static string Result()=>_after??throw new InvalidDataException("native-act-transition-result-missing");
+    internal static void Clear(){_recorded=null;_transition=null;_owner=null;_ready=false;_voted=false;_after=null;}
 }
