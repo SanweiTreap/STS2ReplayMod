@@ -57,7 +57,8 @@ internal static class RunPlayback
     internal const string ThirdActRecordingBuild="4B591FA3D071A67E8D4332355825BF769B6708C919D2093A62F7531332DF8657";
     internal const string ThirdActPlaybackBuild="90B730881BE26B2B35E23E44383DADD976CF6C17CD40CAE97BF6DE0F203BE5F3";
     internal const string FinalEventRecordingBuild="565CD1A9A9AF0C54B09E6FF3E1179FB341D412ABF56AB5ED2D1FD7E0B551DB7A";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==FinalEventRecordingBuild||hash==ThirdActPlaybackBuild||hash==ThirdActRecordingBuild||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild||hash==ActRecordingBuild||hash==AcceptedActRecordingBuild;
+    internal const string PreparedFinalRecordingBuild="329A01248024F56D130AF6A09022BD9DCA2B540C5B260D413A05BA4F3B891310";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==PreparedFinalRecordingBuild||hash==FinalEventRecordingBuild||hash==ThirdActPlaybackBuild||hash==ThirdActRecordingBuild||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild||hash==ActRecordingBuild||hash==AcceptedActRecordingBuild;
     internal static bool BattleVerified(int source)=>VerifiedBattles.Contains(source);
     internal static bool NeedsComputedSave(int source)=>NeededComputedSaves.Contains(source);
     internal static RunOperation? Current;
@@ -106,6 +107,7 @@ internal static class RunPlayback
     }
     internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();RunActs.Clear();RunCombatLoads.Clear();RunEndings.Clear();}
     internal static RunLifecycleEvent? TerminalFact()=>RunLifecycle.AtOperation(_run,Current!);
+    internal static bool HasNativeFinalOpening=>_index+1<_run.Operations.Count&&RunStore.NativeFinalOpening(_run,Current!,_run.Operations[_index+1]);
     internal static void VerifyFinalEvent()
     {
         Codec.Require(_index+1<_run.Operations.Count,"run-final-event-recording-missing");
@@ -239,7 +241,7 @@ internal static class RunPlayback
                 await Execute(Current);
                 Codec.Require(_decision==Current.Decisions.Length,"run-recorded-choice-not-consumed");
                 if(Current.After is {} expected)Compare(Current.Sequence,"after",expected,
-                    Current.Terminal is null?RunResources.Capture():RunEndings.PlaybackVictory(Current));
+                    Current.Terminal is not null?RunEndings.PlaybackVictory(Current):Current.Kind=="act-proceed"?RunActs.Result():RunResources.Capture());
                 Runtime.Log("run-operation-verified",new{_run.Id,Current.Sequence,Current.SourceSequence,Current.Attempt,Current.Visit,Current.Kind,ResourcesAndRngMatched=true,NativeBusinessExecuted=true,ExpectedStateInjected=false});
                 if(_index==_run.Operations.Count-1)
                 {
