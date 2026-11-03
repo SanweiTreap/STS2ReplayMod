@@ -109,6 +109,7 @@ internal static class Recorder
         RunRecording.Entry(coord,preFinished,saveGame);
         if(Active||_waiting)Interrupt();
         ResetSegment(preserveAuthority:true);_attempted=false;
+        TestEncounter.PrepareDeathEntry(coord,saveGame);
         var run=LiveState.Run;
         if(preFinished||run.CurrentActIndex is <0 or >2||run.AscensionLevel!=0||run.Modifiers.Count!=0||run.CurrentMapPoint is not {} point||!LiveState.CombatMapType(point.PointType))
         {
@@ -199,13 +200,13 @@ internal static class Recorder
     {
         Codec.Require(Active&&Operations.Count<Codec.MaxOperations,"clip-operation-limit");Operations.Add(operation with{Sequence=Operations.Count+1});
         RecordedState.Append(_clip!,operation,Operations.Count);Runtime.Status=$"本场录制中：{Operations.Count}步。胜利或保存退出时封存";
-        if(operation.Victory)Seal();else Codec.Require(Operations.Count<Codec.MaxOperations,"clip-operation-limit-before-victory");
+        if(operation.Victory||operation.Defeat)Seal();else Codec.Require(Operations.Count<Codec.MaxOperations,"clip-operation-limit-before-victory");
     }
     internal static bool CanSeal=>Active&&!ActionMonitor.Outstanding&&!ChoiceTape.Waiting&&Operations.Count>0;
     internal static void Seal()
     {
         if(!Active)return;
-        if(ActionMonitor.Pending is not null&&BattleEnd.Ready){ActionMonitor.Tick();if(!Active)return;}
+        if(ActionMonitor.Pending is not null&&(BattleEnd.Ready||BattleEnd.DeathReady)){ActionMonitor.Tick();if(!Active)return;}
         Codec.Require(!ActionMonitor.Outstanding&&!ChoiceTape.Waiting,"wait-before-finishing-clip");
         Publish(false);
     }
@@ -213,7 +214,7 @@ internal static class Recorder
     {
         if(Active)
         {
-            if(ActionMonitor.Pending is not null&&BattleEnd.Ready){ActionMonitor.Tick();if(!Active)return;}
+            if(ActionMonitor.Pending is not null&&(BattleEnd.Ready||BattleEnd.DeathReady)){ActionMonitor.Tick();if(!Active)return;}
             if(Operations.Count>0&&LiveState.Format>=9)Publish(true);
             else if(CanSeal)Seal();
             else Runtime.Log("recording-interrupted-without-playable-prefix",new{Id=_clip?.Id,_clip?.Battle,CompletedOperations=Operations.Count,InitialReady=Active,ChoiceInFlight=ChoiceTape.Waiting});
@@ -224,17 +225,18 @@ internal static class Recorder
     internal static void EndRun(){try{Interrupt();RunRecording.Exit();}finally{_enabled=false;_continueSave=null;}}
     private static void Publish(bool interrupted)
     {
-        Codec.Require(Operations.Count>0,"no-completed-operations-to-seal");var victory=Operations[^1].Victory;
+        Codec.Require(Operations.Count>0,"no-completed-operations-to-seal");var victory=Operations[^1].Victory;var defeat=Operations[^1].Defeat;
         var clip=_clip! with{Operations=Operations.ToArray(),Choices=LiveState.Format>=4?(interrupted?ChoiceTape.CompletedPrefix(Operations.Count):ChoiceTape.Snapshot()):null,
-            Battle=_clip!.Battle is {} battle?battle with{Completion=victory?"victory":"interrupted"}:null};
+            Battle=_clip!.Battle is {} battle?battle with{Completion=victory?"victory":defeat?"death":"interrupted"}:null};
         Codec.Validate(clip,Runtime.GameHash,Runtime.ModHash,Runtime.Scope);
         var at=System.Diagnostics.Stopwatch.GetTimestamp();RecordedState.Seal(clip);Runtime.Store.Seal(clip);
         var readback=Runtime.ReadClip(clip.Id);Codec.Require(Codec.Bytes(clip).SequenceEqual(Codec.Bytes(readback)),"sealed-production-readback-differs");
         RunRecording.BattleSealed(clip);
         Runtime.Log("clip-production-readback",new{clip.Id,clip.Format,clip.Battle,Timing=readback.Timing,TimedOperations=readback.Operations.Count(o=>o.Timing is not null),ExactPayloadMatched=true});
         Active=false;_waiting=false;_clip=null;_release=true;
-        Runtime.Status=victory?$"战斗胜利 · 已保存 {clip.Id[..8]}：{clip.Operations.Length}步。可领奖后继续，下一普通战斗自动录制":$"已保存中断片段 {clip.Id[..8]}：{clip.Operations.Length}个完整操作；未完成的动作或选择不拼入";
-        Runtime.Log("clip-sealed",new{clip.Id,clip.Format,clip.Battle,Count=clip.Operations.Length,Victory=victory,AutomaticVictorySeal=victory,Interrupted=interrupted,
+        Runtime.Status=victory?$"战斗胜利 · 已保存 {clip.Id[..8]}：{clip.Operations.Length}步。可领奖后继续，下一普通战斗自动录制":
+            defeat?$"原生死亡 · 已保存 {clip.Id[..8]}：{clip.Operations.Length}步，含最后致死动作":$"已保存中断片段 {clip.Id[..8]}：{clip.Operations.Length}个完整操作；未完成的动作或选择不拼入";
+        Runtime.Log("clip-sealed",new{clip.Id,clip.Format,clip.Battle,Count=clip.Operations.Length,Victory=victory,Defeat=defeat,AutomaticVictorySeal=victory,AutomaticDeathSeal=defeat,Interrupted=interrupted,
             FinalOperation=clip.Operations[^1].Sequence,FinalStateHash=Codec.Hash(System.Text.Encoding.UTF8.GetBytes(clip.Operations[^1].After)),SealMilliseconds=System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds});
     }
     internal static void Fail(string reason)

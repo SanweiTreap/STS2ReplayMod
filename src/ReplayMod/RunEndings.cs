@@ -112,6 +112,7 @@ internal static class RunEndings
                 _operation=RunRecording.Pending?.Sequence;
                 RunRecording.NoteLifecycle(_kind,isVictory?"native-OnEnded(true)":__instance.IsAbandoned?
                     "native-Abandon-OnEnded(false)":"native-death-OnEnded(false)",_state);
+                if(_kind=="death"&&Recorder.Active)BattleEnd.Lost(_state);
             }
         });
     }
@@ -119,6 +120,7 @@ internal static class RunEndings
     {
         if(_owner is null||!ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))return;
         _gameOver=true;
+        if(!RunPlayback.Active&&_kind=="death")BattleEnd.DeathScreen();
         if(RunPlayback.Active&&NOverlayStack.Instance?.Peek() is NGameOverScreen screen)DisableNativeExit(screen,"game-over-entry");
         Runtime.Log("run-native-game-over-shown",new{Kind=_kind,Operation=_operation,Playback=RunPlayback.Active,
             NativeScreen=true,VictoryRoom=_owner.CurrentRoom?.IsVictoryRoom==true});

@@ -11,17 +11,19 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace ReplayMod;
 
-internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent, NecrobinderContent, EnemySummon, RunRoute, RunRooms, RunShops, RunEvents, RunEventCombat, RunActs }
+internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent, NecrobinderContent, EnemySummon, RunRoute, RunRooms, RunShops, RunEvents, RunEventCombat, RunActs, DeathRecording }
 // Explicit opt-in, consumed by ONE new supported run. Never applied to Continue or playback.
 internal static class TestEncounter
 {
     internal static TestPreparation Armed;
     internal static bool FirstOstySummonArmed;
     private static bool _firstOstySummon;
+    private static bool _deathPrepared;
     private static TestPreparation _mode;
     private static RunState? _run;
     internal static string? Preparation=>_run is not null&&ReferenceEquals(_run,RunManager.Instance.DebugOnlyGetState())?
-        (_mode==TestPreparation.RunActs?"RUN004-Ironclad-Underdocks-3-DefendPlus-2-ImperviousPlus-2-BodySlamPlus-7-innate-retain-BagOfPreparation-Lantern-3-EnergyPotion-Elite-connected-to-native-Boss":
+        (_mode==TestPreparation.DeathRecording?"RUN005-death-recording-Ironclad-Underdocks-CorpseSlugsWeak-first-normal-1HP-before-checkpoint-explicit-prefix-gap":
+         _mode==TestPreparation.RunActs?"RUN004-Ironclad-Underdocks-3-DefendPlus-2-ImperviousPlus-2-BodySlamPlus-7-innate-retain-BagOfPreparation-Lantern-3-EnergyPotion-Elite-connected-to-native-Boss":
          _mode==TestPreparation.RunEventCombat?"RUN002-Ironclad-Underdocks-DefendPlus-2-ImperviousPlus-2-BodySlamPlus-5-innate-retain-EnergyPotion-Monster-Unknown-BattlewornDummy-Monster-native-odds-minus1":
          _mode==TestPreparation.RunEvents?"RUN002-Ironclad-Underdocks-two-CorpseSlugsWeak-40HP-5-innate-retain-connected-Monster-Unknown-AbyssalBaths-Unknown-DoorsOfLightAndDark-Monster-native-odds-minus1":
          _mode==TestPreparation.RunShops?"RUN002-Ironclad-Underdocks-two-CorpseSlugsWeak-40HP-1000Gold-3-starter-DefendPlus-2-added-BodySlamPlus-5-innate-retain-connected-Monster-Shop-Monster":
@@ -41,7 +43,7 @@ internal static class TestEncounter
             _mode==TestPreparation.Content?"DEMO005-directed-CorpseSlugs-ShrugPlus-Inflame-HappyFlower-EnergyPotion":"DEMO004-directed-Underdocks-CorpseSlugsWeak"):null;
     internal static void BeforeNew(RunState state)
     {
-        _run=null;_mode=Armed;_firstOstySummon=_mode==TestPreparation.NecrobinderContent&&FirstOstySummonArmed;FirstOstySummonArmed=false;
+        _run=null;_mode=Armed;_deathPrepared=false;_firstOstySummon=_mode==TestPreparation.NecrobinderContent&&FirstOstySummonArmed;FirstOstySummonArmed=false;
         if(_mode==TestPreparation.None||PlayerLoop.Active)return;Armed=TestPreparation.None;
         Runtime.CheckEnvironment();
         Codec.Require(state.CurrentActIndex==0&&state.AscensionLevel==0&&state.Players.Count==1&&
@@ -224,7 +226,8 @@ internal static class TestEncounter
             DeckOwnersAndRunRegistrationValid=_run.Players[0].Deck.Cards.All(c=>ReferenceEquals(c.Owner,_run.Players[0])&&_run.ContainsCard(c)),
             Deck=_run.Players[0].Deck.Cards.Select(c=>new{Model=c.Id.ToString(),c.CurrentUpgradeLevel,Saved=c.ToSerializable()}).ToArray(),
             Relics=_run.Players[0].Relics.Select(r=>r.Id.ToString()).ToArray(),Potions=_run.Players[0].PotionSlots.Select(p=>p?.Id.ToString()).ToArray()});
-        Runtime.Status=_mode==TestPreparation.RunActs?"RUN-004：最左首节点精英，后接原生Boss；七张先天保留牌。本候选先测精英并停在奖励页":
+        Runtime.Status=_mode==TestPreparation.DeathRecording?"死亡录制短测已准备：正常选择涅奥，进入首普通后只结束回合；首战存档前实际HP置1，前缀明确缺口":
+            _mode==TestPreparation.RunActs?"RUN-004：最左首节点精英，后接原生Boss；七张先天保留牌。本候选先测精英并停在奖励页":
             _mode==TestPreparation.RunEventCombat?"事件内部战斗短路线已准备：首普通→问号训练假人→普通；能量药水留给假人":
             _mode==TestPreparation.RunEvents?"事件短路线已准备：首普通→问号深渊浴场→问号光暗之门→普通；仅新局准备原生概率":
             _mode==TestPreparation.RunShops?"商店SL短路线已准备：首普通→商店→普通；初始1000金币；保留每次尝试":
@@ -240,6 +243,17 @@ internal static class TestEncounter
             _mode==TestPreparation.ChoiceProcess?"过程测试已准备：原生工具箱／手牌／长抽牌堆与弃牌堆／探寻打击，六张先天保留牌（真实新局）":
             _mode==TestPreparation.Choices?"选择测试已准备：双蛞蝓／工具箱／九张机制牌／金纸4／攻击和能量药水（真实新局）":
             _mode==TestPreparation.Content?"测试准备：双蛞蝓＋耸肩无视+／燃烧／开心小花／能量药水（真实新局）":"测试准备已应用：暗港首战双蛞蝓（真实新局，会正常保存进度）";
+    }
+    internal static void PrepareDeathEntry(MegaCrit.Sts2.Core.Map.MapCoord coord,bool saveGame)
+    {
+        if(PlayerLoop.Active||_mode!=TestPreparation.DeathRecording||_deathPrepared||Preparation is null||!saveGame||
+            _run!.CurrentActIndex!=0||coord.row!=1||_run.CurrentMapPoint?.PointType!=MegaCrit.Sts2.Core.Map.MapPointType.Monster)return;
+        // This changes the real entry before the native room checkpoint is written.
+        // Keep an explicit route gap; it cannot certify a complete new-run recording.
+        RunRecording.Unsupported("death-preparation","首普通战前实际HP置1；准备之前的路线不作完整新局证明");
+        var player=_run.Players[0];var before=player.Creature.CurrentHp;player.Creature.SetCurrentHpInternal(1);_deathPrepared=true;
+        Runtime.Log("test-death-entry-prepared",new{BeforeHp=before,ActualHp=player.Creature.CurrentHp,BeforeNativeBattleCheckpoint=true,
+            ExplicitPrefixGap=true,AppliedOnlyToArmedNewRun=true,PlaybackStateInjected=false});
     }
     internal static void ConfigureRunRoute(MegaCrit.Sts2.Core.Map.ActMap map)
     {
