@@ -11,7 +11,7 @@ internal static class RunContracts
         var gaps=RunStore.ResourceDiscontinuities(run);var anchor=run.Operations.FirstOrDefault(o=>o.Kind=="battle"&&o.Status=="complete"&&
             (startSource is null||(o.SourceSequence??o.Sequence)==startSource));
         Codec.Require(anchor is not null,"run-has-no-complete-battle-anchor");
-        Codec.Require(!run.Operations.Any(o=>o.Sequence>=anchor!.Sequence&&(o.Kind=="gap"||o.Status!="complete")),"run-has-unrecorded-gap-after-anchor");
+        Codec.Require(!RunStore.HasUnrecordedAfter(run,anchor!.Sequence),"run-has-unrecorded-gap-after-anchor");
         Codec.Require(!gaps.Any(s=>s>anchor!.Sequence),"run-has-missing-resource-transition-after-anchor");
         var continuations=run.Continuations.Where(c=>c.PreFinished&&c.Visit>=anchor!.Visit&&c.BeforeOperation>=anchor.Sequence)
             .Select(c=>new{c.Visit,c.Attempt,BeforeOperation=RunStore.ContinueBefore(run,c),LegacyVisitBoundary=c.BeforeOperation is null,
