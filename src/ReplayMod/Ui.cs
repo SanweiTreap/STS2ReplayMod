@@ -45,6 +45,10 @@ internal static class Ui
         var tail=new CheckBox{Text="RUN-005 后段准备：Continue当前第二/三幕普通后直连Boss（明确前缀缺口）",ButtonPressed=RunTailPreparation.Armed};
         tail.Toggled+=value=>{RunTailPreparation.Armed=value;Runtime.Status=value?
             "仅下次Continue当前第二/三幕普通保存点：地图直连原生Boss，原资源/RNG不改；这不是完整三幕样本":"已取消后段准备";};box.AddChild(tail);
+        var bossPreparation=new CheckBox{Text="RUN-005 终局战前加强：Continue第三幕Boss（六牌／满血／明确缺口）",ButtonPressed=RunBossPreparation.Armed};
+        bossPreparation.Toggled+=value=>{RunBossPreparation.Armed=value;if(value)tail.ButtonPressed=false;
+            Runtime.Status=value?"下次Continue第三幕Boss：壁垒+、两张不动如山+、巩固+、两张全身撞击+；原生保存后入场":"已取消Boss战前加强";};
+        box.AddChild(bossPreparation);
         var acts=new CheckBox{Text="RUN-004 精英→Boss短路线（仅下一铁甲A0新局）",ButtonPressed=TestEncounter.Armed==TestPreparation.RunActs};
         acts.Toggled+=value=>{TestEncounter.Armed=value?TestPreparation.RunActs:TestPreparation.None;
             if(value){RecordedState.Armed=false;RunOpening.NewLeafArmed=false;}

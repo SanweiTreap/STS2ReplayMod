@@ -59,6 +59,15 @@ internal static class Recorder
         Runtime.Log("recording-native-save-loaded",new{save.StartTime,save.CurrentActIndex,BeforeRunStateReconstruction=true,
             SaveKey=RecordingJournal.SaveKey(_loadedJson)});
     }
+    internal static void PreparedContinue(SerializableRun save)
+    {
+        Codec.Require(!PlayerLoop.Active&&_enabled&&!Active&&!_waiting&&!_captureEntry&&
+            save.CurrentActIndex==2&&save.PreFinishedRoom is null,"prepared-continue-outside-native-opening");
+        _continueSave=JsonSerializationUtility.ToJson(save);
+        Runtime.Log("recording-prepared-continue-checkpoint",new{save.CurrentActIndex,
+            SaveKey=RecordingJournal.SaveKey(_continueSave),ActualNativeSaveReadBack=true,ExplicitPreparationGap=true,
+            OriginalLoadFactUnchanged=true,BeforeRoomCreation=true});
+    }
     internal static Task NativeSaved(RunSaveManager manager,SerializableRun request,Task saved)
     {
         if(!_enabled||Runtime.Journal.CurrentRun is not {} runId)return saved;
@@ -158,7 +167,7 @@ internal static class Recorder
         if(parent is not null)battle=battle! with{ParentEvent=parent,ResumeParent=true};
         _clip=new(LiveState.Format,Guid.NewGuid().ToString("N"),DateTimeOffset.UtcNow,Runtime.GameHash,Runtime.ModHash,Runtime.Scope,
             Runtime.Mods,LiveState.Player.Character.Id.ToString(),run.Rng.ToSerializable().Seed??"",coord.row,coord.col,"",
-            JsonSerializationUtility.ToJson(save),"",[],TestEncounter.Preparation??RunTailPreparation.Marker,RecordedState.Recording?"STATE001-first-Defend-v1":null,Battle:battle);
+            JsonSerializationUtility.ToJson(save),"",[],TestEncounter.Preparation??RunBossPreparation.Marker??RunTailPreparation.Marker,RecordedState.Recording?"STATE001-first-Defend-v1":null,Battle:battle);
         _waiting=true;if(LiveState.Format>=4)ChoiceTape.Record();Runtime.Status="准备录制：等待本场可操作，初始选择将一并记录";
         Runtime.Log("recording-room-checkpoint",new{_clip.Id,_clip.Battle,coord.row,coord.col,save.StartTime,BeforeRoomCreation=true,Source=source});
     }
