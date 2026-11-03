@@ -2,15 +2,15 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包进行中，当前 **build-014，主动放弃候选，待首个实际录制样本**。**013/r16死亡说明/详情控制与隔离History修复已通过**：手动>/>>、两次Back、Auto、Stop，原生CombatDeath/正确击杀者，实际原history/Progress/Continue保持；13/4个任务全完成零取消故障。012/r15模型修复保留，旧FAIL不追改。014接稳定战斗前缀后的原生确认放弃/终局冻结/通用结算，不当原生放弃已测。真正完整新局三幕仍待，不当整包完成。
+- 本包进行中，当前 **build-015，主动放弃观看候选，待原生播放**。**014/r17真实放弃录制/生产读取已通过**：一张防御独立interrupted前缀，随后原生确认放弃、Terminal/Lifecycle=abandoned，真实history was_abandoned=true/win=false，未误记死亡。015补确认/取消输入仅接受播放器授权，显式兼容该14原片。013/r16死亡分段已有证，旧FAIL保留；放弃观看/确认窗Stop及真正完整新局三幕仍待，不当整包完成。
 - Act0/1/2及两次换幕代表链已有证；最后奖励投票/EnterNextAct分支原生进入TheArchitect，独立visit/attempt，不增加幕索引/强制房型/加载后幕checkpoint。与Boss共用原生地图坐标，楼层取实际值（r6 Boss15层/终局16层），不自行增减楼层。
-- Lifecycle的Continue/saved-exit及胜利/死亡录制观看已有代表证；OnEnded前冻结真实资源/RNG，与同visit/attempt原始来源Lifecycle核对。r16实际用原生工厂在隔离内存生成终局History，旧普通history物理hash保持，调试文案消失；结局Back严格核同RunState/资源RNG不变，不重复致死或OnEnded。主动放弃014尚未原生取证。
+- Lifecycle的Continue/saved-exit、胜利/死亡录制观看及主动放弃录制已有代表证；OnEnded前冻结真实资源/RNG，与同visit/attempt原始来源Lifecycle核对。r17 raw5的放弃After精确等于同visit2/attempt2的abandoned事实State，原生gameover/task完成后封存；播放仍待。r16死亡结局Back/隔离History/物理文件保持已有证，不外推放弃观看。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
 - 原生TheArchitect为Combat布局但不是内部可战斗场景；003只开放该确切原生事件布局与实际按钮/选择任务，视觉生物不纳入战斗召唤追踪。结算页演出/摘要任务加入本次owner收束，原生返回菜单/时间线出口交现有Stop；终局演出中一次公开Stop开关供之后短测，未改正式UI/模式。
-- 主体/DirectContracts 014 Release均0warnings/0errors，git diff检查通过；15项run-envelope含新abandoned terminal必须有原生确认标记/同位置同状态同kind事实，否则拒绝。旧胜利source45及死亡source5实际root生产reader通过、原件不变。数据PASS不当主动放弃原生运行，未重跑旧首幕/角色/视觉矩阵。
+- 主体015 Release0warnings/0errors，git diff检查通过；014的15项run-envelope与旧胜利/死亡reader保持。r17新实际放弃root合法source4起点及一防御中断片生产reader通过、原件不变；015仅加观看输入限制/已知来源兼容，没有格式变化，不重复无关矩阵。数据PASS不当原生放弃观看。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
-- 死亡Run `b77bd626b0614153a25adf0c598099eb`、clip `80f28133c9b44249ba764fc1d3e32ca4`及原片不变；Opening=null、显式准备gap，不当完整新局。r16归档165文件/160事件，49已知文件相对013安装仅settings及backup变化，原生Progress/history保持。014唯一pair核对、013另存，胜利/死亡history不变、Continue/backup仍无；最新补存 `RUN005-post-build014-current-20261103-231006`，安装前相对r16全不变、安装后仅settings.save变化，game0、无restore/另一账号读取。
-- 下一步：开发工具启用默认关闭的主动放弃短测，下一铁甲A0新局正常涅奥→首普通打一张防御→等待完成→暂停菜单放弃并确认→正常结算回菜单/退出。先核真实封存/Lifecycle/history，再复用该片观看。死亡代表链已收束不重录；放弃当前只覆盖有稳定完整动作前缀的直接战斗，主菜单放弃/事件内战斗/在途取消不宣称支持。随后真正完整新局三幕。
+- 新放弃Run `b5221ca5d465457ab90e1f93231fbfec`、clip `0ae0a298ed894a08ba328e7c426ffd5c`，Opening=null、raw5/source4战斗/source5放弃，不当完整新局。r17归档34文件/29事件，49已知文件：真实放弃正常更新native replay、Progress及backup、settings及backup，原进度保留、无restore。015唯一pair核对、014另存；胜利/死亡/新放弃三份history hash均不变、Continue/backup仍无。最新 `RUN005-post-build015-current-20261103-235107`，安装前相对r17全不变、安装后仅settings.save变化，game0、另一账号未读。
+- 下一步：从整局列表最新放弃局source4首战起点Auto，核防御→原生确认放弃→放弃结算及详情后Stop；重开>>完成防御、>打开确认窗但不确认，Stop清理后正常退出。复用现片，不重录。放弃仍只覆盖稳定完整动作前缀的直接战斗；随后真正完整新局三幕。
 
 ## 首候选实现与边界
 
@@ -237,6 +237,22 @@ RunAbandon只在实际NAbandonRunConfirmPopup确认回调触发RunManager.Abando
 主体及DirectContracts Release均0warnings/0errors；15项run-envelope含新放弃约束及错误kind/位置/结果/输入/房型拒绝，原胜利source45和死亡source5实际root reader/原件保持通过。证据 `checks/build014-run-envelope.json`、`build014-old-victory-run.json`、`build014-old-death-run.json`；仅数据机制，原生放弃录制/观看/物理history与Progress保持均待后续取证，不提前PASS。
 
 安装 `preparation/build-014-9aab21c3.json`：DLL `5EF89002446D5E464717FC8E8A2F87845C3805871332274FE75FB6FAC1C9760B`、manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一mods/ReplayMod pair一致、无平铺重复，013另存核hash，既有胜利/死亡history不变、Continue/backup仍无。49已知文件安装前相对r16全不变，安装后仅settings.save变化，game0、无restore/另一账号读取。备份 `RUN005-pre-build014-current-20261103-230838` / `RUN005-post-build014-current-20261103-231006`，核对见 `preparation/*build014*.json`。
+
+## r17：原生主动放弃录制与生产读回通过
+
+会话 `e8b5cff299184972ac11c3665be9e63d`，29事件、零observer/录制失败。Run `b5221ca5d465457ab90e1f93231fbfec`，raw5、2visit/2attempt、Opening=null；source4完成战斗前缀clip `0ae0a298ed894a08ba328e7c426ffd5c` 为format10、单步未升级DefendIronclad、Completion=interrupted、Victory/Defeat均false。原生确认触发source5 abandon，Argument.Option=native-confirm-popup、Status=complete、Terminal=abandoned；After与同visit2/attempt2、BeforeOperation6的实际native-Abandon-OnEnded(false)事实State精确相同。
+
+原生gameover kind=abandoned、operation5，原生任务返回后操作完成。真实history/1793720545.run win=false/was_abandoned=true、KilledByEncounter=CorpseSlugsWeak，SHA `135E09C1BACAC77C586DF6F55108AC25781E30056E7317424EAF5CE4D0F8E84C`；正常移除Continue/backup，用户正常结算返回菜单/退出。新root/source4及实际前缀分别通过生产reader，原件不变；不把interrupted前缀当胜利或整局中断，整局明确主动放弃。
+
+证据 `runtime-verification-r17.json`、`checks/r17-abandon-run.json`、`checks/r17-fragment.json`、`collection-r17.json`；34数据文件归档/49已知文件补存。本次真实新局放弃按原生更新native replay、Progress及backup、settings及backup，未自动还原；无其他账号读取/game0。最新 `RUN005-post-r17-current-20261103-234414`。记录/读取通过，原生放弃观看/确认窗Stop尚未执行。
+
+## 015：放弃确认窗输入归播放器控制（待观看）
+
+补审新放弃popup的Yes/No回调：观看时只允许RunPlayback.Driving下的原生调用，直接鼠标/键盘回调不能越过>／>>的确认阶段；正常游戏仍原逻辑。播放器确认与Stop finally中的原生取消均在该授权范围内。既有只读鼠标遮罩之外增加方法入口检查，避免键盘/原生回调绕过播放节点；没有修改记录中的选择事实。
+
+显式兼容14实际生产来源hash，root与clip同规则；新Schema/战斗动作未改。主体Release0warnings/0errors，git diff检查通过；r17实际新文件reader结果保持，不重复无关合同。放弃的原生任务/隔离History/确认窗Stop/结算控制与账户保持均待用户复用该片观看，不提前PASS。
+
+安装 `preparation/build-015-62ba4b6c.json`：DLL `CD1FCEB61AC112E5FB509DDA11C621EB91F157EC08966860BC5C3814D688CF5C`、manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一mods/ReplayMod pair一致、无平铺重复，014另存核hash，旧胜利/死亡及新放弃三份history物理hash均保持、Continue/backup仍无。49已知文件安装前相对r17全不变，安装后仅settings.save变化，game0、无restore/另一账号读取。备份 `RUN005-pre-build015-current-20261103-234854` / `RUN005-post-build015-current-20261103-235107`，核对见 `preparation/*build015*.json`。
 
 ## 后续必须完成
 

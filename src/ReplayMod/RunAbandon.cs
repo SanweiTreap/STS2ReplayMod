@@ -17,10 +17,21 @@ internal static class RunAbandon
     {
         h.Patch(AccessTools.DeclaredMethod(typeof(NAbandonRunConfirmPopup),"OnYesButtonPressed"),
             prefix:new HarmonyMethod(typeof(RunAbandon),nameof(ConfirmBefore)),postfix:new HarmonyMethod(typeof(RunAbandon),nameof(ConfirmAfter)));
+        h.Patch(AccessTools.DeclaredMethod(typeof(NAbandonRunConfirmPopup),"OnNoButtonPressed"),prefix:new HarmonyMethod(typeof(RunAbandon),nameof(CancelBefore)));
         h.Patch(AccessTools.DeclaredMethod(typeof(RunManager),"Abandon"),prefix:new HarmonyMethod(typeof(RunAbandon),nameof(Record)));
         h.Patch(AccessTools.DeclaredMethod(typeof(RunManager),"AbandonInternal"),postfix:new HarmonyMethod(typeof(RunAbandon),nameof(TaskStarted)));
     }
-    private static void ConfirmBefore(NAbandonRunConfirmPopup __instance)=>_confirming=__instance;
+    private static bool InputAllowed(string action)
+    {
+        if(!PlayerLoop.Active||RunPlayback.Driving)return true;
+        Runtime.Log("run-abandon-native-input-blocked",new{Action=action,UsePlaybackControls=true});return false;
+    }
+    private static bool ConfirmBefore(NAbandonRunConfirmPopup __instance)
+    {
+        if(!InputAllowed("confirm"))return false;
+        _confirming=__instance;return true;
+    }
+    private static bool CancelBefore()=>InputAllowed("cancel");
     private static void ConfirmAfter()=>_confirming=null;
     private static void Record()
     {
