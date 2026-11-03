@@ -54,7 +54,8 @@ internal static class RunPlayback
     internal const string BossRecordingBuild="69A1529F939E9452F2FF4AB96A753C532153C287378C63E01CE69154753CC0E7";
     internal const string ActRecordingBuild="BAE17032415D20C4F7844779B921379D8994ABC7C3BE69AC9106988EDADDA70B";
     internal const string AcceptedActRecordingBuild="7B7410D2A03968C5C8032E1351B078A8508D44348306F314848695BEDFE4E0B1";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild||hash==ActRecordingBuild||hash==AcceptedActRecordingBuild;
+    internal const string ThirdActRecordingBuild="4B591FA3D071A67E8D4332355825BF769B6708C919D2093A62F7531332DF8657";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==ThirdActRecordingBuild||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild||hash==ActRecordingBuild||hash==AcceptedActRecordingBuild;
     internal static bool BattleVerified(int source)=>VerifiedBattles.Contains(source);
     internal static bool NeedsComputedSave(int source)=>NeededComputedSaves.Contains(source);
     internal static RunOperation? Current;
