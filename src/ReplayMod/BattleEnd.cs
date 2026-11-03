@@ -17,9 +17,23 @@ internal static class BattleEnd
     private static Task[] _deathTasks=[];
     internal static bool Ending,WonEvent;
     internal static string? Projection;
+    internal static string? DeathProjection;
+    private static bool _deathScreen;
     private static long _wonAt;
     private static bool _readyLogged;
-    internal static void Reset(){Room=null;_enemies=[];VictoryTask=null;_deathTasks=[];Ending=false;WonEvent=false;Projection=null;_wonAt=0;_readyLogged=false;}
+    internal static void Reset(){Room=null;_enemies=[];VictoryTask=null;_deathTasks=[];Ending=false;WonEvent=false;Projection=null;DeathProjection=null;_deathScreen=false;_wonAt=0;_readyLogged=false;}
+    internal static void Lost(string terminalResources)
+    {
+        Codec.Require(Recorder.Active&&ReferenceEquals(Room,LiveState.Run.CurrentRoom)&&LiveState.Player.Creature.IsDead&&
+            ActionMonitor.Pending is {Executing:true},"native-death-without-recorded-manual-operation");
+        Ending=true;
+        DeathProjection=JsonSerializer.Serialize(new{Outcome="Death",RoomPreFinished=Room!.IsPreFinished,
+            CombatInProgress=CombatManager.Instance.IsInProgress,State=LiveState.Capture(),TerminalResources=terminalResources},Codec.Json);
+        Runtime.Log("recording-death-observed",new{NativeOnEnded=true,PlayerHp=0,OutcomeFrozenBeforeNativeHistory=true});
+    }
+    internal static void DeathScreen(){if(DeathProjection is not null)_deathScreen=true;}
+    internal static bool DeathReady=>DeathProjection is not null&&_deathScreen&&!CombatManager.Instance.IsInProgress&&
+        !RunManager.Instance.ActionExecutor.IsRunning&&RunManager.Instance.ActionExecutor.CurrentlyRunningAction is null;
     internal static void Begin()
     {
         Reset();Room=(CombatRoom)LiveState.Run.CurrentRoom!;

@@ -17,7 +17,8 @@ public sealed record Operation(int Sequence,OperationKind Kind,int Turn,int? Han
     [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingDefault)] bool Victory=false,
     [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] CardKey? CardState=null,
     [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] PotionKey? Potion=null,
-    [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] OperationTiming? Timing=null);
+    [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] OperationTiming? Timing=null,
+    [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingDefault)] bool Defeat=false);
 public sealed record Clip(int Format,string Id,DateTimeOffset CreatedUtc,string GameHash,string ModHash,string Scope,
     string[] Mods,string Character,string Seed,int Row,int Col,string Encounter,string Checkpoint,string Initial,Operation[] Operations,
     [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] string? Preparation=null,
@@ -48,14 +49,14 @@ public static class Codec
             foreach(var projection in new[]{clip.Initial}.Concat(clip.Operations.Select(o=>o.After)))ValidateResources(projection,clip.Format);
         Require(clip.Authority is null||clip.Character=="CHARACTER.IRONCLAD"&&clip.Format==3&&clip.Authority=="STATE001-first-Defend-v1"&&
             clip.Operations[0] is {Kind:OperationKind.Card,Card:"CARD.DEFEND_IRONCLAD",Turn:1,Victory:false,CardState.Upgrade:0},"unsupported-authority-point");
-        var victory=clip.Operations[^1].Victory;
+        var victory=clip.Operations[^1].Victory;var defeat=clip.Operations[^1].Defeat;
         Require(clip.Format>=9?clip.Battle is {Battle:>0,Attempt:>0,Act:>=0,Floor:>0,RunStartTime:>0} battle&&
             (clip.Format>=10?battle.Act<=2:battle.Act==0)&&
             (battle.RoomType is null or "Monster" or "Elite" or "Boss")&&
             (battle.ActModel is null||Regex.IsMatch(battle.ActModel,"^ACT\\.[A-Z0-9_]+$"))&&
             (battle.ActFloor is null||battle.ActFloor==battle.Floor)&&(battle.TotalFloor is null or >0)&&
             Regex.IsMatch(battle.RunId,"^[a-f0-9]{32}$")&&battle.Floor==clip.Row+1&&
-            battle.Entry is "map" or "continue-known" or "continue-unmatched" or "event"&&battle.Completion==(victory?"victory":"interrupted")&&
+            battle.Entry is "map" or "continue-known" or "continue-unmatched" or "event"&&battle.Completion==(victory?"victory":defeat?"death":"interrupted")&&
             (battle.Entry=="event"?battle.ParentEvent is {Length:>0}&&battle.ResumeParent==true:battle.ParentEvent is null&&battle.ResumeParent is null):clip.Battle is null,"battle-recording-metadata");
         Require(clip.Format!=1||!clip.Operations.Any(o=>o.Victory),"legacy-victory-marker");
         Require(clip.Format>=9||victory||clip.Operations.Any(o=>o.Kind==OperationKind.EndTurn),"incomplete-short-clip");
@@ -63,6 +64,18 @@ public static class Codec
         {
             var op=clip.Operations[i];Require(op.Sequence==i+1&&op.Turn>0&&op.After.Length>0&&Enum.IsDefined(op.Kind),"operation-sequence");
             Require(!op.Victory||i==clip.Operations.Length-1,"victory-must-be-last-operation");
+            Require(!op.Defeat||clip.Format>=10&&!op.Victory&&i==clip.Operations.Length-1,"death-must-be-last-native-terminal-operation");
+            if(op.Defeat)
+            {
+                using var result=JsonDocument.Parse(op.After);var end=result.RootElement;
+                Require(end.GetProperty("Outcome").GetString()=="Death"&&end.GetProperty("State").GetString() is {Length:>0}&&
+                    end.GetProperty("TerminalResources").GetString() is {Length:>0},"incomplete-death-result");
+                using var state=JsonDocument.Parse(end.GetProperty("State").GetString()!);
+                Require(state.RootElement.GetProperty("Player").GetProperty("CurrentHp").GetInt32()==0,"death-result-player-not-dead");
+                using var resources=JsonDocument.Parse(end.GetProperty("TerminalResources").GetString()!);
+                Require(resources.RootElement.GetProperty("players") is var players&&players.GetArrayLength()==1&&
+                    players[0].GetProperty("current_hp").GetInt32()==0,"death-terminal-resources-player-not-dead");
+            }
             if(op.Victory)
             {
                 using var result=JsonDocument.Parse(op.After);var end=result.RootElement;

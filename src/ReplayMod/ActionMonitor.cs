@@ -170,24 +170,24 @@ internal static class ActionMonitor
         if(!Success(p.ActionTask))return;
         if(!EffectSucceeded(p))return;
         if(p.DerivedTasks.Any(t=>!Success(t)))return;
-        var victory=BattleEnd.Ready;
-        if(!victory)
+        var victory=BattleEnd.Ready;var defeat=BattleEnd.DeathReady;
+        if(!victory&&!defeat)
         {
             if(BattleEnd.Ending)return;
             if(p.Template.Kind==OperationKind.EndTurn&&(Generation<=p.Generation||!Success(StartTurnTask)||LiveState.Turn!=p.Template.Turn+1))return;
             if(!LiveState.Playable)return;
         }
-        Complete(p,victory,"idle-or-turn-boundary");
+        Complete(p,victory,"idle-or-turn-boundary",defeat);
     }
-    private static void Complete(PendingOperation p,bool victory,string boundary)
+    private static void Complete(PendingOperation p,bool victory,string boundary,bool defeat=false)
     {
         ChoiceTape.AssertBoundary(PlayerLoop.Active?p.PlaybackIndex+1:Recorder.ChoiceBoundary);
         var completion=Recorder.Active&&p.Template.Timing is {} time?time with{CompletedMilliseconds=RecordingClock.Now}:null;
-        Completed=p.Template with{After=victory?BattleEnd.Projection!:LiveState.Capture(),Victory=victory,Timing=completion};Pending=null;Accepted.Remove(p.Action);
+        Completed=p.Template with{After=victory?BattleEnd.Projection!:defeat?BattleEnd.DeathProjection!:LiveState.Capture(),Victory=victory,Defeat=defeat,Timing=completion};Pending=null;Accepted.Remove(p.Action);
         if(PlayerLoop.Active&&boundary=="before-next-action")DecisionRoute.QueuedBoundary(p.PlaybackIndex+1);
         Runtime.Log("native-input-completed",new{Kind=p.Template.Kind.ToString(),p.Template.Card,Boundary=boundary,Timing=completion,RemainingAccepted=Accepted.Count});
         if(LiveState.Format>=3)Runtime.Log("operation-mechanics",new{Mode=PlayerLoop.Active?"playback":"recording",Kind=p.Template.Kind.ToString(),p.Template.Turn,
-            p.Template.Card,p.Template.CardState,p.Template.Potion,p.Template.Target,Victory=victory,Before=p.BeforeMechanics,After=victory?null:LiveState.Mechanics()});
+            p.Template.Card,p.Template.CardState,p.Template.Potion,p.Template.Target,Victory=victory,Defeat=defeat,Before=p.BeforeMechanics,After=victory||defeat?null:LiveState.Mechanics()});
         if(Recorder.Active)Recorder.Append(Completed);
         if(NativeSeek.Enabled)NativeSeek.Completed(p,Completed);
         p.Delivery.TrySetResult(Completed);

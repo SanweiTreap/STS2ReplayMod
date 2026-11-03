@@ -2,15 +2,15 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包进行中，保留 **build-009**，源码 `fe80f32`。**r11/r12 only-Stop及终局在途退出通过**：完整Auto摘要/主菜单置灰，仅Stop退出；两次在真实OnEnded登记后、WinRun强杀/gameover前经公开Stop触发，9个owner任务各自收束/0取消故障；重开一步Stop恢复正常。测试点故意早于普通Auto片尾，非提前结束缺陷。旧FAIL保留；当前准备后段的胜利录制/观看/退出代表链已获证，死亡/放弃与真实新局完整三幕继续原包，不当整包完成。
+- 本包进行中，当前 **build-010，死亡录制短测候选，未获原生死亡证据**。已实现首个实际OnEnded(false)冻结死亡状态、等待原动作/派生任务成功及原生gameover后封存最后动作；新死亡片暂明确禁止观看。**009/r11/r12胜利尾段only-Stop及终局在途退出已通过**：完整Auto摘要/主菜单置灰，仅Stop退出；两次真实OnEnded登记后、WinRun强杀/gameover前公开Stop，owner任务收束/零取消故障，重开一步Stop正常。测试开关故意早于普通Auto片尾。旧FAIL保留；死亡/放弃与真实新局完整三幕继续原包，不当整包完成。
 - Act0/1/2及两次换幕代表链已有证；最后奖励投票/EnterNextAct分支原生进入TheArchitect，独立visit/attempt，不增加幕索引/强制房型/加载后幕checkpoint。与Boss共用原生地图坐标，楼层取实际值（r6 Boss15层/终局16层），不自行增减楼层。
-- Lifecycle的Continue/saved-exit已有证；003最后事件操作可选Terminal=victory，After严格冻结真正OnEnded(true)前实际资源/RNG，与同visit/attempt/原始来源位置的Lifecycle事实一致；等待原生WinRun后续强杀/结算页后才封存该操作。播放走同边界比较并保留ShouldSave=false的隔离manager，平台统计/上传/删除普通Continue分支不启用。死亡/放弃仍只有分类基础、末动作/观看待接，不因终局强杀伪造死亡。
+- Lifecycle的Continue/saved-exit已有证；003最后事件操作可选Terminal=victory，After严格冻结真正OnEnded(true)前实际资源/RNG，与同visit/attempt/原始来源位置的Lifecycle事实一致；等待原生WinRun后续强杀/结算页后才封存该操作。播放走同边界比较并保留ShouldSave=false的隔离manager，平台统计/上传/删除普通Continue分支不启用。010死亡末动作的独立Defeat标记/Completion=death已接录制但待实测；死亡观看及主动放弃样本尚未接，不因终局强杀伪造死亡。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
 - 原生TheArchitect为Combat布局但不是内部可战斗场景；003只开放该确切原生事件布局与实际按钮/选择任务，视觉生物不纳入战斗召唤追踪。结算页演出/摘要任务加入本次owner收束，原生返回菜单/时间线出口交现有Stop；终局演出中一次公开Stop开关供之后短测，未改正式UI/模式。
-- 主体/DirectContracts Release均0warnings/0errors；005的14项run-envelope含终局事实/原始位置、首句选项自动开放但任何资源/RNG变化仍拒绝；r6实际root尾段与新胜利片reader通过且原件不变。数据检查不当终局原生观看通过；旧15项library/13项branch结果及失败按先前记录保留，不重复无关矩阵。
+- 主体/DirectContracts Release均0warnings/0errors；010九项死亡录制数据约束与原r6胜利片生产reader通过、原件不变，死亡片不会误标胜利/中断或直接开放观看。这些不当原生死亡通过；005的14项run-envelope及旧15项library/13项branch结果和失败按先前记录保留，不重复无关矩阵。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
-- 当前同Run `2b0f7e321a3a4dcd9caf9ee83435a06f`，root48原始/selected43、10visit/17attempt、6,732,066bytes及r6片不变，原生胜利历史/Progress不变，Continue/backup仍不存在。game0，最新补存 `RUN005-post-r12-current-20261103-184507`：r11/r12分别199/419归档、49已知文件；r11相对安装仅settings及backup变化，r12相对r11全不变，无restore/另一账号读取。
-- 下一步：继续死亡末次实际动作封存/死亡观看、主动放弃最短样本，再做真实新局至三幕终局同份证据。胜利尾段/原定退出检查已答，不重跑旧矩阵；普通Auto仍自动展开详细结算后留场，测试自动Stop开关一次性中断，不能混为正式EOF。
+- 既有Run `2b0f7e321a3a4dcd9caf9ee83435a06f`及r6片不变；原生胜利历史/Progress不变，Continue/backup仍不存在。010唯一安装pair核对通过，009另存；最新补存 `RUN005-post-build010-current-20261103-190311`，49已知文件，安装前相对r12全不变、安装后仅settings.save变化，game0、无restore/另一账号读取。精确hash/安装收据见010小节。
+- 下一步：仅需开启默认关闭的死亡录制短测，下一铁甲A0新局正常涅奥→首普通（战前实际1HP）→只结束回合到原生死亡、正常结算退出；核末动作及Lifecycle后接死亡观看，再补主动放弃和真正完整新局。准备在checkpoint前发生并明确前缀gap，不当完整新局证据。胜利尾段不重测；普通Auto仍展开详细结算后留场，测试自动Stop开关不能混为正式EOF。
 
 ## 首候选实现与边界
 
@@ -145,6 +145,18 @@ r11会话 `c653637402014322bbe984169204ad36`，194事件零错误，完整终局
 r12会话 `440d7acce9854ac98598e173d66e59ae`，414事件零错误。两次一次性开关在phase=native-OnEnded-before-WinRun-kill-and-game-over经公开PlayerLoop.Control(stop)发请求；原生胜利已严格核对，WinRun强杀/gameover后续仍实际完成，再移除场景、各9个owner任务全完成/0取消故障后恢复原manager/所比较Continue/Progress。两次Complete=false/AllOperationsMatched=false为计划在最后选项结果返回前中断，不当整链失败或完整播放；这也是用户感到自动Stop“偏早”的明确设计位置。夹带一次重开同Boss原生Step到1后手动Stop，0个路线owner任务、原context恢复、无错误。该测试开关不定义普通Auto终点；关闭时仍沿D-159展开详情后留场，自动Stop并非产品默认自动退出。
 
 证据 `runtime-verification-r11.json`、`runtime-verification-r12.json`、`collection-r11.json`、`collection-r12.json`；419第二会话归档和49已知文件相对r11全不变，root/片/胜利历史不变，Continue仍按先前通关正常不存在。game0、无restore/另一账号读取。此代表后段的实际胜利录制/观看/详情/only-Stop/在途退出已获证，继续本包死亡/放弃和真正新局整链，仍不能把准备前gap补为完整新局。
+
+## 010：死亡末动作录制候选（待实际短测）
+
+原生CreatureCmd.Kill在全体玩家死亡时调用LoseCombat登记pending loss，随后立即OnEnded(false)/ShowGameOverScreen；CombatManager稍后在安全点ProcessPendingLoss才发CombatEnded。原ActionMonitor只认胜利或下一可出牌回合，致死EndTurn因此没有可封存边界。010在真正OnEnded、原生历史/发现统计前冻结LiveState及RunResources，只有当前正在执行的记录动作、同CombatRoom、实际玩家已死才登记死亡投影；不以长动画结束、超时或预期录像内容推定死亡。
+
+原ActionTask、EffectTask和派生任务必须成功；实际gameover已出现、CombatManager不再进行战斗、executor空闲后，该真实动作标记Defeat=true并自动封存。format10保留，新可选字段在false时省略，Battle.Completion=death；Codec拒绝死亡/胜利并存、死亡不在最后、存活HP或终局资源仍存活、旧格式携带死亡标记。WinRun本身随后强杀仍由原生上传标记和首次终局事实保护，不会改记死亡。保存退出/主动放弃不走此死亡封存路径。
+
+开发开关“RUN-005 死亡录制短测（下一铁甲A0新局，首普通1HP）”默认关闭、下一符合条件新局消耗；正常涅奥后，仅首普通原生战前checkpoint写入前把实际HP设1，并写明确路线gap。沿用原首普通双蛞蝓准备，原卡组/资源和战斗播放不人工编排；从原生checkpoint之后验证末次EndTurn死亡，不作真实完整新局证据。NativePlaybackSupport目前明确阻止新死亡片观看，先获实际录制再接原生播放，不将完成录制误作死亡回放通过。
+
+主体及DirectContracts Release最终0warnings/0errors；新direct checker最初Span.Contains用法编译失败，改IndexOf后通过，无生产逻辑调整。九项数据策略检查通过，原r6的13步format10胜利片生产reader/校验和与字节不变；仅合成死亡投影约束，不是原生死亡证据。证据 `checks/build010-death-recording-policy.json`、`checks/build010-old-native-clip.json`。新增verify-native-death供下一实际样本读取，尚未执行。
+
+安装收据 `preparation/build-010-23ac6a40.json`：DLL `045FAF8B7A31A005889D591573919361828BACCC2BA9DF6CF00B044C1FB72172`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一mods/ReplayMod pair与封存010一致，无平铺重复；原009另存且hash核对。49已知文件安装前相对r12无变化、安装后仅settings.save变化，原生胜利历史hash不变、Continue/backup仍无；game0、无restore/另一账号读取。备份 `RUN005-pre-build010-current-20261103-190240` / `RUN005-post-build010-current-20261103-190311`，证据 `preparation/pre-build010-current.json`、`post-build010-current.json`、`post-build010-check.json`。
 
 ## 后续必须完成
 

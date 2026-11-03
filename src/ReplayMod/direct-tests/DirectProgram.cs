@@ -1,5 +1,7 @@
 using System.Reflection;
 using ReplayMod;
+if(args.Length>2&&args[1]=="death-recording-policy"){DeathRecordingContracts.Run(args[0],args[2]);return;}
+if(args.Length>3&&args[1]=="verify-native-death"){DeathRecordingContracts.Verify(args[0],args[2],args[3]);return;}
 if(args.Length>1&&args[1]=="run-branches"){RunBranchContracts.Run(args[0]);return;}
 if(args.Length>1&&args[1]=="run-envelope"){RunContracts.Run(args[0]);return;}
 if(args.Length>3&&args[1]=="verify-run"){RunContracts.Verify(args[0],args[2],args[3],args.Length>4?int.Parse(args[4]):null);return;}
