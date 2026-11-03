@@ -2,15 +2,15 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包进行中，保留 **build-001**，源码 `54aa923`。**r1原生后段录制通过**：第二幕KnowledgeDemon Boss19步胜利→第二次换幕→第三幕Nonupeipe第一项FurCoat→ScrollsOfBitingWeak首战一张防御后存退；零观察器错误，唯一gap为显式准备。尚未原生观看/第三幕重启续录。完整新局→三幕→原生终局同份证据仍待，RUN-004原结果保持。
+- 本包进行中，保留 **build-001**，源码 `54aa923`。**r1后段录制及r2第三幕真正重启Continue/获胜通过**：第二幕KnowledgeDemon Boss→第二次换幕→Nonupeipe第一项FurCoat→第三幕ScrollsOfBitingWeak，一步防御存退后真正重启，独立新尝试5步获胜。零观察器错误，唯一gap为r1显式准备；尚未原生观看。完整新局→三幕→原生终局同份证据仍待，RUN-004原结果保持。
 - 录制入口、format10场景身份、LiveState输入/恢复、共用换幕投票与第三幕Ancient分派接到Act0/1/2；保持同Run/ActModel/visit/attempt、自然资源/RNG和既有自算保存点恢复。第一/二次换幕共用原生EnterNextAct路径；第三幕Boss后的终局入口仍待接，不能只删白名单后说完整通关。
 - 新增可选Lifecycle事实：r1实际Continue与saved-exit正确登记，未误判放弃；无字段旧片保持未知。真正OnEnded胜利/死亡/主动放弃的登记基础已实现、尚未动态验证；死亡末尾动作/死亡观看、最终事件/胜利观看仍待实现。WinRun后的强杀不得覆盖胜利。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
 - 原生已查：第三幕最后Boss领奖后经ActChangeSynchronizer/EnterNextAct进入TheArchitect，实际选项/演出最终调用WinRun。TheArchitect为自定义Combat事件布局，尚未接入普通事件播放器。OnEnded真正落统计/历史/删Continue，主动Abandon先置IsAbandoned再强杀，普通保存退出只ReturnToMainMenu；不按末击/CleanUp/角色死亡猜胜利。
 - 主体/DirectContracts Release均0warnings/0errors；12项run-envelope、15项library、13项branch合同通过，含第三幕metadata及生命周期胜利防覆盖/存退可续/死亡与放弃区分/旧字段省略；旧RUN-004 root/第三场clip生产读取通过且原件不变。均非新增原生运行通过。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
-- 当前实读同Run `2b0f7e321a3a4dcd9caf9ee83435a06f`、种子KTRJB2SKRSYV，native精确point18：Act2/ACT.GLORY第三幕首普通**战前**，已封存的一步防御在旧片中但未写入战前存档。原始root35项、selected33项、8visit/11attempt，Lifecycle为continued→saved-exit。game0，最新补存 `RUN005-post-r1-current-20261103-014454`，142数据文件/51已知文件、零缺失/无restore；本轮原生录制6项变化保留，另一账户未读。
-- 下一步：继续用001真正重新启动Continue第三幕首战并获胜，胜利不领奖/不前进、存退。核point18恢复/新attempt及旧一步片不拼接，再从原始26第二幕Boss合法起点观看后段。无需重打第二幕Boss。正式UI/播放模式及D-147暗亮隐藏继续不实现。
+- 当前实读同Run `2b0f7e321a3a4dcd9caf9ee83435a06f`、种子KTRJB2SKRSYV，native精确point20：Act2/ACT.GLORY第三幕首普通**完成未领奖**。原始root36项、selected33项、8visit/12attempt；最终路线用新胜利source36，不含旧一步source35。Lifecycle仍为continued→saved-exit，非死亡/放弃。game0，最新补存 `RUN005-post-r2-current-20261103-120938`，45数据文件/51已知文件、零缺失/无restore；本轮6项正常录制/进度/备份变化保留，另一账户未读。
+- 下一步：继续用001，从本局“第2幕16层／尝试1”的合法Boss起点Auto观看到第三幕首战胜利，核第二次换幕、第三幕古神与战斗自然衔接及旧一步不拼接，随后Stop/正常退出。无需重录或继续普通游戏。正式UI/播放模式及D-147暗亮隐藏继续不实现。
 
 ## 首候选实现与边界
 
@@ -36,9 +36,17 @@ root后段与Boss片、第三幕一步片分别使用生产reader校验通过且
 
 补存142数据文件、51已知当前文件/4,136,544bytes，6项实际modded1录制/进度及settings.backup更新保留，零缺失/game0/无restore/另一账户未读。证据 `runtime-verification-r1.json`、`collection-r1.json`、`checks/r1-tail-run.json`、`checks/r1-clip-37525b91.json`、`checks/r1-fragment.json`。**本轮只录制/实读，第二次换幕及第三幕自然观看尚未证明。**
 
+## r2：第三幕跨进程Continue与独立胜利录制（001）
+
+会话 `e5b44a6e3205405b89f5c223ece0e208`，39事件，零observer-error/unsupported-or-failed/missing/gap。真正重启后Continue匹配原point18同一native SaveKey，Act2、PreFinished=false，加载到setup之间未变；visit8新attempt12明确RestoredSave18、Parent11。原一步防御片及source35保留在原始历史，最终selected不含35；新clip `3923cae38edb4e019a44631b531b4c63` 为format10、continue-known、Battle5/Attempt2、5步胜利，source36进入最终路线。没有将旧防御操作接在本次战斗前。
+
+本次原生point19登记加载边界，胜利原生SaveRun登记point20，NativeFingerprint精确匹配当前Continue，PreFinished=true，path最终为source36；用户未领奖/未前进，生命周期再次continued→saved-exit，无终局误判。root36原始/selected33，8visit/12attempt，5,040,165bytes。生产root后段reader（原始26起）及新胜利片reader/兼容验证通过且原件不变；均不是原生播放通过。证据 `runtime-verification-r2.json`、`checks/r2-tail-run.json`、`checks/r2-clip-3923cae3.json`。
+
+补存45数据文件与51已知当前文件/4,147,384bytes，零缺失；6项变化为modded1最新replay、current_run及backup、progress及backup、settings.save.backup。game0、唯一安装001 hash不变、无restore/另一账户未读，见 `collection-r2.json`。下一轮只需同版本观看合法后段，不重打旧Boss或再录第三幕首战。
+
 ## 后续必须完成
 
-- 当前后段真实录制/读取与原生观看、第三幕实际保存点真正重启Continue/续录；新增终局/换幕Stop可与此样本合并。
+- 当前后段原生观看；第三幕实际保存点真正重启Continue/续录已由r2证明，新增终局/换幕Stop可与后续样本合并。
 - 最后Boss之后TheArchitect实际布局/对话/动作与真正WinRun闭环，终局统计/退出在隔离manager/store内收束，不能把胜利后的强杀误判死亡。
 - 最短死亡与主动放弃样本：分类、最后真实动作/落盘、合理观看EOF/Stop，保存退出不当放弃。
 - 真实新局合法起点至三幕原生终局同份完整录制/连续观看，准备若存在必须在新局实际输入处明确可重现；当前后段/旧准备局Opening=null不能替代此证据。
