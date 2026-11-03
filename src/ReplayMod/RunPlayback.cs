@@ -252,10 +252,17 @@ internal static class RunPlayback
                 Runtime.Log("run-operation-verified",new{_run.Id,Current.Sequence,Current.SourceSequence,Current.Attempt,Current.Visit,Current.Kind,ResourcesAndRngMatched=true,NativeBusinessExecuted=true,ExpectedStateInjected=false});
                 if(_index==_run.Operations.Count-1)
                 {
-                    _endpoint=true;_auto=false;_fine=0;_wholeRequests=0;_whole=false;_continuation=false;
-                    Runtime.Status=RunEndings.GameOverActive?"已到录像终点；可点原生继续查看结算，或Stop返回菜单":"已到记录终点；可Stop返回菜单";
+                    var autoAtEnd=_auto;
+                    _endpoint=true;_fine=0;_wholeRequests=0;_whole=false;_continuation=false;
+                    Runtime.Log("run-recorded-end-reached",new{Operation=Current.Sequence,AutoAtArrival=autoAtEnd,
+                        Pending=0,AdvanceDisabled=true,NativeGameOver=RunEndings.GameOverActive});
+                    if(autoAtEnd&&RunEndings.GameOverActive)await RunEndings.OpenSummaryAutomatically();
+                    _auto=false;
+                    Runtime.Status=RunEndings.GameOverActive?(RunEndings.SummaryComplete?"录像与结算详情播放结束；可Stop或返回菜单":
+                        "已到录像终点；可点原生继续查看结算，或Stop返回菜单"):"已到记录终点；可Stop返回菜单";
                     Runtime.Log("run-playback-endpoint",new{Operation=Current.Sequence,Auto=false,AwaitingStop=true,SceneKeptOpen=true,
-                        Pending=0,AdvanceDisabled=true,NativeGameOverControls=RunEndings.GameOverActive});
+                        Pending=0,AdvanceDisabled=true,NativeGameOverControls=RunEndings.GameOverActive,
+                        AutoAtArrival=autoAtEnd,NativeSummaryCompleted=RunEndings.SummaryComplete});
                     while(!_stop){CheckStop();await Runtime.NextFrame();}return true;
                 }
                 _index++;

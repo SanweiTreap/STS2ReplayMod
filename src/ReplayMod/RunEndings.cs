@@ -1,6 +1,9 @@
 using HarmonyLib;
+using Godot;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Screens.GameOverScreen;
+using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Models.Events;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
@@ -18,7 +21,10 @@ internal static class RunEndings
     private static TheArchitect? _openingModel;
     private static Task? _opening;
     private static string? _openingEntry;
-    internal static void Clear(){_owner=null;_kind=null;_state=null;_operation=null;_gameOver=false;_openingModel=null;_opening=null;_openingEntry=null;}
+    private static Task? _summary;
+    private static bool _summaryAuto;
+    internal static bool SummaryComplete=>_summary?.IsCompletedSuccessfully==true;
+    internal static void Clear(){_owner=null;_kind=null;_state=null;_operation=null;_gameOver=false;_openingModel=null;_opening=null;_openingEntry=null;_summary=null;_summaryAuto=false;}
     internal static void Install(Harmony h)
     {
         h.Patch(AccessTools.DeclaredMethod(typeof(RunManager),"OnEnded"),
@@ -34,6 +40,8 @@ internal static class RunEndings
                 postfix:new HarmonyMethod(typeof(RunEndings),nameof(ScreenTask)));
         h.Patch(AccessTools.DeclaredMethod(typeof(NGameOverScreen),"AnimateRunSummary"),
             postfix:new HarmonyMethod(typeof(RunEndings),nameof(SummaryTask)));
+        h.Patch(AccessTools.DeclaredMethod(typeof(NGameOverScreen),"OpenSummaryScreen"),
+            prefix:new HarmonyMethod(typeof(RunEndings),nameof(SummaryOnce)));
         foreach(var name in new[]{"ReturnToMainMenuAfterRun","GoToTimelineAfterRun"})
             h.Patch(AccessTools.DeclaredMethod(typeof(NGame),name),
                 prefix:new HarmonyMethod(typeof(RunEndings),nameof(ExitAfterRun)));
@@ -119,14 +127,45 @@ internal static class RunEndings
     private static void SummaryTask(ref Task __result)
     {
         if(!GameOverActive)return;
-        var native=__result;__result=Observe();RunPlayback.Track(__result);
+        var native=__result;__result=Observe();_summary=__result;RunPlayback.Track(__result);
         async Task Observe()
         {
             await native;
             Runtime.Log("run-native-summary-shown",new{NativeSummaryTaskCompleted=true,
                 IsolatedManagerOnly=ReferenceEquals(MegaCrit.Sts2.Core.Saves.SaveManager.Instance,PlayerLoop.IsolatedManager),
-                RecordedEndpoint=RunPlayback.Finished,AdditionalRunDecision=false});
+                RecordedEndpoint=RunPlayback.Finished,AdditionalRunDecision=false,AutoRequested=_summaryAuto});
         }
+    }
+    private static bool SummaryOnce(NGameOverScreen __instance)
+    {
+        if(!GameOverActive||_summary is null&&RunPatches.Field(__instance,"_isAnimatingSummary") is not true)return true;
+        Runtime.Log("run-native-summary-repeat-ignored",new{RecordedEndpoint=RunPlayback.Finished,NativeSummaryAlreadyStarted=true});return false;
+    }
+    internal static async Task OpenSummaryAutomatically()
+    {
+        Codec.Require(GameOverActive&&RunPlayback.Finished,"auto-summary-outside-recorded-native-game-over");
+        NGameOverScreen? screen=null;NButton? button=null;
+        Runtime.Status="正在自动展开原生结算详情";
+        await RunPlayback.Wait(()=>
+        {
+            if(_summary is not null)return true; // A manual click may already have started it.
+            screen=NOverlayStack.Instance?.Peek() as NGameOverScreen;
+            if(screen is null||!GodotObject.IsInstanceValid(screen)||!screen.IsNodeReady())return false;
+            button=RunPatches.Field(screen,"_continueButton") as NButton;
+            return button?.IsEnabled==true;
+        },"native-game-over-continue-not-ready");
+        RunPlayback.CheckStop();
+        var startedHere=_summary is null;
+        if(startedHere)
+        {
+            _summaryAuto=true;
+            RunPlayback.Native(()=>AccessTools.Method(typeof(NGameOverScreen),"OpenSummaryScreen").Invoke(screen,[button]));
+        }
+        Codec.Require(_summary is not null,"native-summary-handler-did-not-start");
+        Runtime.Log("run-native-summary-auto-started",new{NativeContinueHandlerCalled=startedHere,
+            ReusedExistingNativeTask=!startedHere,AdditionalRunDecision=false,OnEndedRepeated=false});
+        await RunPlayback.Await(_summary!);
+        Runtime.Log("run-native-summary-auto-completed",new{NativeSummaryTaskCompleted=true,SceneKeptOpen=true,AutomaticExit=false});
     }
     private static bool ExitAfterRun(ref Task __result)
     {
