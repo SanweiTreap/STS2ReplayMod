@@ -19,7 +19,7 @@ internal static class RunPlayback
     internal static bool Active,NonCombat,Driving;
     private static RunDocument _run=null!;
     private static int _index,_decision,_fine,_wholeRequests;
-    private static bool _auto,_whole,_stop,_continuation,_allowRewards;
+    private static bool _auto,_whole,_stop,_continuation,_allowRewards,_endpoint;
     private static CombatRoom? _rewardsRoom;
     private static readonly HashSet<Task> OwnedTasks=[];
     private static RunState? _mapRun;
@@ -65,6 +65,7 @@ internal static class RunPlayback
     internal static bool HasFollowing=>Active&&_index+1<_run.Operations.Count&&_run.Operations[_index+1].Status=="complete"&&_run.Operations[_index+1].Kind!="gap";
     internal static bool WantsNext=>HasFollowing&&(_auto||_continuation);
     internal static bool Stopping=>_stop;
+    internal static bool Finished=>Active&&_endpoint;
     internal static bool Auto=>_auto;
     internal static bool CompletingOperation=>_whole;
     internal static string Display=>Active?$"\n路线 · 第{_run.Visits.Single(v=>v.Id==(Current?.Visit??_run.Operations[_index].Visit)).Act+1}幕{_run.Visits.Single(v=>v.Id==(Current?.Visit??_run.Operations[_index].Visit)).Floor}层 · 操作{_index+1}/{_run.Operations.Count}"+
@@ -96,6 +97,7 @@ internal static class RunPlayback
             .Select(c=>(Before:RunStore.ContinueBefore(run,c),Point:c)).Where(c=>c.Before>=first.Sequence)
             .GroupBy(c=>c.Before).ToDictionary(g=>g.Key,g=>g.Select(c=>c.Point).ToArray());
         _run=run;Active=true;NonCombat=opening;Driving=false;_auto=false;_whole=false;_stop=false;_continuation=false;
+        _endpoint=false;
         RunEndings.Clear();
         _fine=0;_wholeRequests=0;_decision=0;_phaseAt=0;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;Current=run.Operations[_index];RunPatches.Clear();
         VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;
@@ -105,7 +107,7 @@ internal static class RunPlayback
             if(battle is not null)NeededComputedSaves.Add(battle.SourceSequence??battle.Sequence);
         }
     }
-    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();RunActs.Clear();RunCombatLoads.Clear();RunEndings.Clear();}
+    internal static void Clear(){Active=false;NonCombat=false;Driving=false;_endpoint=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();RunActs.Clear();RunCombatLoads.Clear();RunEndings.Clear();}
     internal static RunLifecycleEvent? TerminalFact()=>RunLifecycle.AtOperation(_run,Current!);
     internal static bool HasNativeFinalOpening=>_index+1<_run.Operations.Count&&RunStore.NativeFinalOpening(_run,Current!,_run.Operations[_index+1]);
     internal static void VerifyFinalEvent()
@@ -154,6 +156,8 @@ internal static class RunPlayback
         {Runtime.Log("run-playback-stop",new{Operation=_index+1,NonCombat,AtRecordedEnd=_index==_run.Operations.Count-1});
             _stop=true;_auto=false;_fine=0;_wholeRequests=0;PlayerLoop.ChoiceAbort=true;PlayerLoop.Cursor?.Stop();if(NativeSeek.Enabled)NativeSeek.Control("stop");return;}
         if(_stop)return;
+        if(_endpoint)
+        {Runtime.Log("run-endpoint-control-ignored",new{Command=command,Operation=Current?.Sequence,Pending=0,RecordedEndpoint=true});return;}
         if(!NonCombat&&!NativeSeek.Finished){NativeSeek.Control(command);return;}
         if(command=="auto")_auto=!_auto;
         else if(command=="fine")_fine++;
@@ -248,9 +252,11 @@ internal static class RunPlayback
                 Runtime.Log("run-operation-verified",new{_run.Id,Current.Sequence,Current.SourceSequence,Current.Attempt,Current.Visit,Current.Kind,ResourcesAndRngMatched=true,NativeBusinessExecuted=true,ExpectedStateInjected=false});
                 if(_index==_run.Operations.Count-1)
                 {
-                    _auto=false;Runtime.Status="已到记录终点；可Stop返回菜单";
-                    Runtime.Log("run-playback-endpoint",new{Operation=Current.Sequence,Auto=false,AwaitingStop=true,SceneKeptOpen=true});
-                    while(!_stop)await Runtime.NextFrame();return true;
+                    _endpoint=true;_auto=false;_fine=0;_wholeRequests=0;_whole=false;_continuation=false;
+                    Runtime.Status=RunEndings.GameOverActive?"已到录像终点；可点原生继续查看结算，或Stop返回菜单":"已到记录终点；可Stop返回菜单";
+                    Runtime.Log("run-playback-endpoint",new{Operation=Current.Sequence,Auto=false,AwaitingStop=true,SceneKeptOpen=true,
+                        Pending=0,AdvanceDisabled=true,NativeGameOverControls=RunEndings.GameOverActive});
+                    while(!_stop){CheckStop();await Runtime.NextFrame();}return true;
                 }
                 _index++;
             }

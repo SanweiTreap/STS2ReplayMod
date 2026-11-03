@@ -14,6 +14,7 @@ internal static class RunEndings
     private static string? _kind,_state;
     private static int? _operation;
     private static bool _gameOver;
+    internal static bool GameOverActive=>RunPlayback.Active&&_gameOver&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState());
     private static TheArchitect? _openingModel;
     private static Task? _opening;
     private static string? _openingEntry;
@@ -31,6 +32,8 @@ internal static class RunEndings
         foreach(var name in new[]{"AnimateIn","AnimateInQuote","AnimateRunSummary"})
             h.Patch(AccessTools.DeclaredMethod(typeof(NGameOverScreen),name),
                 postfix:new HarmonyMethod(typeof(RunEndings),nameof(ScreenTask)));
+        h.Patch(AccessTools.DeclaredMethod(typeof(NGameOverScreen),"AnimateRunSummary"),
+            postfix:new HarmonyMethod(typeof(RunEndings),nameof(SummaryTask)));
         foreach(var name in new[]{"ReturnToMainMenuAfterRun","GoToTimelineAfterRun"})
             h.Patch(AccessTools.DeclaredMethod(typeof(NGame),name),
                 prefix:new HarmonyMethod(typeof(RunEndings),nameof(ExitAfterRun)));
@@ -112,6 +115,18 @@ internal static class RunEndings
     private static void ScreenTask(Task __result)
     {
         if(RunPlayback.Active&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))RunPlayback.Track(__result);
+    }
+    private static void SummaryTask(ref Task __result)
+    {
+        if(!GameOverActive)return;
+        var native=__result;__result=Observe();RunPlayback.Track(__result);
+        async Task Observe()
+        {
+            await native;
+            Runtime.Log("run-native-summary-shown",new{NativeSummaryTaskCompleted=true,
+                IsolatedManagerOnly=ReferenceEquals(MegaCrit.Sts2.Core.Saves.SaveManager.Instance,PlayerLoop.IsolatedManager),
+                RecordedEndpoint=RunPlayback.Finished,AdditionalRunDecision=false});
+        }
     }
     private static bool ExitAfterRun(ref Task __result)
     {

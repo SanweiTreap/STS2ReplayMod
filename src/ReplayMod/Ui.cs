@@ -211,8 +211,9 @@ internal static class Ui
             _inject.Visible=PlayerLoop.CanInject;
             if(RunPlayback.NonCombat)
             {
-                _inputBlock.MouseFilter=Control.MouseFilterEnum.Stop;_step!.Disabled=RunPlayback.Stopping;_fine!.Disabled=RunPlayback.Stopping;
-                _step.Text=">> 完整操作";_auto!.Disabled=RunPlayback.Stopping;_auto.Text=RunPlayback.Auto?"Auto：开启":"Auto：关闭";
+                _inputBlock.MouseFilter=RunPlayback.Finished&&RunEndings.GameOverActive?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
+                _step!.Disabled=RunPlayback.Stopping||RunPlayback.Finished;_fine!.Disabled=RunPlayback.Stopping||RunPlayback.Finished;
+                _step.Text=RunPlayback.Finished?">> 已到终点":">> 完整操作";_auto!.Disabled=RunPlayback.Stopping||RunPlayback.Finished;_auto.Text=RunPlayback.Auto?"Auto：开启":"Auto：关闭";
                 _back!.Disabled=true;_back.Text="Back · 战外暂未开放";_stop!.Disabled=RunPlayback.Stopping;_seekCover!.Visible=false;_inject.Visible=false;
                 if(_seekPoints is not null)_seekPoints.Disabled=true;if(_seekGo is not null)_seekGo.Disabled=true;return;
             }
