@@ -2,15 +2,15 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包进行中，当前 **build-010，死亡录制短测候选，未获原生死亡证据**。已实现首个实际OnEnded(false)冻结死亡状态、等待原动作/派生任务成功及原生gameover后封存最后动作；新死亡片暂明确禁止观看。**009/r11/r12胜利尾段only-Stop及终局在途退出已通过**：完整Auto摘要/主菜单置灰，仅Stop退出；两次真实OnEnded登记后、WinRun强杀/gameover前公开Stop，owner任务收束/零取消故障，重开一步Stop正常。测试开关故意早于普通Auto片尾。旧FAIL保留；死亡/放弃与真实新局完整三幕继续原包，不当整包完成。
+- 本包进行中，当前 **build-011，原生死亡观看候选，待手测**。**010/r13死亡末动作录制/生产读取通过**：首普通1HP、只EndTurn一次，Defeat=true/Completion=death，原生history win=false/was_abandoned=false。用户观察倒下正常、死亡结算页铁甲模型消失；**根因及视觉仍未通过**，011加入移层前后只读节点状态，不臆造显示修复。009/r11/r12胜利尾段/详情/only-Stop及终局在途退出已有证；主动放弃与真正完整新局三幕继续原包，不当整包完成。
 - Act0/1/2及两次换幕代表链已有证；最后奖励投票/EnterNextAct分支原生进入TheArchitect，独立visit/attempt，不增加幕索引/强制房型/加载后幕checkpoint。与Boss共用原生地图坐标，楼层取实际值（r6 Boss15层/终局16层），不自行增减楼层。
-- Lifecycle的Continue/saved-exit已有证；003最后事件操作可选Terminal=victory，After严格冻结真正OnEnded(true)前实际资源/RNG，与同visit/attempt/原始来源位置的Lifecycle事实一致；等待原生WinRun后续强杀/结算页后才封存该操作。播放走同边界比较并保留ShouldSave=false的隔离manager，平台统计/上传/删除普通Continue分支不启用。010死亡末动作的独立Defeat标记/Completion=death已接录制但待实测；死亡观看及主动放弃样本尚未接，不因终局强杀伪造死亡。
+- Lifecycle的Continue/saved-exit及死亡录制已有证；胜利After冻结真正OnEnded(true)前资源/RNG，末动作等待WinRun后续强杀/gameover。死亡After冻结真正OnEnded(false)前LiveState和RunResources，r13与同visit/attempt原始来源位置的Lifecycle严格相同。011观看复用原致死EndTurn及原生结算，核同边界资源/RNG和死亡投影、保留ShouldSave=false隔离manager；未获实际观看证据。终局强杀不误记死亡，主动放弃仍待独立样本。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
 - 原生TheArchitect为Combat布局但不是内部可战斗场景；003只开放该确切原生事件布局与实际按钮/选择任务，视觉生物不纳入战斗召唤追踪。结算页演出/摘要任务加入本次owner收束，原生返回菜单/时间线出口交现有Stop；终局演出中一次公开Stop开关供之后短测，未改正式UI/模式。
-- 主体/DirectContracts Release均0warnings/0errors；010九项死亡录制数据约束与原r6胜利片生产reader通过、原件不变，死亡片不会误标胜利/中断或直接开放观看。这些不当原生死亡通过；005的14项run-envelope及旧15项library/13项branch结果和失败按先前记录保留，不重复无关矩阵。
+- 主体/DirectContracts Release最终均0warnings/0errors；011九项死亡数据策略、r13真实死亡片/合法source5起点root及原r6胜利片生产reader通过，原件不变。死亡片当前开放原生观看；这些数据检查不当原生观看通过。旧策略/分支结果与失败保留，不重复无关矩阵。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
-- 既有Run `2b0f7e321a3a4dcd9caf9ee83435a06f`及r6片不变；原生胜利历史/Progress不变，Continue/backup仍不存在。010唯一安装pair核对通过，009另存；最新补存 `RUN005-post-build010-current-20261103-190311`，49已知文件，安装前相对r12全不变、安装后仅settings.save变化，game0、无restore/另一账号读取。精确hash/安装收据见010小节。
-- 下一步：仅需开启默认关闭的死亡录制短测，下一铁甲A0新局正常涅奥→首普通（战前实际1HP）→只结束回合到原生死亡、正常结算退出；核末动作及Lifecycle后接死亡观看，再补主动放弃和真正完整新局。准备在checkpoint前发生并明确前缀gap，不当完整新局证据。胜利尾段不重测；普通Auto仍展开详细结算后留场，测试自动Stop开关不能混为正式EOF。
+- 新死亡Run `b77bd626b0614153a25adf0c598099eb`，clip `80f28133c9b44249ba764fc1d3e32ca4`，raw5/battle source5、Opening=null、显式准备gap，不当完整新局。r13归档32文件、49已知文件：本次真实死亡正常更新原生replay、Progress及backup、settings及backup，未自动恢复。011唯一pair核对，010另存，原胜利/本次死亡history均不变、Continue/backup仍无；最新补存 `RUN005-post-build011-current-20261103-192812`，安装前相对r13全不变、安装后仅settings.save变化，game0。
+- 下一步：不重录，从最新死亡局source5首战起点Auto至原生结算详情，观察模型、Stop，再重开Step一步/Stop。用实际移层状态定位视觉问题；致死动作开始后暂禁Back/Seek，终点前进/Auto关闭、仅Stop退出。随后主动放弃及真正完整新局。胜利尾段不重测；测试自动Stop开关不定义普通Auto终点。
 
 ## 首候选实现与边界
 
@@ -157,6 +157,28 @@ r12会话 `440d7acce9854ac98598e173d66e59ae`，414事件零错误。两次一次
 主体及DirectContracts Release最终0warnings/0errors；新direct checker最初Span.Contains用法编译失败，改IndexOf后通过，无生产逻辑调整。九项数据策略检查通过，原r6的13步format10胜利片生产reader/校验和与字节不变；仅合成死亡投影约束，不是原生死亡证据。证据 `checks/build010-death-recording-policy.json`、`checks/build010-old-native-clip.json`。新增verify-native-death供下一实际样本读取，尚未执行。
 
 安装收据 `preparation/build-010-23ac6a40.json`：DLL `045FAF8B7A31A005889D591573919361828BACCC2BA9DF6CF00B044C1FB72172`，manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一mods/ReplayMod pair与封存010一致，无平铺重复；原009另存且hash核对。49已知文件安装前相对r12无变化、安装后仅settings.save变化，原生胜利历史hash不变、Continue/backup仍无；game0、无restore/另一账号读取。备份 `RUN005-pre-build010-current-20261103-190240` / `RUN005-post-build010-current-20261103-190311`，证据 `preparation/pre-build010-current.json`、`post-build010-current.json`、`post-build010-check.json`。
+
+## r13：原生死亡录制通过，结算页模型问题未定因
+
+会话 `be41c2d4929d494394397ef3e89e7052`，27事件、零observer/recording失败。Run `b77bd626b0614153a25adf0c598099eb`，root SHA `7260414C7FB78C96C76AB7242C0721F3656BBE6EF06EAFDD141311341C8C8CAB`，535,711bytes，2visit/2attempt、raw5。首普通前原80HP→1HP，原生checkpoint及实际可出牌初态均1HP；原始map3 missing/gap4是明确准备边界，合法战斗source5以后无缺口。Opening=null，不代表真正完整新局开场。
+
+19:12:28.870真正OnEnded(false)登记death，随后冻结死亡投影、显示原生gameover；19:12:28.979自动封存clip `80f28133c9b44249ba764fc1d3e32ca4`，format10、1步EndTurn/Turn1、Completion=death、Defeat=true、Victory=false、Interrupted=false。终局资源与Lifecycle.State严格相同，BeforeOperation6指向raw battle5结束、visit2/attempt2；生产回读精确匹配。原生 `history/1793704325.run` win=false/was_abandoned=false，hash `CAC489165B6CD6F9EAC8F74CE754278861384034EC0BF84413DB0B0D4C8EEC94`，正常移除Continue/backup，用户正常结算返回菜单及退出。
+
+用户确认看到铁甲倒下，但死亡结算页模型消失。原生Kill只对monster走RemoveCreatureNode；玩家StartDeathAnim(false)保留场景。NGameOverScreen.AfterOverlayOpened将现有CreatureNodes.Visuals转入结算_creatureContainer。010本轮新增封存/重置只改录制数据，不包含移动/隐藏角色的调用；现有Godot日志没有相关移层/节点异常，进程退出RID/resource泄漏信息不能当作已查明的模型根因。无实际节点显示日志/画面，不宣称原版问题或已修复。011下一次观看添加边界观测，不先补模型/重播动画掩盖问题。
+
+证据 `runtime-verification-r13.json`、`checks/r13-death-recording.json`、`collection-r13.json`；归档32文件（含精确新history与日志），49已知文件相对010安装变化为本次真实死亡后的native replay、Progress及backup、settings及backup；无restore/另一账号读取，game0。原胜利历史保持。最新补存 `RUN005-post-r13-current-20261103-191451`；不是整账户无变化或死亡视觉/回放通过。
+
+## 011：原生死亡观看与结算页显示观测候选
+
+NativeEnd对死亡观看在同一ShouldSave=false、隔离SaveManager内核真正OnEnded(false)的RunResources与录制终局资源；路线还核所选最后battle及同visit/attempt原始来源的Lifecycle death事实。仍用原生EndTurn、攻击、死亡与gameover；BattleEnd冻结实际死亡投影，ActionMonitor等待原动作/派生任务成功、gameover已显示、combat结束及executor idle，NativeSeek严格核After/Victory/Defeat再落到EOF，不把死亡现场作为可恢复的普通checkpoint。
+
+从致死动作开始至终局，Back/Seek暂禁；此前稳定点不变。原因是原生OnEnded及gameover转移模型后的副作用尚无恢复路径，不冒用普通战斗checkpoint。死亡路线EOF复用胜利的EndAtCurrent，Auto原生展开详情后关闭并留场；手动Step保留原生Continue入口。原生MainMenu/unlock出口仍禁用，只用Stop退出。独立战斗入口也沿相同原生死亡支持，结算任务在场景退出后、恢复原manager之前收束；没有写普通Progress/history/Continue来伪造终局。
+
+GameOverVisuals仅在死亡页出现前、原生Visuals移层后、AnimateIn完成后采集当前Creature/Visuals/Body的实际父节点、可见性、alpha、位置/缩放及canvas坐标；不移动节点、不修改动画、不补造模型或逐帧序列化。正常录制及观看都可观察同原生交接；r13旧记录不能补造当时显示日志。当前模型根因/视觉结果仍Unknown，下一短测复用r13片。
+
+主体及DirectContracts Release最终0warnings/0errors；最初只读观测将NCreature当Node2D导致编译拒绝，改为其共同CanvasItem后通过，无显示写入。九项死亡数据策略、实际死亡片/合法source5起点root、原r6胜利片生产reader均通过，原件校验保持；见 `checks/build011-death-policy.json`、`build011-actual-death-read.json`、`build011-actual-death-run.json`、`build011-old-victory-read.json`。尚未执行原生死亡观看/详情/Stop，不将Admission或数据PASS充作运行验证。
+
+安装 `preparation/build-011-b933c506.json`：DLL `48E8DD06A917B6BE803EECE38435075D1E2F318F8DE2E56E180A47EC3526D7E2`、manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一mods/ReplayMod pair一致、无平铺重复，原010另存核hash；原胜利/新死亡history hash均不变、Continue/backup仍无。49已知文件安装前相对r13全不变，安装后仅settings.save变化，无restore/game0。补存 `RUN005-pre-build011-current-20261103-192755` / `RUN005-post-build011-current-20261103-192812`，安装前后收据/核对见 `preparation/*build011*.json`。
 
 ## 后续必须完成
 

@@ -58,7 +58,8 @@ internal static class RunPlayback
     internal const string ThirdActPlaybackBuild="90B730881BE26B2B35E23E44383DADD976CF6C17CD40CAE97BF6DE0F203BE5F3";
     internal const string FinalEventRecordingBuild="565CD1A9A9AF0C54B09E6FF3E1179FB341D412ABF56AB5ED2D1FD7E0B551DB7A";
     internal const string PreparedFinalRecordingBuild="329A01248024F56D130AF6A09022BD9DCA2B540C5B260D413A05BA4F3B891310";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==PreparedFinalRecordingBuild||hash==FinalEventRecordingBuild||hash==ThirdActPlaybackBuild||hash==ThirdActRecordingBuild||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild||hash==ActRecordingBuild||hash==AcceptedActRecordingBuild;
+    internal const string DeathRecordingBuild="045FAF8B7A31A005889D591573919361828BACCC2BA9DF6CF00B044C1FB72172";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==DeathRecordingBuild||hash==PreparedFinalRecordingBuild||hash==FinalEventRecordingBuild||hash==ThirdActPlaybackBuild||hash==ThirdActRecordingBuild||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild||hash==ActRecordingBuild||hash==AcceptedActRecordingBuild;
     internal static bool BattleVerified(int source)=>VerifiedBattles.Contains(source);
     internal static bool NeedsComputedSave(int source)=>NeededComputedSaves.Contains(source);
     internal static RunOperation? Current;
@@ -110,6 +111,12 @@ internal static class RunPlayback
     }
     internal static void Clear(){Active=false;NonCombat=false;Driving=false;_endpoint=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();RunActs.Clear();RunCombatLoads.Clear();RunEndings.Clear();}
     internal static RunLifecycleEvent? TerminalFact()=>RunLifecycle.AtOperation(_run,Current!);
+    internal static void VerifyDeath(string state)
+    {
+        var fact=TerminalFact();
+        Codec.Require(Current is {Kind:"battle",Battle.Completion:"death"}&&_index==_run.Operations.Count-1&&
+            fact is {Kind:"death"}&&fact.Act==LiveState.Run.CurrentActIndex&&fact.State==state,"run-native-death-position-resources-or-rng-mismatch");
+    }
     internal static bool HasNativeFinalOpening=>_index+1<_run.Operations.Count&&RunStore.NativeFinalOpening(_run,Current!,_run.Operations[_index+1]);
     internal static void VerifyFinalEvent()
     {
@@ -167,7 +174,7 @@ internal static class RunPlayback
         _continuation=true;
         Runtime.Log("run-playback-control",new{Command=command,Operation=_index+1,NonCombat,Auto=_auto,Fine=_fine,Whole=_wholeRequests});
     }
-    internal static void AtBattleBoundary(bool auto){if(Active&&HasFollowing)_auto=auto;}
+    internal static void AtBattleBoundary(bool auto){if(Active&&(HasFollowing||Current?.Battle?.Completion=="death"))_auto=auto;}
     internal static bool DeferRewards(CombatRoom room)
     {if(!Active||_allowRewards)return false;_rewardsRoom=room;return true;}
     internal static void Native(Action action)
@@ -223,6 +230,12 @@ internal static class RunPlayback
                     ApplyProgressContexts(Current.Sequence);
                     NonCombat=false;await NativeSeek.Run();
                     if(_stop)return NativeSeek.AllMatched&&_index==_run.Operations.Count-1;
+                    if(NativeSeek.DefeatReached)
+                    {
+                        Codec.Require(NativeSeek.AllMatched&&!HasFollowing&&RunEndings.DeathActive,"run-death-before-recorded-end");
+                        VerifiedBattles.Add(Current.SourceSequence??Current.Sequence);NonCombat=true;
+                        return await EndAtCurrent();
+                    }
                     Codec.Require(NativeSeek.Finished&&HasFollowing,"run-battle-transition-without-complete-result");
                     Codec.Require(NativeSeek.AllMatched,"run-battle-unverified-before-continuation");VerifiedBattles.Add(Current.SourceSequence??Current.Sequence);
                     NativeSeek.Clear();ChoiceTape.Clear();ActionMonitor.Reset();NonCombat=true;PlayerLoop.Loading=false;
@@ -252,25 +265,27 @@ internal static class RunPlayback
                     Current.Terminal is not null?RunEndings.PlaybackVictory(Current):Current.Kind=="act-proceed"?RunActs.Result():RunResources.Capture());
                 Runtime.Log("run-operation-verified",new{_run.Id,Current.Sequence,Current.SourceSequence,Current.Attempt,Current.Visit,Current.Kind,ResourcesAndRngMatched=true,NativeBusinessExecuted=true,ExpectedStateInjected=false});
                 if(_index==_run.Operations.Count-1)
-                {
-                    var autoAtEnd=_auto;
-                    _endpoint=true;_fine=0;_wholeRequests=0;_whole=false;_continuation=false;
-                    Runtime.Log("run-recorded-end-reached",new{Operation=Current.Sequence,AutoAtArrival=autoAtEnd,
-                        Pending=0,AdvanceDisabled=true,NativeGameOver=RunEndings.GameOverActive});
-                    if(autoAtEnd&&RunEndings.GameOverActive)await RunEndings.OpenSummaryAutomatically();
-                    _auto=false;
-                    Runtime.Status=RunEndings.GameOverActive?(RunEndings.SummaryComplete?"录像与结算详情播放结束；点Stop退出观看":
-                        "已到录像终点；可点原生继续查看结算，点Stop退出观看"):"已到记录终点；可Stop返回菜单";
-                    Runtime.Log("run-playback-endpoint",new{Operation=Current.Sequence,Auto=false,AwaitingStop=true,SceneKeptOpen=true,
-                        Pending=0,AdvanceDisabled=true,NativeGameOverControls=RunEndings.GameOverActive,
-                        AutoAtArrival=autoAtEnd,NativeSummaryCompleted=RunEndings.SummaryComplete});
-                    while(!_stop){CheckStop();await Runtime.NextFrame();}return true;
-                }
+                    return await EndAtCurrent();
                 _index++;
             }
             return false;
         }
         catch(OperationCanceledException) when(_stop){return false;}
+    }
+    private static async Task<bool> EndAtCurrent()
+    {
+        var autoAtEnd=_auto;
+        _endpoint=true;_fine=0;_wholeRequests=0;_whole=false;_continuation=false;
+        Runtime.Log("run-recorded-end-reached",new{Operation=Current!.Sequence,AutoAtArrival=autoAtEnd,
+            Pending=0,AdvanceDisabled=true,NativeGameOver=RunEndings.GameOverActive});
+        if(autoAtEnd&&RunEndings.GameOverActive)await RunEndings.OpenSummaryAutomatically();
+        _auto=false;
+        Runtime.Status=RunEndings.GameOverActive?(RunEndings.SummaryComplete?"录像与结算详情播放结束；点Stop退出观看":
+            "已到录像终点；可点原生继续查看结算，点Stop退出观看"):"已到记录终点；可Stop返回菜单";
+        Runtime.Log("run-playback-endpoint",new{Operation=Current.Sequence,Auto=false,AwaitingStop=true,SceneKeptOpen=true,
+            Pending=0,AdvanceDisabled=true,NativeGameOverControls=RunEndings.GameOverActive,
+            AutoAtArrival=autoAtEnd,NativeSummaryCompleted=RunEndings.SummaryComplete});
+        while(!_stop){CheckStop();await Runtime.NextFrame();}return true;
     }
     private static async Task ApplyContinuations(RunOperation operation)
     {
