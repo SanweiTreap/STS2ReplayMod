@@ -27,6 +27,7 @@ internal sealed class DirectCheckpoint
     private readonly CombatState _combat=((CombatRoom)LiveState.Run.CurrentRoom!).CombatState;
     private readonly object _turnState=Get(CombatManager.Instance,"_turnState")!;
     private readonly IdentityMemento? _data;
+    private readonly Action? _restoreDiscoveries;
     private readonly CombatRoster _roster;
     private readonly Creature[] _creatures;
     private readonly CreaturePresentation[] _presentation;
@@ -55,6 +56,7 @@ internal sealed class DirectCheckpoint
         // Include removed original enemies too, so a checkpoint also describes their detached dead state.
         if(captureData)_data=new(Roots(roster).Concat(extraRoots??[]),v=>Data(v)||route&&v is AbstractRoom,
             f=>Field(f)&&(!route||f.FieldType.Namespace?.StartsWith("MegaCrit.Sts2.Core.GameActions",StringComparison.Ordinal)!=true),Special);
+        if(captureData&&PlayerLoop.Active)_restoreDiscoveries=MemorySession.CaptureDiscoveryContext();
     }
 
     internal static IEnumerable<object> Roots(CombatRoster roster)
@@ -144,6 +146,7 @@ internal sealed class DirectCheckpoint
         if(LiveState.Format>=10)CombatUnitSubscriptions.Retire(_roster.Anchors);
         else foreach(var creature in before)CombatManager.Instance.StateTracker.Unsubscribe(creature);
         if(fileData is not null)fileData();else (_data??throw new InvalidDataException("checkpoint-data-missing")).Restore();
+        if(fileData is null)_restoreDiscoveries?.Invoke();
         var restored=Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         foreach(var removed in before.Except(_creatures))removed.CombatState=null;
         Codec.Require(_creatures.SequenceEqual(_combat.Creatures)&&_creatures.All(CombatUnits.Restorable),"direct-back-restored-membership-mismatch");

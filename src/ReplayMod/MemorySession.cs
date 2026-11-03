@@ -47,6 +47,26 @@ internal sealed class MemorySession
         return JsonSerializationUtility.ToJson(progress);
     }
     private static string? FileHash(string p)=>File.Exists(p)?Codec.Hash(File.ReadAllBytes(p)):null;
+    internal static Action CaptureDiscoveryContext()
+    {
+        var manager=SaveManager.Instance;var progress=manager.Progress;
+        Codec.Require(PlayerLoop.Active&&ReferenceEquals(manager,PlayerLoop.IsolatedManager),"discovery-checkpoint-owner");
+        // Native Mark*AsSeen uses these sets to decide whether to append to the
+        // player's run discoveries. Rewind both sides of that decision on Back.
+        // Capture only the gating sets, not the account's statistics or files.
+        var roots=new[]{"_discoveredCards","_discoveredRelics","_discoveredPotions","_discoveredEvents","_discoveredActs","_ftueCompleted"}
+            .Select(name=>AccessTools.Field(typeof(ProgressState),name).GetValue(progress));
+        var data=new IdentityMemento(roots,_=>false,_=>false);
+        return ()=>
+        {
+            Codec.Require(PlayerLoop.Active&&ReferenceEquals(SaveManager.Instance,manager)&&
+                ReferenceEquals(manager,PlayerLoop.IsolatedManager)&&ReferenceEquals(manager.Progress,progress),"discovery-restore-owner");
+            data.Restore();
+            Runtime.Log("checkpoint-discovery-context-restored",new{Cards=progress.DiscoveredCards.Count,
+                Relics=progress.DiscoveredRelics.Count,Potions=progress.DiscoveredPotions.Count,
+                IsolatedManagerOnly=true,FromPlaybackMemory=true,ExpectedStateInjected=false});
+        };
+    }
     internal static void ApplyRecordedProgress(string json)
     {
         Codec.Require(PlayerLoop.Active&&ReferenceEquals(SaveManager.Instance,PlayerLoop.IsolatedManager),"run-progress-context-owner");

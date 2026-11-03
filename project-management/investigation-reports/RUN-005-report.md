@@ -2,7 +2,7 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包进行中，保留 **build-001**，源码 `54aa923`。**r1后段录制及r2第三幕真正重启Continue/获胜通过**：第二幕KnowledgeDemon Boss→第二次换幕→Nonupeipe第一项FurCoat→第三幕ScrollsOfBitingWeak，一步防御存退后真正重启，独立新尝试5步获胜。零观察器错误，唯一gap为r1显式准备；尚未原生观看。完整新局→三幕→原生终局同份证据仍待，RUN-004原结果保持。
+- 本包进行中，已安装 **build-002**，待原生重测。**r3/001观看FAIL**：第二幕Boss胜利后首次领奖前，Back重做漏记玩家CARD.SLOTH发现项，严格资源校验中止；退出恢复原context/Continue/Progress正常。002补观看内存checkpoint的发现/FTUE门控集合回退，不注入expected或忽略差异。r1后段录制及r2第三幕真正重启Continue/获胜通过保持；完整新局→三幕→原生终局同份证据仍待，RUN-004原结果保持。
 - 录制入口、format10场景身份、LiveState输入/恢复、共用换幕投票与第三幕Ancient分派接到Act0/1/2；保持同Run/ActModel/visit/attempt、自然资源/RNG和既有自算保存点恢复。第一/二次换幕共用原生EnterNextAct路径；第三幕Boss后的终局入口仍待接，不能只删白名单后说完整通关。
 - 新增可选Lifecycle事实：r1实际Continue与saved-exit正确登记，未误判放弃；无字段旧片保持未知。真正OnEnded胜利/死亡/主动放弃的登记基础已实现、尚未动态验证；死亡末尾动作/死亡观看、最终事件/胜利观看仍待实现。WinRun后的强杀不得覆盖胜利。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
@@ -10,7 +10,7 @@
 - 主体/DirectContracts Release均0warnings/0errors；12项run-envelope、15项library、13项branch合同通过，含第三幕metadata及生命周期胜利防覆盖/存退可续/死亡与放弃区分/旧字段省略；旧RUN-004 root/第三场clip生产读取通过且原件不变。均非新增原生运行通过。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
 - 当前实读同Run `2b0f7e321a3a4dcd9caf9ee83435a06f`、种子KTRJB2SKRSYV，native精确point20：Act2/ACT.GLORY第三幕首普通**完成未领奖**。原始root36项、selected33项、8visit/12attempt；最终路线用新胜利source36，不含旧一步source35。Lifecycle仍为continued→saved-exit，非死亡/放弃。game0，最新补存 `RUN005-post-r2-current-20261103-120938`，45数据文件/51已知文件、零缺失/无restore；本轮6项正常录制/进度/备份变化保留，另一账户未读。
-- 下一步：继续用001，从本局“第2幕16层／尝试1”的合法Boss起点Auto观看到第三幕首战胜利，核第二次换幕、第三幕古神与战斗自然衔接及旧一步不拼接，随后Stop/正常退出。无需重录或继续普通游戏。正式UI/播放模式及D-147暗亮隐藏继续不实现。
+- 下一步：用002同一“第2幕16层／尝试1”起点，在第二次Boss选择之后Back/重做，再Auto到第三幕首战胜利，核领奖/第二次换幕/古神自然衔接，随后Stop/正常退出。无需重录或继续普通游戏。正式UI/播放模式及D-147暗亮隐藏继续不实现。
 
 ## 首候选实现与边界
 
@@ -43,6 +43,14 @@ root后段与Boss片、第三幕一步片分别使用生产reader校验通过且
 本次原生point19登记加载边界，胜利原生SaveRun登记point20，NativeFingerprint精确匹配当前Continue，PreFinished=true，path最终为source36；用户未领奖/未前进，生命周期再次continued→saved-exit，无终局误判。root36原始/selected33，8visit/12attempt，5,040,165bytes。生产root后段reader（原始26起）及新胜利片reader/兼容验证通过且原件不变；均不是原生播放通过。证据 `runtime-verification-r2.json`、`checks/r2-tail-run.json`、`checks/r2-clip-3923cae3.json`。
 
 补存45数据文件与51已知当前文件/4,147,384bytes，零缺失；6项变化为modded1最新replay、current_run及backup、progress及backup、settings.save.backup。game0、唯一安装001 hash不变、无restore/另一账户未读，见 `collection-r2.json`。下一轮只需同版本观看合法后段，不重打旧Boss或再录第三幕首战。
+
+## r3失败及002修复：战斗Back遗漏发现门控上下文
+
+会话 `5c13952b5c44482da107c85690609349`，426事件。Boss原生19步及3次Back恢复/重做已执行，最终胜利核对通过；首次奖励前，selected25/source27报 `run-resources-or-rng-mismatch-25-before`。逐项比较仅玩家discovered_cards期望6/实际5、少CARD.SLOTH，其余资源/RNG无差异；不能把本轮称整链或第二次换幕通过。`playback-closed`确认原manager、Continue及原Progress恢复，root hash保持r2原值；51已知文件相对r2全不变。失败保留 `runtime-verification-r3.json`、432数据文件归档/`collection-r3.json`，最新补存 `RUN005-post-r3-current-20261103-121622`。
+
+原生ProgressSaveManager.MarkCardAsSeen先调用ProgressState内_discoveredCards.Add，仅首次seen且LocalContext匹配才向player.DiscoveredCards追加。DirectCheckpoint原来只回退局内Player，没有回退隔离Progress的门控集合；第一次13步选择看见Sloth后Back，重做时门控已为seen，玩家发现列表因而漏项。002在实际本次观看checkpoint采集六个原生发现/FTUE集合，用既有IdentityMemento保存/恢复集合内容，随局内数据一起回退；捕获/恢复均严格绑定同一隔离manager及Progress实例。不是载入录制expected、改玩家发现项、放宽校验、写原账户或全量序列化档案。文件冷恢复不借UI快照伪造该上下文；新增结构不进录像格式。001来源兼容显式加入，原始片无需迁移。
+
+主DLL Release0warnings/0errors；既有6项IdentityMemento合同（含集合/独立边界反复恢复）通过，仅数据机制验证，原生修复仍待用户测。002安装 `preparation/build-002-6b5c296e.json`，DLL `90B730881BE26B2B35E23E44383DADD976CF6C17CD40CAE97BF6DE0F203BE5F3`，manifest同001；001封存保留、唯一安装pair匹配。安装前后51已知文件核对见 `preparation/pre-build002-current.json`、`post-build002-current.json`、`post-build002-check.json`，game0、无restore/其他账号读取。
 
 ## 后续必须完成
 
