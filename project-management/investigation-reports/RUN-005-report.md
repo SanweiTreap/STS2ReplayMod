@@ -2,15 +2,15 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包进行中，已安装 **build-009 / 仅Stop退出**，待窄回归。**r10/008 Auto自动详情目标通过**：原生继续单次调用/摘要隔离完成，之后关Auto、待播0、留scene，13个owner任务收束/0取消故障。用户最新明确结算页主菜单应禁用，仅Stop退出；009置灰并拦处理函数、保留继续与Auto查看。r10另3次旧起点启动拒绝保持FAIL，009列表/运行准入先检查准备缺口。终局在途Stop、完整新局、死亡/放弃仍待，不当整包完成。
+- 本包进行中，保留 **build-009**，源码 `fe80f32`。**r11/r12 only-Stop及终局在途退出通过**：完整Auto摘要/主菜单置灰，仅Stop退出；两次在真实OnEnded登记后、WinRun强杀/gameover前经公开Stop触发，9个owner任务各自收束/0取消故障；重开一步Stop恢复正常。测试点故意早于普通Auto片尾，非提前结束缺陷。旧FAIL保留；当前准备后段的胜利录制/观看/退出代表链已获证，死亡/放弃与真实新局完整三幕继续原包，不当整包完成。
 - Act0/1/2及两次换幕代表链已有证；最后奖励投票/EnterNextAct分支原生进入TheArchitect，独立visit/attempt，不增加幕索引/强制房型/加载后幕checkpoint。与Boss共用原生地图坐标，楼层取实际值（r6 Boss15层/终局16层），不自行增减楼层。
 - Lifecycle的Continue/saved-exit已有证；003最后事件操作可选Terminal=victory，After严格冻结真正OnEnded(true)前实际资源/RNG，与同visit/attempt/原始来源位置的Lifecycle事实一致；等待原生WinRun后续强杀/结算页后才封存该操作。播放走同边界比较并保留ShouldSave=false的隔离manager，平台统计/上传/删除普通Continue分支不启用。死亡/放弃仍只有分类基础、末动作/观看待接，不因终局强杀伪造死亡。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
 - 原生TheArchitect为Combat布局但不是内部可战斗场景；003只开放该确切原生事件布局与实际按钮/选择任务，视觉生物不纳入战斗召唤追踪。结算页演出/摘要任务加入本次owner收束，原生返回菜单/时间线出口交现有Stop；终局演出中一次公开Stop开关供之后短测，未改正式UI/模式。
 - 主体/DirectContracts Release均0warnings/0errors；005的14项run-envelope含终局事实/原始位置、首句选项自动开放但任何资源/RNG变化仍拒绝；r6实际root尾段与新胜利片reader通过且原件不变。数据检查不当终局原生观看通过；旧15项library/13项branch结果及失败按先前记录保留，不重复无关矩阵。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
-- 当前同Run `2b0f7e321a3a4dcd9caf9ee83435a06f`，root48原始/selected43、10visit/17attempt、6,732,066bytes及r6片不变，原生胜利历史/Progress不变，Continue/backup仍不存在。game0，最新运行补存 `RUN005-post-r10-current-20261103-182825`：219数据文件/49已知文件，仅settings及backup变化；无缺失/restore/另一账号读取。r8图鉴偏好原变化保持。
-- 下一步：009同一合法终局起点Auto，确认主菜单置灰/仅Stop退出；合并原定终局在途自动Stop、重开一步退出。不可连续播放的旧起点应提前禁用并说明准备缺口，独立分场仍保留。无需重录/实战/恢复旧存档；D-159 Auto细化已证，最新用户only-Stop优先于其临时菜单许可，死亡/放弃/真实新局整链继续原包。
+- 当前同Run `2b0f7e321a3a4dcd9caf9ee83435a06f`，root48原始/selected43、10visit/17attempt、6,732,066bytes及r6片不变，原生胜利历史/Progress不变，Continue/backup仍不存在。game0，最新补存 `RUN005-post-r12-current-20261103-184507`：r11/r12分别199/419归档、49已知文件；r11相对安装仅settings及backup变化，r12相对r11全不变，无restore/另一账号读取。
+- 下一步：继续死亡末次实际动作封存/死亡观看、主动放弃最短样本，再做真实新局至三幕终局同份证据。胜利尾段/原定退出检查已答，不重跑旧矩阵；普通Auto仍自动展开详细结算后留场，测试自动Stop开关一次性中断，不能混为正式EOF。
 
 ## 首候选实现与边界
 
@@ -138,9 +138,17 @@ source46原生act-proceed进入独立visit10/attempt17的EVENT.THE_ARCHITECT，�
 
 原FAIL与目标PASS分开保留在 `runtime-verification-r10.json`、`collection-r10.json`；219归档/49已知当前文件4,042,458bytes，原root/片/胜利历史不变、Continue仍不存在，仅settings及backup变化。主/DirectContracts Release0warnings/0errors，相关实际数据双向准入检查通过，按钮实际置灰/终局在途Stop仍待用户窄测。009安装 `preparation/build-009-354be681.json`：DLL `C29347063776CC467C8BE77860E811296B2F34B5D1B80277536261A90F40B768`，manifest同008，008封存保留；49文件/历史/Continue核对见 `preparation/pre-build009-current.json`、`post-build009-current.json`、`post-build009-check.json`，game0，无restore/另一账号读取。
 
+## r11/r12：009 only-Stop与终局在途退出通过
+
+r11会话 `c653637402014322bbe984169204ad36`，194事件零错误，完整终局Auto核对与摘要结束正常；gameover-entry及summary-completed两点实际NativeButtonDisabled=true/OnlyStopExits=true，Auto关闭/待播0/前进禁用/留场，13个owner任务完成、0取消故障后Stop恢复。用户确认主菜单禁用可见，未再用原生菜单退出。199文件归档/49已知文件补存，只有settings及backup变化。
+
+r12会话 `440d7acce9854ac98598e173d66e59ae`，414事件零错误。两次一次性开关在phase=native-OnEnded-before-WinRun-kill-and-game-over经公开PlayerLoop.Control(stop)发请求；原生胜利已严格核对，WinRun强杀/gameover后续仍实际完成，再移除场景、各9个owner任务全完成/0取消故障后恢复原manager/所比较Continue/Progress。两次Complete=false/AllOperationsMatched=false为计划在最后选项结果返回前中断，不当整链失败或完整播放；这也是用户感到自动Stop“偏早”的明确设计位置。夹带一次重开同Boss原生Step到1后手动Stop，0个路线owner任务、原context恢复、无错误。该测试开关不定义普通Auto终点；关闭时仍沿D-159展开详情后留场，自动Stop并非产品默认自动退出。
+
+证据 `runtime-verification-r11.json`、`runtime-verification-r12.json`、`collection-r11.json`、`collection-r12.json`；419第二会话归档和49已知文件相对r11全不变，root/片/胜利历史不变，Continue仍按先前通关正常不存在。game0、无restore/另一账号读取。此代表后段的实际胜利录制/观看/详情/only-Stop/在途退出已获证，继续本包死亡/放弃和真正新局整链，仍不能把准备前gap补为完整新局。
+
 ## 后续必须完成
 
 - 当前后段原生观看及第三幕真实Continue分别由r4/r2证明；新增终局/换幕在途Stop可与后续样本合并。
-- 最后Boss→TheArchitect/WinRun录制/核心观看/手动摘要与Auto摘要分别已有r6/r8/r9/r10；009 only-Stop入口与终局在途Stop仍待。正式返回来源UI继续另线，不阻塞原包。
+- 最后Boss→TheArchitect/WinRun录制/核心观看/摘要/only-Stop/终局在途Stop已有r6/r8/r9/r10/r11/r12，所测后段结束；正式返回来源UI继续另线。
 - 最短死亡与主动放弃样本：分类、最后真实动作/落盘、合理观看EOF/Stop，保存退出不当放弃。
 - 真实新局合法起点至三幕原生终局同份完整录制/连续观看，准备若存在必须在新局实际输入处明确可重现；当前后段/旧准备局Opening=null不能替代此证据。
