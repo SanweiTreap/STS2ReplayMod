@@ -2,15 +2,15 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包进行中，已安装 **build-005终局观看候选**。**r6/004真正原生胜利录制通过**：实际六牌战前保存读回、Aeonglass13步胜利→TheArchitect两次选择/演出→OnEnded(true)及gameover，原生history.win=true且未放弃，Continue及backup由原生通关删除；尚未观看。首读发现原生首句异步开放选项边界未识别，005接入实际Task/双时刻严格核对，原失败保留/原件不改。r4后段PASS保持；完整新局/死亡/放弃仍待。
+- 本包进行中，已安装 **build-006**，待重测。**r7/005观看FAIL**：两次Boss13步胜利均匹配，随后错误等待已完成空奖励页的隐藏窗口变亮，Auto/手动请求只排队；用户Stop恢复正常，未进入终局。006接受原生IsComplete后继续，实际奖励待选仍须可见；不改队列/资源校验。r6真正原生胜利录制及r4旧后段PASS保持；终局观看/在途Stop、完整新局、死亡/放弃仍待。
 - Act0/1/2及两次换幕代表链已有证；最后奖励投票/EnterNextAct分支原生进入TheArchitect，独立visit/attempt，不增加幕索引/强制房型/加载后幕checkpoint。与Boss共用原生地图坐标，楼层取实际值（r6 Boss15层/终局16层），不自行增减楼层。
 - Lifecycle的Continue/saved-exit已有证；003最后事件操作可选Terminal=victory，After严格冻结真正OnEnded(true)前实际资源/RNG，与同visit/attempt/原始来源位置的Lifecycle事实一致；等待原生WinRun后续强杀/结算页后才封存该操作。播放走同边界比较并保留ShouldSave=false的隔离manager，平台统计/上传/删除普通Continue分支不启用。死亡/放弃仍只有分类基础、末动作/观看待接，不因终局强杀伪造死亡。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
 - 原生TheArchitect为Combat布局但不是内部可战斗场景；003只开放该确切原生事件布局与实际按钮/选择任务，视觉生物不纳入战斗召唤追踪。结算页演出/摘要任务加入本次owner收束，原生返回菜单/时间线出口交现有Stop；终局演出中一次公开Stop开关供之后短测，未改正式UI/模式。
 - 主体/DirectContracts Release均0warnings/0errors；005的14项run-envelope含终局事实/原始位置、首句选项自动开放但任何资源/RNG变化仍拒绝；r6实际root尾段与新胜利片reader通过且原件不变。数据检查不当终局原生观看通过；旧15项library/13项branch结果及失败按先前记录保留，不重复无关矩阵。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
-- 当前同Run `2b0f7e321a3a4dcd9caf9ee83435a06f`，root48原始/selected43、10visit/17attempt、6,732,066bytes，最后Terminal=victory与Lifecycle首次OnEnded状态一致；旧37步source42及空尝试source43均不在最终路线。native历史精确 `modded/profile1/saves/history/1793620706.run` 已定点补存，Continue/backup正常不存在。game0，最新运行补存 `RUN005-post-r6-current-20261103-133621`：101数据文件/49现有已知文件，原51中两项由原生Win删除，5项正常更新保留；无restore/另一账户读取。
-- 下一步：005从本局“第3幕15层／尝试3”合法Boss起点Auto观看到真正结算页，再Stop；随后用一次“终局演出中自动Stop”与重开一步短测确认退出收束。无需重录/实战/恢复通关前存档。死亡/放弃及真实新局完整三幕仍继续本包；正式UI/模式/D-147隐藏不扩入。
+- 当前同Run `2b0f7e321a3a4dcd9caf9ee83435a06f`，root48原始/selected43、10visit/17attempt、6,732,066bytes及r6片不变；native胜利历史不变、Continue/backup仍不存在。game0，最新运行补存 `RUN005-post-r7-current-20261103-135714`：772数据文件/49已知文件，只settings.save变化，无缺失/restore/另一账户读取。
+- 下一步：006从同一“第3幕15层／尝试3”起点Auto到终局结算页并Stop/正常退出，先确认空奖励接通；终局在途Stop与重开短测待这段通过后继续。无需重录/实战/恢复旧存档。死亡/放弃/真实新局整链继续本包，正式UI/模式/D-147隐藏不扩入。
 
 ## 首候选实现与边界
 
@@ -93,6 +93,14 @@ source46原生act-proceed进入独立visit10/attempt17的EVENT.THE_ARCHITECT，�
 005钩住原生PlayCurrentLine并登记owner，最后act-proceed的新录制等待该Task后再封存；观看亦等原生首句结束，Stop前收束。兼容本次已有早边界时，只识别“最终Boss→明确Victory/TheArchitect→首句dialogue.0、Options空→1且其余所有JSON内容/资源/RNG严格相同、下一项RewardKey与实际ready事件状态一致”的原生自动开放。播放仍逐项严格核对：用本次原生EnterRoom完成（外层淡入前）的真实入场快照核旧After，再用实际首句完成状态核下项Before；未注入expected、删除快照或把资源/RNG差异藏为过场。读取结果明确列NativeFinalOpeningTransitions，合成反例要求HP/RNG/选项/幕身份任何错误仍拒绝。r6后段reader从原始45起现通过、原root字节未变；属于兼容/读取证据，原生观看仍待。
 
 101归档文件含胜利历史、2片、root、journal及会话；49当前已知文件/4,042,456bytes，原51中current_run及backup缺失对应实际Win删除，5项正常latest replay/progress及backup/settings及backup更新保留，无restore。005安装 `preparation/build-005-fe092253.json`：DLL `5F0AE9B1DFFE7C9121D25B57C0513417D95A913E005CE1FE2C976BC1464193A6`，manifest同004，004封存保留。49文件/精确胜利history与Continue仍不存在的核对见 `preparation/pre-build005-current.json`、`post-build005-current.json`、`post-build005-check.json`；game0/另一账号未读。下一轮直接看现成终局片，不要求重打/自动restore。
+
+## r7：005空奖励页就绪等待停滞；006修复
+
+会话 `9cae75c210d749d4b75160525ec15566`，767事件。两次实际Boss13步原生胜利全部匹配，之后均停在selected41/source46的“显示战斗奖励”；没有任何路线操作完成/原生终局入口记录。Auto切换和手动连续Step请求均被接收（第二次Whole累计13），但卡在奖励就绪等待，未消费后续请求；用户两次Stop，Complete=false且Error=null。这是可观察停滞FAIL，不以未抛异常当通过；原manager/所比较Continue及Progress恢复、原native胜利历史/root/clip不变，005首句边界及终局Stop尚未触及。
+
+原生NRewardsScreen.UpdateScreenState在_rewardButtons.Count==0时将IsComplete=true、隐藏Rewards窗口至alpha0并开启Proceed；该次最终Boss没有待领奖项，原录像直接act-proceed。播放器第一层却无条件RewardsReady(requireVisible:true)，永远等不到窗口alpha>=.99，虽然原生页面已完成。006仅按下一实际操作决定：reward仍要求可见offer；proceed/act-proceed允许原生IsComplete完成状态，继续等待既有原生Proceed按钮可用后调用原OnProceedButtonPressed。未减少后端/RNG/内容校验，不丢弃待播请求，不手动显示已隐藏窗口或跳过原生奖励业务；新增run-rewards-ready日志记实际IsComplete/奖励数便于核验。
+
+证据 `runtime-verification-r7.json`、`collection-r7.json`，772归档含精确胜利历史/片/root/journal，49已知当前文件/4,042,456bytes只有settings.save变化。主Release0warnings/0errors，变化仅原生UI就绪条件与诊断，不另造镜像测试代替人工回归。006安装 `preparation/build-006-c37ddd42.json`：DLL `DAD2FA00626330E2937F9D8D85909E00696108E260A601F5CFF3A41769327848`，manifest同005；005封存保留。49文件及胜利history/Continue仍不存在核对见 `preparation/pre-build006-current.json`、`post-build006-current.json`、`post-build006-check.json`；game0，无restore/另一账号读取。下一轮先一次完整观看确认这处接通。
 
 ## 后续必须完成
 
