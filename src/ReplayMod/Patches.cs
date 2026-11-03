@@ -144,13 +144,14 @@ internal static class Patches
     private static void Choice(){if(Observing&&LiveState.Format<4)Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-player-choice"));}
     private static void Spawn(CombatState __instance,MonsterModel __0,CombatSide __1)
     {
-        if(Observing)Runtime.Guard(()=>Codec.Require(CombatUnits.CanGenerate(__0,__1)&&
+        if(Observing&&!FinalEventVisuals)Runtime.Guard(()=>Codec.Require(CombatUnits.CanGenerate(__0,__1)&&
             ReferenceEquals(__instance,LiveState.Player.Creature.CombatState),"incomplete-unsupported-creature-generation"));
     }
+    private static bool FinalEventVisuals=>RunPlayback.Active&&RunPlayback.NonCombat&&LiveState.Run.CurrentRoom?.IsVictoryRoom==true;
     private static void Spawned(MegaCrit.Sts2.Core.Entities.Creatures.Creature __0)
-    {if(Observing&&PlayerLoop.Active)Runtime.Guard(()=>PlayerLoop.UnitCreated(__0));}
+    {if(Observing&&PlayerLoop.Active&&!FinalEventVisuals)Runtime.Guard(()=>PlayerLoop.UnitCreated(__0));}
     private static void UnitSceneAdded(MegaCrit.Sts2.Core.Entities.Creatures.Creature __0)
-    {if(Observing&&PlayerLoop.Active&&LiveState.Format>=10)Runtime.Guard(()=>PlayerLoop.UnitSceneAdded(__0));}
+    {if(Observing&&PlayerLoop.Active&&LiveState.Format>=10&&!FinalEventVisuals)Runtime.Guard(()=>PlayerLoop.UnitSceneAdded(__0));}
     private static void OrbAdmitted(OrbQueue __instance,OrbModel __0)=>Runtime.Guard(()=>OrbState.Admit(__instance,__0));
     private static void GeneratedCards(){if(Observing&&LiveState.Format<4)Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-card-generation"));}
     private static void PileBrowsed(NCombatCardPile __instance)=>Runtime.Guard(()=>RoutePresentation.Browsed(__instance));

@@ -49,6 +49,7 @@ internal static class RunRecording
     {
         if(PlayerLoop.Active||Runtime.Journal.CurrentRun is not {} id)return;
         Pending=null;_battleSequence=0;_visit=0;_entryProgress=null;_restoredEntry=false;_unknownLoad=false;_saveExit=false;
+        RunEndings.Clear();
         var path=Path.Combine(Runtime.Root,"runs",id+".json");
         _run=File.Exists(path)?Store.Read(id):new(1,id,Runtime.GameHash,Runtime.ModHash,Runtime.Scope,
             save?.Players[0].CharacterId?.ToString()??LiveState.Player.Character.Id.ToString(),DateTimeOffset.UtcNow,[],[],[],new(),Opening:continuation?null:RunOpening.Take());
@@ -125,6 +126,19 @@ internal static class RunRecording
     internal static void Room(AbstractRoom room)
     {
         if(!Enabled||room.RoomType==RoomType.Map)return;
+        if(room.IsVictoryRoom&&_run!.Visits.LastOrDefault()?.MapType!="Victory")
+        {
+            var run=LiveState.Run;var previous=_run.Visits.LastOrDefault();
+            Codec.Require(run.CurrentActIndex==2&&previous is {RoomType:"Boss"}&&run.CurrentMapCoord is not null,
+                "final-event-without-native-final-boss");
+            _run.Visits[^1]=previous! with{Status=previous!.Gap is null?"left":"gap"};
+            var coord=run.CurrentMapCoord!.Value;_visit=_run.Visits.Count+1;
+            _run.Visits.Add(new(_visit,run.CurrentActIndex,run.ActFloor,coord.row,coord.col,"Victory",null,null,1,"entering",null,
+                ActModel:run.Act.Id.ToString(),ActFloor:run.ActFloor,TotalFloor:run.TotalFloor));
+            if(_run.Branches is {} branches)RunRoutes.StartAttempt(_run,_visit,branches.ActiveAttempt,null,"native-final-event");
+            Runtime.Log("run-final-event-visit-created",new{Visit=_visit,Act=run.CurrentActIndex,NativeVictoryRoom=true,
+                SameMapCoord=true,SeparateFromBoss=true});
+        }
         if(_visit==0&&LiveState.Run.VisitedMapCoords.Count>0)Entry(LiveState.Run.VisitedMapCoords[^1],room.IsPreFinished,false);
         if(_visit==0)return;var index=_run!.Visits.FindIndex(v=>v.Id==_visit);var visit=_run.Visits[index];
         visit=visit with{ActModel=LiveState.Run.Act.Id.ToString(),ActFloor=LiveState.Run.ActFloor,TotalFloor=LiveState.Run.TotalFloor};
@@ -148,6 +162,7 @@ internal static class RunRecording
         var supported=room is CombatRoom&&LiveState.CombatRoomType(room.RoomType)&&
             (room.RoomType.ToString()==visit.MapType||room.RoomType==RoomType.Monster&&visit.MapType=="Unknown")||
             room.RoomType==RoomType.RestSite&&visit.MapType=="RestSite"||room.RoomType is RoomType.Treasure or RoomType.Shop||
+            room.IsVictoryRoom&&visit.MapType=="Victory"||
             room is EventRoom {CanonicalEvent:not MegaCrit.Sts2.Core.Models.AncientEventModel}&&visit.MapType=="Unknown"||
             room is EventRoom {CanonicalEvent:MegaCrit.Sts2.Core.Models.AncientEventModel}&&visit.MapType=="Ancient"&&
                 (visit.Act is 1 or 2||_run.Opening is not null);
@@ -177,7 +192,9 @@ internal static class RunRecording
     internal static void Complete(RunOperation operation,bool? success=null,bool compareAfter=true)
     {
         if(!Enabled||Pending?.Sequence!=operation.Sequence)return;
-        var current=Pending;Replace(current with{Status="complete",Success=success,After=compareAfter?RunResources.Capture():null});
+        var current=Pending;var terminal=RunEndings.RecordingVictory(current);
+        Replace(current with{Status="complete",Success=success,Terminal=terminal is null?null:"victory",
+            After=terminal??(compareAfter?RunResources.Capture():null)});
         Pending=null;Save();Runtime.Log("run-operation-recorded",new{Run=_run!.Id,operation.Sequence,operation.Visit,operation.Kind,success});
     }
     internal static void Decision(RunDecision decision)

@@ -55,7 +55,8 @@ internal static class RunPlayback
     internal const string ActRecordingBuild="BAE17032415D20C4F7844779B921379D8994ABC7C3BE69AC9106988EDADDA70B";
     internal const string AcceptedActRecordingBuild="7B7410D2A03968C5C8032E1351B078A8508D44348306F314848695BEDFE4E0B1";
     internal const string ThirdActRecordingBuild="4B591FA3D071A67E8D4332355825BF769B6708C919D2093A62F7531332DF8657";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==ThirdActRecordingBuild||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild||hash==ActRecordingBuild||hash==AcceptedActRecordingBuild;
+    internal const string ThirdActPlaybackBuild="90B730881BE26B2B35E23E44383DADD976CF6C17CD40CAE97BF6DE0F203BE5F3";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==ThirdActPlaybackBuild||hash==ThirdActRecordingBuild||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild||hash==ActRecordingBuild||hash==AcceptedActRecordingBuild;
     internal static bool BattleVerified(int source)=>VerifiedBattles.Contains(source);
     internal static bool NeedsComputedSave(int source)=>NeededComputedSaves.Contains(source);
     internal static RunOperation? Current;
@@ -93,6 +94,7 @@ internal static class RunPlayback
             .Select(c=>(Before:RunStore.ContinueBefore(run,c),Point:c)).Where(c=>c.Before>=first.Sequence)
             .GroupBy(c=>c.Before).ToDictionary(g=>g.Key,g=>g.Select(c=>c.Point).ToArray());
         _run=run;Active=true;NonCombat=opening;Driving=false;_auto=false;_whole=false;_stop=false;_continuation=false;
+        RunEndings.Clear();
         _fine=0;_wholeRequests=0;_decision=0;_phaseAt=0;_rewardsRoom=null;OwnedTasks.Clear();_mapRun=null;Current=run.Operations[_index];RunPatches.Clear();
         VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;
         foreach(var point in _continuations.Values.SelectMany(p=>p))
@@ -101,7 +103,17 @@ internal static class RunPlayback
             if(battle is not null)NeededComputedSaves.Add(battle.SourceSequence??battle.Sequence);
         }
     }
-    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();RunActs.Clear();RunCombatLoads.Clear();}
+    internal static void Clear(){Active=false;NonCombat=false;Driving=false;Current=null;_rewardsRoom=null;OwnedTasks.Clear();VerifiedBattles.Clear();NeededComputedSaves.Clear();_eventLoad=null;_continuations.Clear();_progressContexts.Clear();_mapRun=null;_mapMove=null;_mapTask=null;RunPatches.Clear();RunTreasures.Clear();RunMerchants.Clear();RunEvents.Clear();RunEventCombat.Clear();RunActs.Clear();RunCombatLoads.Clear();RunEndings.Clear();}
+    internal static RunLifecycleEvent? TerminalFact()=>RunLifecycle.AtOperation(_run,Current!);
+    internal static void VerifyFinalEvent()
+    {
+        Codec.Require(_index+1<_run.Operations.Count,"run-final-event-recording-missing");
+        var next=_run.Operations[_index+1];var visit=_run.Visits.Single(v=>v.Id==next.Visit);
+        Codec.Require(next.Kind=="event-choice"&&visit is {Act:2,MapType:"Victory",RoomType:"Event",Model:"EVENT.THE_ARCHITECT"}&&
+            LiveState.Run.CurrentRoom?.ModelId?.ToString()==visit.Model,"run-final-event-destination-mismatch");
+        Runtime.Log("run-native-final-event-entry-verified",new{Visit=visit.Id,Model=visit.Model,SameRunState=true,
+            NativeRewardsVote=true,NativeTransitionCalls=1,CheckpointLoaded=false,ExpectedStateInjected=false});
+    }
     internal static string? InitialProgress()
     {
         if(!_progressContexts.Remove(_run.Operations[_index].Sequence,out var points))return Current?.Progress;
@@ -225,7 +237,8 @@ internal static class RunPlayback
                 }
                 await Execute(Current);
                 Codec.Require(_decision==Current.Decisions.Length,"run-recorded-choice-not-consumed");
-                if(Current.After is {} expected)Compare(Current.Sequence,"after",expected,RunResources.Capture());
+                if(Current.After is {} expected)Compare(Current.Sequence,"after",expected,
+                    Current.Terminal is null?RunResources.Capture():RunEndings.PlaybackVictory(Current));
                 Runtime.Log("run-operation-verified",new{_run.Id,Current.Sequence,Current.SourceSequence,Current.Attempt,Current.Visit,Current.Kind,ResourcesAndRngMatched=true,NativeBusinessExecuted=true,ExpectedStateInjected=false});
                 if(_index==_run.Operations.Count-1)
                 {
