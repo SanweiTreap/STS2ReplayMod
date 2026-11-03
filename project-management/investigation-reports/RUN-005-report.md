@@ -2,15 +2,15 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包进行中，保留 **build-002**，源码 `ff4919c`。**r4后段原生观看通过两次完整链**：第二幕Boss19步→奖励→第二次换幕→第三幕Nonupeipe/FurCoat→ScrollsOfBitingWeak5步胜利；5次Back恢复（含第二次Boss选择前2次）均匹配，零报错，三次Stop/重开一步退出恢复正常。r3/001遗漏CARD.SLOTH发现项的FAIL保留，002发现门控同步回退已有原生证据。r1/r2录制及第三幕重启Continue保持；完整新局→三幕→原生终局同份证据仍待，RUN-004原结果保持。
-- 录制入口、format10场景身份、LiveState输入/恢复、共用换幕投票与第三幕Ancient分派接到Act0/1/2；保持同Run/ActModel/visit/attempt、自然资源/RNG和既有自算保存点恢复。第一/二次换幕共用原生EnterNextAct路径；第三幕Boss后的终局入口仍待接，不能只删白名单后说完整通关。
-- 新增可选Lifecycle事实：r1实际Continue与saved-exit正确登记，未误判放弃；无字段旧片保持未知。真正OnEnded胜利/死亡/主动放弃的登记基础已实现、尚未动态验证；死亡末尾动作/死亡观看、最终事件/胜利观看仍待实现。WinRun后的强杀不得覆盖胜利。
+- 本包进行中，已安装 **build-003终局候选**，待录制/原生观看验证。新增第三幕Boss→TheArchitect独立访问、原生对话/演出/WinRun边界核对与结算页任务收束，未宣称终局运行通过。既有**r4/002后段原生观看两次完整链通过**保持：Boss19步→第二次换幕→Nonupeipe/FurCoat→第三幕首战5步胜利；5次Back、3次Stop/重开退出正常。r3/001发现项FAIL保留；完整新局→三幕→终局同份证据、死亡末动作/观看、主动放弃实测仍待。
+- Act0/1/2及两次换幕代表链已有证；003将最后原生奖励投票/EnterNextAct的final分支接入TheArchitect，不增加幕索引/强制房型/加载后幕checkpoint。终局事件独立visit/attempt，保留与Boss相同原生坐标/楼层，避免冒充Boss子场景或伪增楼层。
+- Lifecycle的Continue/saved-exit已有证；003最后事件操作可选Terminal=victory，After严格冻结真正OnEnded(true)前实际资源/RNG，与同visit/attempt/原始来源位置的Lifecycle事实一致；等待原生WinRun后续强杀/结算页后才封存该操作。播放走同边界比较并保留ShouldSave=false的隔离manager，平台统计/上传/删除普通Continue分支不启用。死亡/放弃仍只有分类基础、末动作/观看待接，不因终局强杀伪造死亡。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
-- 原生已查：第三幕最后Boss领奖后经ActChangeSynchronizer/EnterNextAct进入TheArchitect，实际选项/演出最终调用WinRun。TheArchitect为自定义Combat事件布局，尚未接入普通事件播放器。OnEnded真正落统计/历史/删Continue，主动Abandon先置IsAbandoned再强杀，普通保存退出只ReturnToMainMenu；不按末击/CleanUp/角色死亡猜胜利。
+- 原生TheArchitect为Combat布局但不是内部可战斗场景；003只开放该确切原生事件布局与实际按钮/选择任务，视觉生物不纳入战斗召唤追踪。结算页演出/摘要任务加入本次owner收束，原生返回菜单/时间线出口交现有Stop；终局演出中一次公开Stop开关供之后短测，未改正式UI/模式。
 - 主体/DirectContracts Release均0warnings/0errors；12项run-envelope、15项library、13项branch合同通过，含第三幕metadata及生命周期胜利防覆盖/存退可续/死亡与放弃区分/旧字段省略；旧RUN-004 root/第三场clip生产读取通过且原件不变。均非新增原生运行通过。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
 - 当前实读同Run `2b0f7e321a3a4dcd9caf9ee83435a06f`、种子KTRJB2SKRSYV，native精确point20：Act2/ACT.GLORY第三幕首普通**完成未领奖**。原始root36项、selected33项、8visit/12attempt及三片不变；最终路线用新胜利source36，不含旧一步source35。Lifecycle仍为continued→saved-exit。game0，最新补存 `RUN005-post-r4-current-20261103-123446`，1089数据文件/51已知文件、零缺失/无restore；仅settings.save及backup变化，另一账户未读。
-- 下一步：接第三幕最终Boss之后的TheArchitect原生对话/演出/WinRun及死亡末尾动作与观看收尾，再安排最短终局样本；已通过后段不重跑。正式UI/播放模式及D-147暗亮隐藏继续不实现。
+- 下一步：003手动启动，启用后段准备后Continue当前第三幕普通完成点，领奖/原生前进直连本幕Boss并打赢，继续原生终局对话/演出到结算页，再回菜单/正常退出；只录制这段，不重测002后段。随后用本次合法Boss起点观看并合并终局Stop短测。死亡/放弃和真实新局完整三幕仍继续本包，正式UI/模式/D-147隐藏不扩入。
 
 ## 首候选实现与边界
 
@@ -60,9 +60,21 @@ root后段与Boss片、第三幕一步片分别使用生产reader校验通过且
 
 证据 `runtime-verification-r4.json`、`collection-r4.json`；1089数据文件与51已知当前文件/4,147,384bytes补存核hash。原始root及三片不变、native仍point20第三幕首战完成未领奖，modded1存档/进度不变，只有settings.save及backup变化；game0、无restore/另一账号读取。至此第二次换幕/第三幕代表录制、真实Continue与连续观看已获证，真正终局及完整新局仍待。
 
+## 003：第三幕Boss后的原生胜利候选（未动态验证）
+
+RunActs沿原生奖励按钮→SetLocalPlayerReady→VoteToMoveToNextActAction→EnterNextAct分流；最后一幕保持Act2并验证实际TheArchitect胜利房间，而非SetActInternal到Act3。RunRecording.Room为原生胜利房间建立单独Victory visit/attempt，RunEvents保留该确切Combat事件的每个实际按钮与Chosen任务，后续对话/攻击原样运行；其他自定义Combat事件仍不开放。该房间的视觉creature不当作受控战斗中的召唤。
+
+可选RunOperation.Terminal只允许最终TheArchitect的event-choice原生victory事实；After与Lifecycle.State均冻结在第一次OnEnded(true)入口、统计/平台副作用和WinRun强杀之前。生产reader要求位置/visit/attempt/状态吻合，原始SourceSequence经SL选路重排后仍用于关联；不是把强杀后的账户统计差异过滤掉，新的终局操作从定义起就使用这个原生边界。最后提交的原生Task及gameover出现均确认后才封存/比较；同次WinRun随后OnEnded(false)依原生已上传标记不覆盖胜利。播放维持隔离manager/ShouldSave=false，原native WinRun/强杀/gameover仍执行，普通账户的历史统计/平台上传/删Continue分支不启用。
+
+gameover的AnimateIn/Quote/Summary加入owner Task追踪；Stop可取消显示但必须在scene/task退休后恢复原context。原生游戏结算返回菜单/时间线转既有Stop出口；最后WinRun业务已提交时直接等其完成再处理Stop，一次测试开关在OnEnded入口经公开PlayerLoop.Control(stop)触发，候选未证明在途退出通过。旧001/002来源hash显式兼容，旧无Terminal字段仍省略、原件不改。
+
+后段准备开关扩到Act1或2，仍仅已访问普通节点在下一Boss checkpoint前改地图连接，资源/RNG/原生Boss不改，按真实幕号明确gap/marker；当前第三幕后段将另从本幕Boss合法起点验证，不让准备前链冒充完整连续新局。主DLL/DirectContracts Release0warnings/0errors，13项run-envelope含真实终局事实与来源位置拒绝、13项branches和15项library读取合同通过，r4实际root新reader实读通过。library首试在合成journal的File.Move遇AccessDenied，原FAIL与测试目录保留；未改生产写入，单独新目录复跑通过，原因未证，非游戏运行失败/终局PASS。
+
+安装 `preparation/build-003-55bcaf3c.json`：DLL `565CD1A9A9AF0C54B09E6FF3E1179FB341D412ABF56AB5ED2D1FD7E0B551DB7A`、manifest同002；002扫描树外封存保留。51已知文件备份/安装核对见 `preparation/pre-build003-current.json`、`post-build003-current.json`、`post-build003-check.json`；game0，无restore/另一账户读取。首轮仅请用户录制第三幕Boss→真正终局，死亡/放弃不混进同轮长测。
+
 ## 后续必须完成
 
 - 当前后段原生观看及第三幕真实Continue分别由r4/r2证明；新增终局/换幕在途Stop可与后续样本合并。
-- 最后Boss之后TheArchitect实际布局/对话/动作与真正WinRun闭环，终局统计/退出在隔离manager/store内收束，不能把胜利后的强杀误判死亡。
+- 003最后Boss→TheArchitect布局/对话/动作/WinRun候选的真实录制/原生观看及终局在途Stop，确认隔离收束，不把强杀误判死亡。
 - 最短死亡与主动放弃样本：分类、最后真实动作/落盘、合理观看EOF/Stop，保存退出不当放弃。
 - 真实新局合法起点至三幕原生终局同份完整录制/连续观看，准备若存在必须在新局实际输入处明确可重现；当前后段/旧准备局Opening=null不能替代此证据。

@@ -74,7 +74,7 @@ internal static class RunEvents
             });return owned;
         }
         if(!RunRecording.Enabled)return true;
-        if(NEventRoom.Instance?.Layout is null||model.LayoutType==EventLayoutType.Combat)
+        if(NEventRoom.Instance?.Layout is null||model.LayoutType==EventLayoutType.Combat&&model is not MegaCrit.Sts2.Core.Models.Events.TheArchitect)
         {Runtime.Guard(()=>RunRecording.Unsupported("event-custom-layout","自定义事件控件尚未支持"));return true;}
         _model=model;_option=option;
         _recorded=RunPatches.Record(kind,()=>RunRecording.Begin(kind,new(RewardIndex:index,RewardKey:State(),Option:option.TextKey)));
@@ -161,6 +161,10 @@ internal static class RunEvents
         _option=button.Option;_model=Model;_recorded=null;_task=null;
         RunPlayback.Native(()=>AccessTools.Method(typeof(NEventOptionButton),"OnRelease").Invoke(button,[]));
         Codec.Require(_task is not null,"event-native-option-task-not-started");
-        await RunPlayback.Await(_task!);
+        // WinRun force-kills the player after recording the native victory, then
+        // opens game over. Finish this submitted business before Stop tears down.
+        if(operation.Terminal=="victory")
+        {await _task!;RunPlayback.CheckStop();}
+        else await RunPlayback.Await(_task!);
     }
 }

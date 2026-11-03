@@ -32,8 +32,8 @@ internal static class RunActs
         {
             if(RunRecording.Enabled)
             {
-                if(LiveState.Run.CurrentActIndex is not (0 or 1)||LiveState.Run.CurrentRoom is not CombatRoom {RoomType:RoomType.Boss,IsPreFinished:true})
-                {Runtime.Guard(()=>RunRecording.Unsupported("act-proceed","最终Boss之后的终局入口待接入"));return true;}
+                if(LiveState.Run.CurrentActIndex is <0 or >2||LiveState.Run.CurrentRoom is not CombatRoom {RoomType:RoomType.Boss,IsPreFinished:true})
+                {Runtime.Guard(()=>RunRecording.Unsupported("act-proceed","前往下一幕/终局不在已完成Boss边界"));return true;}
                 _recorded=RunPatches.Record("act-proceed",()=>RunRecording.Begin("act-proceed",new()));
             }
             return true;
@@ -86,8 +86,8 @@ internal static class RunActs
     internal static async Task Play()
     {
         var run=LiveState.Run;
-        Codec.Require(run.CurrentActIndex is 0 or 1&&run.CurrentRoom is CombatRoom {RoomType:RoomType.Boss,IsPreFinished:true}&&
-            run.CurrentActIndex+1<run.Acts.Count,"act-proceed-not-at-supported-completed-boss");
+        Codec.Require(run.CurrentActIndex is >=0 and <=2&&run.CurrentRoom is CombatRoom {RoomType:RoomType.Boss,IsPreFinished:true}&&
+            run.Acts.Count==3,"act-proceed-not-at-supported-completed-boss");
         _owner=run;_source=run.CurrentActIndex;_transition=null;_ready=false;_voted=false;
         PlayerLoop.ReleaseBattleForTravel();
         try
@@ -101,6 +101,12 @@ internal static class RunActs
             // Once submitted, native asset loading, scene replacement and hooks
             // must settle before Stop can tear down the isolated context.
             await _transition!;RunPlayback.CheckStop();
+            if(_source==run.Acts.Count-1)
+            {
+                Codec.Require(ReferenceEquals(run,LiveState.Run)&&run.CurrentActIndex==_source&&run.CurrentRoom?.IsVictoryRoom==true,
+                    "native-final-event-entry-mismatch");
+                RunPlayback.VerifyFinalEvent();return;
+            }
             Codec.Require(ReferenceEquals(run,LiveState.Run)&&run.CurrentActIndex==_source+1&&run.CurrentRoom is MapRoom&&
                 run.CurrentMapCoord is null&&run.VisitedMapCoords.Count==0,"act-native-entry-boundary-mismatch");
             Runtime.Log("run-native-act-transition-verified",new{FromAct=_source,ToAct=run.CurrentActIndex,

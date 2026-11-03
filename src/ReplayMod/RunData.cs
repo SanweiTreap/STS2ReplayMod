@@ -9,7 +9,8 @@ public sealed record RunOperation(int Sequence,int Visit,string Kind,RunArgument
     string Status,RunDecision[] Decisions,string? Clip=null,BattleRecording? Battle=null,bool? Success=null,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? Progress=null,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? Attempt=null,
-    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? SourceSequence=null);
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? SourceSequence=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? Terminal=null);
 public sealed record RoomVisit(int Id,int Act,int Floor,int Row,int Col,string MapType,string? RoomType,string? Model,
     int Entries,string Status,string? Gap,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string[]? Subrooms=null,
@@ -40,6 +41,8 @@ internal static class RunLifecycle
 {
     internal static bool Terminal(string kind)=>kind is "victory" or "death" or "abandoned";
     internal static string Status(RunDocument run)=>run.Lifecycle?.LastOrDefault()?.Kind??"unknown";
+    internal static RunLifecycleEvent? AtOperation(RunDocument run,RunOperation operation)=>run.Lifecycle?.LastOrDefault(e=>Terminal(e.Kind)&&
+        e.BeforeOperation==(operation.SourceSequence??operation.Sequence)+1&&e.Visit==operation.Visit&&e.Attempt==operation.Attempt);
     internal static bool Append(List<RunLifecycleEvent> events,RunLifecycleEvent item)
     {
         if(item.Kind!="continued"&&events.AsEnumerable().Reverse().TakeWhile(e=>e.Kind!="continued").Any(e=>Terminal(e.Kind)))return false;
@@ -109,6 +112,10 @@ internal sealed class RunStore(string root)
         Codec.Require(run.Format==1&&Regex.IsMatch(run.Id,"^[a-f0-9]{32}$")&&run.Visits.Count<=256&&run.Operations.Count<=2048,"unsupported-run-file");
         Codec.Require(run.Operations.Select(o=>o.Sequence).SequenceEqual(Enumerable.Range(1,run.Operations.Count)),"run-operation-order");
         Codec.Require(run.Operations.All(o=>run.Visits.Any(v=>v.Id==o.Visit)),"run-operation-visit-missing");
+        Codec.Require(run.Operations.All(o=>o.Terminal is null||o is {Terminal:"victory",Kind:"event-choice",After:not null}&&
+            run.Visits.Any(v=>v.Id==o.Visit&&v is {Act:2,MapType:"Victory",RoomType:"Event",Model:"EVENT.THE_ARCHITECT"})&&
+            RunLifecycle.AtOperation(run,o) is {Kind:"victory"} fact&&fact.State==o.After),
+            "run-terminal-operation-unsupported");
         if(run.Opening is {} opening)Codec.Require(opening.Character==run.Character&&opening.Seed.Length is >0 and <=128&&
             opening.Acts.Length is >0 and <=4&&opening.Acts.All(a=>Regex.IsMatch(a,"^ACT\\.[A-Z0-9_]+$"))&&
             opening.GameMode=="Standard"&&opening.Ascension==0&&opening.Progress.Length>0&&opening.Prefs.Length>0&&

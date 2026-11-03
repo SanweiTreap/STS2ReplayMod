@@ -128,6 +128,26 @@ internal static class RunContracts
             catch(InvalidDataException ex) when(ex.Message=="run-lifecycle-invalid"){rejected=true;}
             Need(rejected,"terminal-kind-without-native-snapshot-accepted");
         });
+        Test("final-event-result-requires-the-same-native-terminal-fact-and-remains-bound-to-raw-source-after-SL",()=>
+        {
+            var visit=new RoomVisit(1,2,16,15,3,"Victory","Event","EVENT.THE_ARCHITECT",1,"entered",null);
+            var operation=new RunOperation(1,1,"event-choice",new(Option:"PROCEED"),"before","native-terminal-state","complete",[],Terminal:"victory");
+            var fact=new RunLifecycleEvent("victory",DateTimeOffset.UtcNow,"native-OnEnded(true)",1,2,2,null,"native-terminal-state");
+            var terminal=run with{Visits=[visit],Operations=[operation],Continuations=[],Lifecycle=[fact]};
+            store.Save(terminal);Need(store.Read(id).Operations[0].Terminal=="victory","terminal-boundary-lost");
+            Need(RunLifecycle.AtOperation(terminal,operation with{Sequence=42,SourceSequence=1})==fact,"terminal-matched-selected-instead-of-source-position");
+            Need(RunLifecycle.AtOperation(terminal,operation with{SourceSequence=2}) is null&&
+                RunLifecycle.AtOperation(terminal,operation with{Attempt=2}) is null,"terminal-from-another-position-or-attempt-used");
+            void Reject(RunDocument value)
+            {
+                var rejected=false;try{store.Save(value);}catch(InvalidDataException ex) when(ex.Message=="run-terminal-operation-unsupported"){rejected=true;}
+                Need(rejected,"unproven-final-result-accepted");
+            }
+            Reject(terminal with{Lifecycle=null});
+            Reject(terminal with{Operations=[operation with{After="other-state"}]});
+            Reject(terminal with{Visits=[visit with{RoomType="Boss",MapType="Boss"}]});
+            Reject(terminal with{Lifecycle=[fact with{Kind="death"}]});
+        });
         var opening=new RunStartInput(run.Character,"actual-seed",["ACT.UNDERDOCKS"],"Standard",0,"actual-progress","actual-prefs","NEW_LEAF");
         Test("new-run-inputs-roundtrip-with-preparation-and-account-inputs-without-changing-operations",()=>
         {
