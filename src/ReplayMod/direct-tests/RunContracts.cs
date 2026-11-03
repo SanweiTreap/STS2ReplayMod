@@ -152,6 +152,25 @@ internal static class RunContracts
             Reject(terminal with{Visits=[visit with{RoomType="Boss",MapType="Boss"}]});
             Reject(terminal with{Lifecycle=[fact with{Kind="death"}]});
         });
+        Test("abandon-terminal-requires-native-confirmation-and-matching-terminal-state-position-and-kind",()=>
+        {
+            var operation=new RunOperation(1,1,"abandon",new(Option:"native-confirm-popup"),"before","native-abandon-state","complete",[],Terminal:"abandoned");
+            var fact=new RunLifecycleEvent("abandoned",DateTimeOffset.UtcNow,"native-Abandon-OnEnded(false)",1,0,2,null,"native-abandon-state");
+            var terminal=run with{Visits=[run.Visits[0]],Operations=[operation],Continuations=[],Lifecycle=[fact]};
+            store.Save(terminal);Need(store.Read(id).Operations.Single().Terminal=="abandoned","abandon-terminal-lost");
+            void Reject(RunDocument value)
+            {
+                var rejected=false;try{store.Save(value);}catch(InvalidDataException ex) when(ex.Message=="run-terminal-operation-unsupported"){rejected=true;}
+                Need(rejected,"unproven-abandon-terminal-accepted");
+            }
+            Reject(terminal with{Lifecycle=null});
+            Reject(terminal with{Lifecycle=[fact with{Kind="death"}]});
+            Reject(terminal with{Lifecycle=[fact with{BeforeOperation=1}]});
+            Reject(terminal with{Operations=[operation with{After="different-resources"}]});
+            Reject(terminal with{Operations=[operation with{Argument=new()}]});
+            Reject(terminal with{Operations=[operation with{Kind="event-choice"}]});
+            Reject(terminal with{Visits=[run.Visits[0] with{RoomType="Event"}]});
+        });
         Test("legacy-final-entry-allows-only-native-first-option-opening-not-resource-or-rng-changes",()=>
         {
             var ready=JsonNode.Parse("""{"players":[{"hp":80}],"rng":{"counter":1},"event_state":{"Model":"EVENT.THE_ARCHITECT","Options":[{"TextKey":"THE_ARCHITECT.dialogue.0","IsLocked":false,"IsProceed":false,"WasChosen":false}],"Rng":{"Counter":1}}}""")!;

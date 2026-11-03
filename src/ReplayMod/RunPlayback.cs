@@ -262,7 +262,7 @@ internal static class RunPlayback
                 await Execute(Current);
                 Codec.Require(_decision==Current.Decisions.Length,"run-recorded-choice-not-consumed");
                 if(Current.After is {} expected)Compare(Current.Sequence,"after",expected,
-                    Current.Terminal is not null?RunEndings.PlaybackVictory(Current):Current.Kind=="act-proceed"?RunActs.Result():RunResources.Capture());
+                    Current.Terminal is not null?RunEndings.PlaybackTerminal(Current):Current.Kind=="act-proceed"?RunActs.Result():RunResources.Capture());
                 Runtime.Log("run-operation-verified",new{_run.Id,Current.Sequence,Current.SourceSequence,Current.Attempt,Current.Visit,Current.Kind,ResourcesAndRngMatched=true,NativeBusinessExecuted=true,ExpectedStateInjected=false});
                 if(_index==_run.Operations.Count-1)
                     return await EndAtCurrent();
@@ -332,7 +332,7 @@ internal static class RunPlayback
         if(operation.Kind=="map")await Wait(()=>NMapScreen.Instance is {IsOpen:true,IsTravelEnabled:true} map&&!TweenRunning(map,"_tween")&&!TweenRunning(map,"_actAnimTween"),"run-map-not-ready");
         if(operation.Kind=="rest")await Wait(()=>NRestSiteRoom.Instance is not null,"run-rest-site-not-ready");
         await TakePhase(operation.Kind switch{"reward"=>"领取奖励","act-proceed"=>"前往下一幕","map"=>"地图选路","rest"=>"营火选择","treasure-open"=>"打开宝箱","treasure-pick"=>"领取遗物",
-            "merchant-open"=>"打开商店","merchant-close"=>"关闭商店","merchant-buy"=>"购买商品","merchant-remove"=>"商店删牌","event-choice"=>"事件选项","event-return"=>"返回事件",
+            "merchant-open"=>"打开商店","merchant-close"=>"关闭商店","merchant-buy"=>"购买商品","merchant-remove"=>"商店删牌","event-choice"=>"事件选项","event-return"=>"返回事件","abandon"=>"打开放弃确认",
             "proceed" or "rest-proceed" or "treasure-proceed" or "merchant-proceed" or "event-proceed"=>"离开房间",_=>operation.Kind});
         if(operation.Progress is {} progress)
         {
@@ -349,6 +349,7 @@ internal static class RunPlayback
         if(eventLoad is null)CompareBefore(operation);
         switch(operation.Kind)
         {
+            case "abandon":await RunAbandon.Play(operation);break;
             case "treasure-open":case "treasure-pick":case "treasure-proceed":await RunTreasures.Play(operation);break;
             case "merchant-open":case "merchant-close":case "merchant-proceed":case "merchant-buy":case "merchant-remove":
                 await RunMerchants.Play(operation);break;
