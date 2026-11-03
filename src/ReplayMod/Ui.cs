@@ -243,8 +243,8 @@ internal static class Ui
                         foreach(var point in points)_seekPoints.AddItem(point.Value,point.Key+1);
                         var item=Array.FindIndex(points,p=>p.Key+1==selected);if(points.Length>0)_seekPoints.Select(Math.Max(0,item));
                     }
-                    _seekPoints.Disabled=NativeSeek.Restoring||NativeSeek.Stopping;
-                    _seekGo!.Disabled=points.Length==0||NativeSeek.Restoring||NativeSeek.Stopping;
+                    _seekPoints.Disabled=NativeSeek.Restoring||NativeSeek.Stopping||NativeSeek.DeathTransition;
+                    _seekGo!.Disabled=points.Length==0||NativeSeek.Restoring||NativeSeek.Stopping||NativeSeek.DeathTransition;
                 }
             }
             else if(DecisionRoute.Enabled)

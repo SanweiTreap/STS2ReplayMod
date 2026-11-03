@@ -32,8 +32,8 @@ internal static class DeathRecordingContracts
         Test("existing-format10-payload-and-checksum-remain-exact",()=>
             Codec.Require(Codec.Bytes(sample).AsSpan().IndexOf("\"Defeat\""u8)<0,"false-death-field-was-added"));
         Test("last-fatal-action-is-a-distinct-terminal-result",()=>Valid(death));
-        Test("death-is-not-silently-opened-in-unimplemented-player",()=>
-            Codec.Require(NativePlaybackSupport.Reason(death) is not null,"death-playback-unintentionally-enabled"));
+        Test("format10-native-death-is-admitted-with-its-terminal-marker",()=>
+            Codec.Require(NativePlaybackSupport.Reason(death) is null,"native-death-playback-still-blocked"));
         Test("victory-and-death-cannot-share-the-last-action",()=>Reject(death with{Operations=[fatal with{Victory=true}]}));
         Test("death-cannot-be-an-intermediate-operation",()=>Reject(death with{Operations=[fatal,fatal with{Sequence=2}]}));
         Test("death-cannot-be-labelled-an-interrupted-or-victory-clip",()=>
@@ -55,11 +55,11 @@ internal static class DeathRecordingContracts
         var read=new ClipStore(Path.GetDirectoryName(Path.GetFullPath(original))!).Read(sample.Id,sample.GameHash,"next-death-playback-build",sample.Scope,recordingMod);
         Codec.Require(read.Format==10&&read.ModHash==recordingMod&&read.Battle?.Completion=="death"&&read.Operations[^1] is {Defeat:true,Victory:false}&&
             Codec.Bytes(read).SequenceEqual(Codec.Bytes(sample)),"native-death-recording-production-readback");
-        Codec.Require(NativePlaybackSupport.Reason(read) is not null,"recording-only-candidate-unexpectedly-offers-death-playback");
+        Codec.Require(NativePlaybackSupport.Reason(read) is null,"native-death-recording-not-admitted");
         Codec.Require(File.ReadAllBytes(original).SequenceEqual(bytes),"native-death-recording-was-mutated");
         File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_ACTUAL_DEATH_RECORDING_PRODUCTION_READ_ONLY",read.Id,read.Format,
             Operations=read.Operations.Length,Completion=read.Battle!.Completion,FinalDefeat=read.Operations[^1].Defeat,
-            OriginalSHA256=Codec.Hash(bytes),OriginalUnchanged=true,DeathPlaybackStillPending=true}));
+            OriginalSHA256=Codec.Hash(bytes),OriginalUnchanged=true,NativeDeathPlaybackNotExecutedByThisCheck=true}));
         Console.WriteLine("PASS_ACTUAL_DEATH_RECORDING_PRODUCTION_READ_ONLY");
     }
 }

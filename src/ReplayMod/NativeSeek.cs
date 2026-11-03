@@ -31,6 +31,7 @@ internal static class NativeSeek
     private static Navigation? _openingNavigation;
     private static bool _rebuildingOpening,_openingReentryPending;
     private static long _openingRequestedAt;
+    private static bool _deathAutoSummary;
     internal static bool Opening {get;private set;}
     internal static bool OpeningWaiting=>Opening&&HasView&&_requests.ManualWaiting;
     internal static bool Enabled {get;private set;}
@@ -39,13 +40,17 @@ internal static class NativeSeek
     internal static bool HasView=>_choice is {Closed:false,Cancelled:false}&&_choiceReady&&!_choiceMoving;
     internal static bool Ready=>Enabled&&!_stopping&&!_restoring&&(Opening?HasView:!InFlight||HasView);
     internal static bool InFlight=>Host>_completed;
-    private static bool Quiescent=>!ActionMonitor.Outstanding&&(LiveState.Playable||PlayerLoop.VictoryReached&&BattleEnd.Ready);
+    private static bool Quiescent=>!ActionMonitor.Outstanding&&(LiveState.Playable||PlayerLoop.VictoryReached&&BattleEnd.Ready||DefeatReached&&BattleEnd.DeathReady);
     internal static bool CanRestore=>Enabled&&_restoring&&Quiescent;
     internal static bool Finished=>Enabled&&_completed==_clip.Operations.Length;
+    internal static bool DefeatReached=>Enabled&&_completed>0&&_clip.Operations[_completed-1].Defeat;
+    internal static Operation? ExpectedDeath=>Enabled&&ActionMonitor.Pending is {Executing:true,PlaybackIndex:>=0} p&&
+        p.PlaybackIndex<_clip.Operations.Length&&_clip.Operations[p.PlaybackIndex].Defeat?_clip.Operations[p.PlaybackIndex]:null;
+    internal static bool DeathTransition=>ExpectedDeath is not null||RunEndings.DeathActive;
     internal static bool AllMatched=>Finished;
     internal static bool CanStep=>Enabled&&(!PlayerLoop.Loading||Opening&&Ready)&&!_stopping&&!_restoring&&_seek is null&&!Finished&&_requests.Stage<_requests.Route[^1].Stage;
     internal static bool CanFine=>CanStep&&Ready&&_requests.CanRequestFine;
-    internal static bool CanBack=>Enabled&&(!RunPlayback.Active||!Opening&&(InFlight||_completed>0))&&!_stopping&&!_restoring&&_seek is null&&_openingNavigation is null&&
+    internal static bool CanBack=>Enabled&&!DeathTransition&&(!RunPlayback.Active||!Opening&&(InFlight||_completed>0))&&!_stopping&&!_restoring&&_seek is null&&_openingNavigation is null&&
         (Opening?HasView:InFlight||_completed>=0);
     internal static bool Stopping=>_stopping;
     internal static bool Restoring=>_restoring;
@@ -76,7 +81,7 @@ internal static class NativeSeek
     }
     internal static void Clear()
     {
-        Enabled=false;_generation++;Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;
+        Enabled=false;_generation++;Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;_deathAutoSummary=false;
         _loadRoom=null!;_resetRoom=null!;
         NativePhaseRetirement.Clear();_applyingRestore=false;_coverRetirement=false;
         Opening=false;_openingNavigation=null;_rebuildingOpening=false;_openingReentryPending=false;_openingRequestedAt=0;
@@ -95,6 +100,7 @@ internal static class NativeSeek
     }
     internal static void RequestSeek(int host,bool preserveIntent=true)
     {
+        if(DeathTransition){Runtime.Log("operation-death-navigation-disabled",new{Target=host,NativeGameOverOwned=true,OnlyStopExits=true});return;}
         Codec.Require(!RunPlayback.Active||host>=0,"run-cross-room-opening-navigation-disabled");
         Codec.Require(Enabled&&!_restoring&&!_stopping&&(host==-1||Points.ContainsKey(host)),"operation-seek-only-complete-indexed-boundaries");
         var priorIntent=_seek?.Intent??_requests.Intent;
@@ -178,6 +184,11 @@ internal static class NativeSeek
         {
             while(!_stopping)
             {
+                if(DefeatReached)
+                {
+                    if(RunPlayback.Active)break;
+                    if(_deathAutoSummary){_deathAutoSummary=false;await RunEndings.OpenSummaryAutomatically();Status();}
+                }
                 if(Finished&&RunPlayback.WantsNext)break;
                 PlayerLoop.RequireHealthy();
                 if(_choice?.Driver is {IsFaulted:true} failed)await failed;
@@ -215,7 +226,7 @@ internal static class NativeSeek
     private static void Status()=>Runtime.Status=Opening?
         (HasView?"开场选择 · >细进／>>完成开场":"正在原生初始化开场"):
         $"原生回放 · 已完成 {_completed}/{_clip.Operations.Length} · "+
-        (PlayerLoop.VictoryReached?"战斗胜利；可Back再播或Stop":InFlight?$"正在操作{Host}":Finished?"片段结束":"完整操作边界");
+        (DefeatReached?"原生死亡；可查看结算详情，点Stop退出":PlayerLoop.VictoryReached?"战斗胜利；可Back再播或Stop":InFlight?$"正在操作{Host}":Finished?"片段结束":"完整操作边界");
     private static void Capture(int host)
     {
         Points[host]=new(host,PlayerLoop.EnsureRoster(),route:true,extraRoots:[LiveState.Run.CurrentRoom!]);
@@ -231,13 +242,15 @@ internal static class NativeSeek
     internal static void Completed(PendingOperation pending,Operation actual)
     {
         var host=pending.PlaybackIndex+1;var expected=_clip.Operations[host-1];
-        Codec.Require(host==_completed+1&&actual.After==expected.After&&actual.Victory==expected.Victory,"operation-result-or-rng-mismatch");
+        Codec.Require(host==_completed+1&&actual.After==expected.After&&actual.Victory==expected.Victory&&actual.Defeat==expected.Defeat,"operation-result-or-rng-mismatch");
         Codec.Require(!actual.Victory||host==_clip.Operations.Length,"victory-before-recording-end");
         _completed=host;Host=host;PlayerLoop.VictoryReached=actual.Victory;
-        if(host==_clip.Operations.Length)RunPlayback.AtBattleBoundary(Auto);
+        if(host==_clip.Operations.Length){RunPlayback.AtBattleBoundary(Auto);_deathAutoSummary=actual.Defeat&&Auto;}
         // The terminal result is the frozen native pre-reward victory projection. Restore
         // targets remain playable boundaries; the win is reached again through native business.
-        if(!_retiring&&!_restoring){if(!actual.Victory)Capture(host);Arrive(_requests.Route.Single(p=>p.Complete&&p.Host==host));}
+        if(!_retiring&&!_restoring){if(!actual.Victory&&!actual.Defeat)Capture(host);Arrive(_requests.Route.Single(p=>p.Complete&&p.Host==host));}
+        if(actual.Defeat)Runtime.Log("native-battle-death-verified",new{_clip.Id,Host,TotalOperations=_clip.Operations.Length,
+            AllOperationsMatched=AllMatched,ActualDeathProjectionMatched=true,NativeGameOverShown=RunEndings.GameOverActive,BackEnabled=false});
         if(actual.Victory)Runtime.Log("native-battle-victory-verified",new{_clip.Id,Host,TotalOperations=_clip.Operations.Length,
             AllOperationsMatched=AllMatched,PlayerLoop.VictoryReached,OriginalVictoryProjectionMatched=true,
             NativeVictoryTaskSucceeded=BattleEnd.VictoryTask?.IsCompletedSuccessfully==true,BackTarget=host-1,RewardsAllowed=false});

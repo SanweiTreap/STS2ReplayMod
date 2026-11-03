@@ -97,8 +97,10 @@ internal static class PlayerLoop
         try
         {
             Runtime.CheckEnvironment();Codec.Require(RunManager.Instance.DebugOnlyGetState() is null,"open-from-main-menu-only");
+            RunEndings.Clear();
             if(chain is not null)RunPlayback.Begin(chain,chainStart);
             var clip=Runtime.ReadClip(id);
+            Codec.Require(!clip.Operations.Any(o=>o.Defeat)||nativeSeek,"death-playback-requires-native-actions");
             Codec.Require(clip.Battle?.Entry!="event","event-battle-open-through-parent-route-only");
             _playingClip=clip;LiveState.Format=clip.Format;Cursor=new(clip.Operations.Length);
             var fromOpening=chain is not null&&chainStart==0;
@@ -199,7 +201,7 @@ internal static class PlayerLoop
                 try{NativeChoice.Cancel(legacyChoice);}catch(Exception ex){Error="choice-cleanup-"+ex.GetBaseException().GetType().Name;Runtime.Log("choice-cleanup-failed",new{Reason=Error});}
             try
             {
-                if(memory is not null){await ClearRoom(memory);await RunPlayback.DrainAfterSceneExit();await memory.Drain();restored=memory.Restore();Codec.Require(restored,"normal-Continue-or-original-progress-changed");}
+                if(memory is not null){await ClearRoom(memory);await RunPlayback.DrainAfterSceneExit();await RunEndings.DrainAfterSceneExit();await memory.Drain();restored=memory.Restore();Codec.Require(restored,"normal-Continue-or-original-progress-changed");}
                 var load=(Task)AccessTools.Method(typeof(NGame),"LoadMainMenu",[typeof(bool)]).Invoke(NGame.Instance,[false])!;await load;
                 if(Error is null)Runtime.Status=complete?"回放完成并退出。正常Continue保留，可再次打开":"回放已停止。正常Continue保留，可再次打开";
             }
