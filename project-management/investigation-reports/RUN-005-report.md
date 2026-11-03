@@ -2,15 +2,15 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包进行中，当前 **build-012，死亡结算模型坐标修复候选，待手测**。**011/r14原生死亡动作/详情/EOF/Stop恢复已通过，视觉FAIL保留**：模型移层时位置正确，旧AnimShake随后把新父节点下的局部位置写回(0,0)，不是被删除/隐藏。012只在原生移层前结束这段旧坐标抖动，保留原倒下动画/HUD淡出/原生Reparent。010/r13死亡录制已获证，009/r11/r12胜利尾段/only-Stop/在途退出已有证；主动放弃与真正完整新局三幕仍待，不当整包完成。
+- 本包进行中，当前 **build-013，死亡说明/结算翻页动作及原生终局摘要修复候选，待手测**。**012/r15模型修复及六次死亡观看/恢复通过**，旧坐标视觉FAIL保留；另发现ShouldSave=false遗漏原生History工厂，死因缺失导致调试兜底文案。用户新明确“继续”不能直接点、须由>/>>/Back控制，PM已同步规格。013在隔离内存生成本次真实终局History，结局0→1翻页用原生handler、Back只重建展示overlay、不复活战斗；尚无此新路径实测。主动放弃及真正完整新局三幕仍待，不当整包完成。
 - Act0/1/2及两次换幕代表链已有证；最后奖励投票/EnterNextAct分支原生进入TheArchitect，独立visit/attempt，不增加幕索引/强制房型/加载后幕checkpoint。与Boss共用原生地图坐标，楼层取实际值（r6 Boss15层/终局16层），不自行增减楼层。
-- Lifecycle的Continue/saved-exit及死亡录制/观看已有证；胜利After冻结真正OnEnded(true)前资源/RNG，末动作等待WinRun后续强杀/gameover。死亡After冻结真正OnEnded(false)前LiveState和RunResources，r13与同visit/attempt原始来源位置的Lifecycle严格相同。011/r14实际复用原致死EndTurn/结算，同边界资源/RNG/死亡投影匹配，ShouldSave=false隔离manager，4个任务完成/零取消故障后恢复所比较Continue/Progress；不能因此把模型视觉当通过。主动放弃仍待独立样本。
+- Lifecycle的Continue/saved-exit及死亡录制/观看已有证；胜利/死亡均在原生OnEnded前冻结实际资源/RNG，死亡还核同visit/attempt原始来源Lifecycle。r15六次手动/Auto死亡核对及Stop恢复正常，任务各自收束/零取消故障；模型在移层后仍留原位。原生死因文案及新翻页控制仍待013运行；主动放弃待独立样本。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
 - 原生TheArchitect为Combat布局但不是内部可战斗场景；003只开放该确切原生事件布局与实际按钮/选择任务，视觉生物不纳入战斗召唤追踪。结算页演出/摘要任务加入本次owner收束，原生返回菜单/时间线出口交现有Stop；终局演出中一次公开Stop开关供之后短测，未改正式UI/模式。
-- 主体/DirectContracts Release最终均0warnings/0errors；011九项死亡数据策略、r13真实死亡片/合法source5起点root及原r6胜利片生产reader通过，原件不变。死亡片当前开放原生观看；这些数据检查不当原生观看通过。旧策略/分支结果与失败保留，不重复无关矩阵。
+- 主体013 Release最终0warnings/0errors，git diff检查通过；DirectContracts及011数据reader既有结果保持。r15原件字节/校验保持，无格式变化，不为013原生UI增量重复数据合同；新history工厂、说明/详情>/>>/Back/Auto及退出恢复仍待实际短测。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
-- 死亡Run `b77bd626b0614153a25adf0c598099eb`、clip `80f28133c9b44249ba764fc1d3e32ca4`、root及原片不变；Opening=null、显式准备gap，不当完整新局。r14归档65文件、49已知文件相对011安装仅settings及backup变化；真实死亡的Progress保留，无restore。012唯一pair核对、011另存，原胜利/死亡history均不变、Continue/backup仍无；最新补存 `RUN005-post-build012-current-20261103-202443`，安装前相对r14全不变、安装后仅settings.save变化，game0。
-- 下一步：复用同死亡局Auto观察倒下后模型在结算页留位，Stop，重开Step一步/Stop（r14会话只观察到一次Auto，未获重开短测记录）。致死动作开始后暂禁Back/Seek，终点前进/Auto关闭、仅Stop退出。随后主动放弃及真正完整新局；不重录本片/重跑胜利矩阵。
+- 死亡Run `b77bd626b0614153a25adf0c598099eb`、clip `80f28133c9b44249ba764fc1d3e32ca4`及原片不变；Opening=null、显式准备gap，不当完整新局。r15归档354文件/349事件，49已知文件相对012安装仅settings及backup变化，原生Progress/history保持。013唯一pair核对、012另存，胜利/死亡history不变、Continue/backup仍无；最新补存 `RUN005-post-build013-current-20261103-205451`，安装前相对r15全不变、安装后仅settings.save变化，game0、无restore/另一账号读取。
+- 下一步：复用死亡局，手动到说明页确认原生“继续”锁定；>/>>入详情、完成后Back回说明，再用另一种前进重做，核无调试兜底文案后Stop；重开Auto至详情/Stop并退出。致死动作之后仍不回退复活战斗，结局Back仅回退展示；随后主动放弃及真正完整新局。
 
 ## 首候选实现与边界
 
@@ -195,6 +195,28 @@ GameOverVisuals仅在死亡页出现前、原生Visuals移层后、AnimateIn完�
 主体Release0warnings/0errors，git diff检查通过。此增量只有两个显示/终局hook源码文件，无格式/资源/RNG/数据reader变化，未重复无关合同矩阵；原生视觉仍待用户复用同片观看，不能把构建当修复通过。
 
 安装 `preparation/build-012-70c6b317.json`：DLL `A4C4C327519CB21AE787C1D95189D2756A1511978BF6B70F0944223CD57EDF79`、manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一mods/ReplayMod pair一致、无平铺重复，原011另存核hash，原胜利/死亡history均不变、Continue/backup仍无。49已知文件安装前相对r14全不变，安装后仅settings.save变化，game0、无restore/另一账号读取。备份 `RUN005-pre-build012-current-20261103-202404` / `RUN005-post-build012-current-20261103-202443`，核对见 `preparation/*build012*.json`。
+
+## r15：012模型修复通过，缺原生History及结局控制修订
+
+会话 `4a6b6b2dfdc54c85923e35aaf981a14d`（61事件）和 `ac39c65414a540cc84fbc2f7a7027fa5`（288事件），共六次原生单步EndTurn死亡，Auto两次、手动>或>>四次。每次动作投影/资源/RNG核对、Stop及原manager/所比较Continue/Progress恢复均通过；owner任务分别4/1/2/5/5/4个，0取消/故障。5次有完整AnimateIn结束观察的Visuals仍在约(479.7726,740)、Visible=true/alpha1，不再到零；另一次提前Stop不补造完整动画证据。用户确认模型正常。原root/clip校验不变。
+
+用户发现手动死亡后点原生“继续”出现“试图修复漏洞”调试兜底文案，当前Godot日志5次“How did the game end??”。源码定位：OnEnded在ShouldSave=false时整块跳过CreateRunHistoryEntry，观看中RunManager.History仍null；NGameOverScreen._Ready回退new RunHistory{Win=false}，没有KilledByEncounter/Event，NRunHistory.GetGameOverType返回None，GetDeathQuote因此取MAP_POINT_HISTORY.debug。这是缺实际终局摘要，不应换自定义文案掩盖。
+
+同时用户明确修订：观看时死亡后的原生“继续”不能直接点击，必须作为>/>>/Back控制的动作；Auto沿同一路径。此优先于先前D159的手动直接Continue许可，已交PM并获规格同步；只Stop退出保持。013按此实现，原r15手动Continue并非伪称已符合新规则。
+
+证据 `runtime-verification-r15.json`、`collection-r15.json`，354数据文件归档/49已知文件补存，仅settings及backup变化；原死亡Progress/history及root/clip不变，game0、无restore/另一账号读取。最新 `RUN005-post-r15-current-20261103-203402`。模型/原生业务通过不代替缺文案及新控制的通过。
+
+## 013：原生实际History与受控结局翻页（待手测）
+
+OnEnded后置hook只在已核真实终局、ShouldSave=false且全局SaveManager严格等于本次IsolatedManager时，用本次原生返回的SerializableRun调用原生RunHistoryUtilities.CreateRunHistoryEntry。既有MemorySession由MockGodotFileIo同时作为FileIo/SaveStore；该工厂只在内存写history并设置RunManager.History，未启用原生统计/成就/指标上传/删除普通Continue的外层分支。核胜负/放弃标记与实际死亡Encounter，记录原生GameOverType。没有读录制后的history文件/expected补演，没有自己拼死因/徽章或改本地化文案。首次终局flag保护WinRun后续强杀，不重复建死亡History；正常录制继续原来ShouldSave=true流程。
+
+EndingPlayback提供信息0→详情1的观看动作节点：手动>/>>调用原生OpenSummaryScreen一次，Auto也调用同一handler；详情完成后Auto关闭并留场。原生Continue与MainMenu均Disable，Continue方法另有只允许本次播放器动作进入的prefix，鼠标/键盘不能绕过；Stop保持原入口。结局动作是对当前实际原生UI的观看导航，不往旧r13文件中伪造当时未记录的点击事实、不改录像格式/校验。
+
+Back在详情原生任务完成后可用：把原生移进overlay的现有CreatureVisuals按当前全局变换交回原Creature，然后通过NOverlayStack.Remove释放旧结算页，用同一RunState及本次实际OnEnded返回DTO重新调用原生ShowGameOverScreen；不重复OnEnded/建History/致死动作、不加载战斗checkpoint、不复活战斗。回退前后严格核实际RunResources/RNG不变。原生信息页入场/装饰仍由工厂执行；新翻页的在途Back暂不开放，普通战斗终局恢复仍未支持。正式进度条/管理入口不在此改动。
+
+主体Release最终0warnings/0errors（新Back显示检查的nullable编译错误已通过显式节点owner检查修正），git diff检查通过；无数据格式变化，未重复无关合同。新原生History工厂、手动翻页/Back/Auto和账户恢复仍未手测，不把编译当运行通过；后续须核实际NativeGameOverType=CombatDeath与原死亡history物理hash不变。
+
+安装 `preparation/build-013-1de19212.json`：DLL `7BBF061A5668779C5FA6669727B7ADBD8166C01923A3A668B0F2E34739B694D5`、manifest `69185E5024D560BC5C9B81FC64CC2F732745BCFBA31E64F069CAEF6AAEABE8FB`。唯一mods/ReplayMod pair一致，无平铺重复；012另存核hash，原胜利/死亡history均不变、Continue/backup仍无。49已知文件安装前相对r15全不变，安装后仅settings.save变化，game0、无restore/另一账号读取。备份 `RUN005-pre-build013-current-20261103-205315` / `RUN005-post-build013-current-20261103-205451`，收据/核对见 `preparation/*build013*.json`。
 
 ## 后续必须完成
 

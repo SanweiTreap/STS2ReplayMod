@@ -187,7 +187,9 @@ internal static class NativeSeek
                 if(DefeatReached)
                 {
                     if(RunPlayback.Active)break;
-                    if(_deathAutoSummary){_deathAutoSummary=false;await RunEndings.OpenSummaryAutomatically();Status();}
+                    try{await EndingPlayback.Run(_deathAutoSummary);}
+                    catch(OperationCanceledException) when(_stopping){}
+                    break;
                 }
                 if(Finished&&RunPlayback.WantsNext)break;
                 PlayerLoop.RequireHealthy();

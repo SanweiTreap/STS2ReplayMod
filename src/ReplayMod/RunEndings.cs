@@ -6,10 +6,12 @@ using System.Text.Json;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Screens.GameOverScreen;
+using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Models.Events;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.Saves;
 
 namespace ReplayMod;
 
@@ -20,6 +22,9 @@ internal static class RunEndings
     private static string? _kind,_state;
     private static int? _operation;
     private static bool _gameOver;
+    private static bool _historyCreated;
+    private static SerializableRun? _actualTerminalRun;
+    private static bool _continueInvoking;
     internal static bool GameOverActive=>PlayerLoop.Active&&_gameOver&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState());
     internal static bool DeathActive=>PlayerLoop.Active&&_kind=="death"&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState());
     private static TheArchitect? _openingModel;
@@ -29,11 +34,15 @@ internal static class RunEndings
     private static bool _summaryAuto;
     private static readonly HashSet<Task> ClipTasks=[];
     internal static bool SummaryComplete=>_summary?.IsCompletedSuccessfully==true;
-    internal static void Clear(){_owner=null;_kind=null;_state=null;_operation=null;_gameOver=false;_openingModel=null;_opening=null;_openingEntry=null;_summary=null;_summaryAuto=false;ClipTasks.Clear();}
+    internal static bool SummaryStarted=>_summary is not null;
+    internal static SerializableRun ActualTerminalRun=>_actualTerminalRun??throw new InvalidDataException("native-terminal-run-not-captured");
+    internal static void ResetSummary(){_summary=null;_summaryAuto=false;_continueInvoking=false;}
+    internal static void Clear(){_owner=null;_kind=null;_state=null;_operation=null;_gameOver=false;_historyCreated=false;_actualTerminalRun=null;_openingModel=null;_opening=null;_openingEntry=null;ResetSummary();ClipTasks.Clear();EndingPlayback.Clear();}
     internal static void Install(Harmony h)
     {
         h.Patch(AccessTools.DeclaredMethod(typeof(RunManager),"OnEnded"),
-            prefix:new HarmonyMethod(typeof(RunEndings),nameof(NativeEnd)));
+            prefix:new HarmonyMethod(typeof(RunEndings),nameof(NativeEnd)),
+            postfix:new HarmonyMethod(typeof(RunEndings),nameof(NativeHistory)));
         h.Patch(AccessTools.DeclaredMethod(typeof(NRun),"ShowGameOverScreen"),
             prefix:new HarmonyMethod(typeof(RunEndings),nameof(GameOverBefore)),
             postfix:new HarmonyMethod(typeof(RunEndings),nameof(GameOver)));
@@ -95,7 +104,7 @@ internal static class RunEndings
             _owner=LiveState.Run;_kind=isVictory?"victory":__instance.IsAbandoned?"abandoned":"death";
             // Freeze at the same native boundary on record and playback, before
             // statistics/history/platform writes and WinRun's subsequent kill.
-            _state=RunResources.Capture();_gameOver=false;
+            _state=RunResources.Capture();_gameOver=false;_historyCreated=false;
             if(PlayerLoop.Active)
             {
                 Codec.Require(!__instance.ShouldSave&&ReferenceEquals(MegaCrit.Sts2.Core.Saves.SaveManager.Instance,PlayerLoop.IsolatedManager),
@@ -139,6 +148,30 @@ internal static class RunEndings
             }
         });
     }
+    private static void NativeHistory(RunManager __instance,bool isVictory,SerializableRun __result)
+    {
+        if(!PlayerLoop.Active||_historyCreated||_owner is null||!ReferenceEquals(_owner,__instance.DebugOnlyGetState()))return;
+        Runtime.Guard(()=>
+        {
+            Codec.Require(PlayerLoop.Error is null&&!__instance.ShouldSave&&ReferenceEquals(SaveManager.Instance,PlayerLoop.IsolatedManager)&&
+                _state is not null&&(_kind=="victory"&&isVictory||_kind=="death"&&!isVictory),"native-game-over-history-owner-or-kind");
+            // ShouldSave=false skips this native factory along with account statistics,
+            // uploads and Continue deletion. Run ONLY the factory against the current
+            // isolated manager, using the ACTUAL result of this native OnEnded call.
+            RunHistoryUtilities.CreateRunHistoryEntry(__result,isVictory,__instance.IsAbandoned,__instance.NetService.Platform);
+            _actualTerminalRun=__result;
+            var history=__instance.History;
+            Codec.Require(history is not null&&history.Win==isVictory&&history.WasAbandoned==__instance.IsAbandoned&&
+                (_kind!="death"||_owner.CurrentRoom is CombatRoom room&&history.KilledByEncounter==room.Encounter.Id),
+                "native-game-over-history-result-or-death-cause");
+            _historyCreated=true;
+            Runtime.Log("run-native-game-over-history-created",new{Kind=_kind,history!.Win,history.WasAbandoned,
+                KilledByEncounter=history.KilledByEncounter.ToString(),KilledByEvent=history.KilledByEvent.ToString(),
+                NativeGameOverType=NRunHistory.GetGameOverType(history).ToString(),
+                Players=history.Players.Count,FromActualOnEndedResult=true,NativeFactory=true,IsolatedManagerOnly=true,
+                AccountStatisticsUpdated=false,MetricsUploaded=false,OrdinaryContinueDeleted=false,BeforeNativeScreen=true});
+        });
+    }
     private static void GameOverBefore()
     {
         if(_kind=="death"&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))GameOverVisuals.Capture("before-native-game-over");
@@ -153,14 +186,15 @@ internal static class RunEndings
         if(_owner is null||!ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))return;
         _gameOver=true;
         if(_kind=="death"){BattleEnd.DeathScreen();GameOverVisuals.Capture("after-native-model-transfer");}
-        if(PlayerLoop.Active&&NOverlayStack.Instance?.Peek() is NGameOverScreen screen)DisableNativeExit(screen,"game-over-entry");
+        if(PlayerLoop.Active&&NOverlayStack.Instance?.Peek() is NGameOverScreen screen)DisableNativeControls(screen,"game-over-entry");
         Runtime.Log("run-native-game-over-shown",new{Kind=_kind,Operation=_operation,Playback=PlayerLoop.Active,
             NativeScreen=true,VictoryRoom=_owner.CurrentRoom?.IsVictoryRoom==true});
     }
-    private static void ScreenTask(MethodBase __originalMethod,Task __result)
+    private static void ScreenTask(NGameOverScreen __instance,MethodBase __originalMethod,Task __result)
     {
         if(!ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))return;
         Track(__result);
+        if(__originalMethod.Name=="AnimateIn")EndingPlayback.ScreenOpened(__instance,__result);
         if(_kind=="death"&&__originalMethod.Name=="AnimateIn")_=GameOverVisuals.After(__result,_owner!,"native-game-over-animation-completed");
     }
     private static void SummaryTask(NGameOverScreen __instance,ref Task __result)
@@ -170,18 +204,20 @@ internal static class RunEndings
         async Task Observe()
         {
             await native;
-            DisableNativeExit(__instance,"summary-completed");
+            DisableNativeControls(__instance,"summary-completed");
             Runtime.Log("run-native-summary-shown",new{NativeSummaryTaskCompleted=true,
                 IsolatedManagerOnly=ReferenceEquals(MegaCrit.Sts2.Core.Saves.SaveManager.Instance,PlayerLoop.IsolatedManager),
                 RecordedEndpoint=RunPlayback.Finished||NativeSeek.Finished,AdditionalRunDecision=false,AutoRequested=_summaryAuto});
         }
     }
-    private static void DisableNativeExit(NGameOverScreen screen,string phase)
+    internal static void DisableNativeControls(NGameOverScreen screen,string phase)
     {
         if(!GameOverActive||!GodotObject.IsInstanceValid(screen)||!screen.IsNodeReady()||
             RunPatches.Field(screen,"_mainMenuButton") is not NButton button)return;
         button.Disable();
-        Runtime.Log("run-native-exit-disabled",new{Phase=phase,NativeButtonDisabled=!button.IsEnabled,OnlyStopExits=true});
+        var next=RunPatches.Field(screen,"_continueButton") as NButton;next?.Disable();
+        Runtime.Log("run-native-exit-disabled",new{Phase=phase,NativeButtonDisabled=!button.IsEnabled,OnlyStopExits=true,
+            NativeContinueDisabled=next?.IsEnabled==false,ContinueUsesPlaybackControls=true});
     }
     private static bool NativeExitBlocked()
     {
@@ -190,35 +226,31 @@ internal static class RunEndings
     }
     private static bool SummaryOnce(NGameOverScreen __instance)
     {
+        if(GameOverActive&&!_continueInvoking)
+        {Runtime.Log("ending-native-continue-click-blocked",new{UsePlaybackControls=true});return false;}
         if(!GameOverActive||_summary is null&&RunPatches.Field(__instance,"_isAnimatingSummary") is not true)return true;
         Runtime.Log("run-native-summary-repeat-ignored",new{RecordedEndpoint=RunPlayback.Finished,NativeSummaryAlreadyStarted=true});return false;
     }
-    internal static async Task OpenSummaryAutomatically()
+    internal static async Task Continue(bool auto)
     {
-        Codec.Require(GameOverActive&&(RunPlayback.Finished||NativeSeek.Finished),"auto-summary-outside-recorded-native-game-over");
-        NGameOverScreen? screen=null;NButton? button=null;
-        Runtime.Status="正在自动展开原生结算详情";
-        await Wait(()=>
-        {
-            if(_summary is not null)return true; // A manual click may already have started it.
-            screen=NOverlayStack.Instance?.Peek() as NGameOverScreen;
-            if(screen is null||!GodotObject.IsInstanceValid(screen)||!screen.IsNodeReady())return false;
-            button=RunPatches.Field(screen,"_continueButton") as NButton;
-            return button?.IsEnabled==true;
-        },"native-game-over-continue-not-ready");
+        Codec.Require(GameOverActive&&EndingPlayback.Active&&!SummaryStarted,"continue-outside-owned-ending-information-node");
+        var screen=NOverlayStack.Instance?.Peek() as NGameOverScreen;
+        Codec.Require(screen is not null&&GodotObject.IsInstanceValid(screen)&&screen.IsNodeReady(),"native-ending-screen-not-ready");
+        var button=RunPatches.Field(screen!,"_continueButton") as NButton;
+        Codec.Require(button is not null&&!button.IsEnabled,"native-ending-continue-not-locked");
         CheckStop();
-        var startedHere=_summary is null;
-        if(startedHere)
+        _summaryAuto=auto;_continueInvoking=true;
+        try
         {
-            _summaryAuto=true;
             RunPlayback.Native(()=>AccessTools.Method(typeof(NGameOverScreen),"OpenSummaryScreen").Invoke(screen,[button]));
         }
+        finally{_continueInvoking=false;}
         Codec.Require(_summary is not null,"native-summary-handler-did-not-start");
-        Runtime.Log("run-native-summary-auto-started",new{NativeContinueHandlerCalled=startedHere,
-            ReusedExistingNativeTask=!startedHere,AdditionalRunDecision=false,OnEndedRepeated=false});
+        Runtime.Log("ending-native-continue-started",new{NativeContinueHandlerCalled=true,Auto=auto,
+            PlaybackAction=true,OnEndedRepeated=false});
         while(!_summary!.IsCompleted){CheckStop();await Runtime.NextFrame();}
         await _summary;
-        Runtime.Log("run-native-summary-auto-completed",new{NativeSummaryTaskCompleted=true,SceneKeptOpen=true,AutomaticExit=false});
+        Runtime.Log("ending-native-continue-completed",new{NativeSummaryTaskCompleted=true,SceneKeptOpen=true,AutomaticExit=false});
     }
     private static bool ExitAfterRun(ref Task __result)
     {
@@ -232,14 +264,14 @@ internal static class RunEndings
         if(RunPlayback.Active){RunPlayback.Track(task);return;}
         if(ClipTasks.Add(task))_=task.ContinueWith(t=>{_=t.Exception;},TaskContinuationOptions.OnlyOnFaulted);
     }
-    private static void CheckStop()
+    internal static void CheckStop()
     {
         if(PlayerLoop.TearingDown||NativeSeek.Stopping||RunPlayback.Active&&RunPlayback.Stopping)throw new OperationCanceledException();
         PlayerLoop.RequireHealthy();
         if(ClipTasks.FirstOrDefault(t=>t.IsFaulted) is {} failed)throw new InvalidDataException("native-game-over-task-failed",failed.Exception);
         if(RunPlayback.Active)RunPlayback.CheckStop();
     }
-    private static async Task Wait(Func<bool> ready,string reason)
+    internal static async Task Wait(Func<bool> ready,string reason)
     {
         var at=Stopwatch.GetTimestamp();
         while(!ready()){CheckStop();Codec.Require(Stopwatch.GetElapsedTime(at).TotalSeconds<45,reason);await Runtime.NextFrame();}
