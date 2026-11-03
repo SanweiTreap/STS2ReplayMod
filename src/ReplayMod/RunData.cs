@@ -108,6 +108,8 @@ internal sealed class RunStore(string root)
         entry.Remove("Options");ready.Remove("Options");
         return JsonNode.DeepEquals(after,before);
     }
+    internal static bool HasUnrecordedAfter(RunDocument run,int start)=>run.Operations.Any(o=>o.Sequence>=start&&
+        (o.Kind=="gap"||o.Status!="complete"));
     internal static int[] ResourceDiscontinuities(RunDocument run)=>run.Operations.Zip(run.Operations.Skip(1))
         .Where(pair=>pair.First is {Status:"complete",After:not null}&&pair.Second is {Status:"complete",Before:not null}&&
             pair.First.After!=pair.Second.Before&&!NativeFinalOpening(run,pair.First,pair.Second))

@@ -80,7 +80,7 @@ internal static class ReplayLibraryUi
         if(RunOpening.Available(run))
         {
             var clip=run.Operations[start].Clip!;
-            var problem=AnchorProblem(raw,run.Operations[start]);
+            var problem=AnchorProblem(raw,run,run.Operations[start]);
             var button=Button("从开局观看 · 涅奥奖励",()=>Watch(clip,raw,0));button.Disabled=problem is not null||gaps.Length>0;
             if(problem is not null)_box.AddChild(Text(problem));
         }
@@ -88,7 +88,7 @@ internal static class ReplayLibraryUi
         foreach(var anchor in run.Operations.Where(o=>o is {Kind:"battle",Status:"complete",Clip:not null}&&o.Battle?.Entry!="event"))
         {
             var visit=run.Visits.Single(v=>v.Id==anchor.Visit);
-            var problem=AnchorProblem(raw,anchor);
+            var problem=AnchorProblem(raw,run,anchor);
             var button=Button($"从已记录起点观看 · 第{visit.Act+1}幕{visit.Floor}层／尝试{anchor.Battle?.Attempt??0}",
                 ()=>Watch(anchor.Clip!,raw,anchor.SourceSequence??anchor.Sequence));button.Disabled=problem is not null||gaps.Any(s=>s>anchor.Sequence);
             if(problem is not null)_box.AddChild(Text(problem));
@@ -109,9 +109,10 @@ internal static class ReplayLibraryUi
     }
     private static void Watch(string clip,RunDocument raw,int start)
     {Close();TaskHelper.RunSafely(PlayerLoop.Open(clip,entry:start==0?"run-opening":"run-list",chain:raw,chainStart:start));}
-    private static string? AnchorProblem(RunDocument raw,RunOperation anchor)
+    private static string? AnchorProblem(RunDocument raw,RunDocument route,RunOperation anchor)
     {
         if(!RunPlayback.Compatible(raw.ModHash)||raw.Scope!=Runtime.Scope||raw.GameHash!=Runtime.GameHash)return "来源版本或游戏档案与当前环境不匹配";
+        if(RunStore.HasUnrecordedAfter(route,anchor.Sequence))return "此起点后含准备或未记录的缺口；请选更后的合法起点，或查看独立分场。";
         try{return NativePlaybackSupport.Reason(Runtime.ReadClip(anchor.Clip!));}
         catch(Exception ex){return "本场记录不可用："+ex.Message;}
     }

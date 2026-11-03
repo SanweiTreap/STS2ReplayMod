@@ -42,6 +42,8 @@ internal static class RunEndings
             postfix:new HarmonyMethod(typeof(RunEndings),nameof(SummaryTask)));
         h.Patch(AccessTools.DeclaredMethod(typeof(NGameOverScreen),"OpenSummaryScreen"),
             prefix:new HarmonyMethod(typeof(RunEndings),nameof(SummaryOnce)));
+        h.Patch(AccessTools.DeclaredMethod(typeof(NGameOverScreen),"OnMainMenuButtonPressed"),
+            prefix:new HarmonyMethod(typeof(RunEndings),nameof(NativeExitBlocked)));
         foreach(var name in new[]{"ReturnToMainMenuAfterRun","GoToTimelineAfterRun"})
             h.Patch(AccessTools.DeclaredMethod(typeof(NGame),name),
                 prefix:new HarmonyMethod(typeof(RunEndings),nameof(ExitAfterRun)));
@@ -117,6 +119,7 @@ internal static class RunEndings
     {
         if(_owner is null||!ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))return;
         _gameOver=true;
+        if(RunPlayback.Active&&NOverlayStack.Instance?.Peek() is NGameOverScreen screen)DisableNativeExit(screen,"game-over-entry");
         Runtime.Log("run-native-game-over-shown",new{Kind=_kind,Operation=_operation,Playback=RunPlayback.Active,
             NativeScreen=true,VictoryRoom=_owner.CurrentRoom?.IsVictoryRoom==true});
     }
@@ -124,17 +127,30 @@ internal static class RunEndings
     {
         if(RunPlayback.Active&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState()))RunPlayback.Track(__result);
     }
-    private static void SummaryTask(ref Task __result)
+    private static void SummaryTask(NGameOverScreen __instance,ref Task __result)
     {
         if(!GameOverActive)return;
         var native=__result;__result=Observe();_summary=__result;RunPlayback.Track(__result);
         async Task Observe()
         {
             await native;
+            DisableNativeExit(__instance,"summary-completed");
             Runtime.Log("run-native-summary-shown",new{NativeSummaryTaskCompleted=true,
                 IsolatedManagerOnly=ReferenceEquals(MegaCrit.Sts2.Core.Saves.SaveManager.Instance,PlayerLoop.IsolatedManager),
                 RecordedEndpoint=RunPlayback.Finished,AdditionalRunDecision=false,AutoRequested=_summaryAuto});
         }
+    }
+    private static void DisableNativeExit(NGameOverScreen screen,string phase)
+    {
+        if(!GameOverActive||!GodotObject.IsInstanceValid(screen)||!screen.IsNodeReady()||
+            RunPatches.Field(screen,"_mainMenuButton") is not NButton button)return;
+        button.Disable();
+        Runtime.Log("run-native-exit-disabled",new{Phase=phase,NativeButtonDisabled=!button.IsEnabled,OnlyStopExits=true});
+    }
+    private static bool NativeExitBlocked()
+    {
+        if(!GameOverActive)return true;
+        Runtime.Log("run-native-game-over-exit-blocked",new{OnlyStopExits=true,NormalGameUnaffected=true});return false;
     }
     private static bool SummaryOnce(NGameOverScreen __instance)
     {

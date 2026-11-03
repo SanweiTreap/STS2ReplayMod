@@ -88,6 +88,7 @@ internal static class RunPlayback
         var opening=startSequence==0;
         _index=opening?0:startSequence is {} sequence?run.Operations.FindIndex(o=>(o.SourceSequence??o.Sequence)==sequence):StartIndex(run);
         Codec.Require(opening?RunOpening.Available(run):_index>=0&&run.Operations[_index] is {Kind:"battle",Status:"complete",Clip:not null}&&run.Operations[_index].Battle?.Entry!="event","run-has-no-recorded-battle-start");
+        Codec.Require(!RunStore.HasUnrecordedAfter(run,run.Operations[_index].Sequence),"run-unrecorded-gap-after-selected-start");
         Codec.Require(!RunStore.ResourceDiscontinuities(run).Any(s=>s>run.Operations[_index].Sequence),"run-has-unrecorded-resource-transition");
         var first=run.Operations[_index];
         _progressContexts=run.Continuations.Where(c=>c.Status=="native-continue"&&c.Progress is not null&&c.BeforeOperation>=first.Sequence)
@@ -258,8 +259,8 @@ internal static class RunPlayback
                         Pending=0,AdvanceDisabled=true,NativeGameOver=RunEndings.GameOverActive});
                     if(autoAtEnd&&RunEndings.GameOverActive)await RunEndings.OpenSummaryAutomatically();
                     _auto=false;
-                    Runtime.Status=RunEndings.GameOverActive?(RunEndings.SummaryComplete?"录像与结算详情播放结束；可Stop或返回菜单":
-                        "已到录像终点；可点原生继续查看结算，或Stop返回菜单"):"已到记录终点；可Stop返回菜单";
+                    Runtime.Status=RunEndings.GameOverActive?(RunEndings.SummaryComplete?"录像与结算详情播放结束；点Stop退出观看":
+                        "已到录像终点；可点原生继续查看结算，点Stop退出观看"):"已到记录终点；可Stop返回菜单";
                     Runtime.Log("run-playback-endpoint",new{Operation=Current.Sequence,Auto=false,AwaitingStop=true,SceneKeptOpen=true,
                         Pending=0,AdvanceDisabled=true,NativeGameOverControls=RunEndings.GameOverActive,
                         AutoAtArrival=autoAtEnd,NativeSummaryCompleted=RunEndings.SummaryComplete});
