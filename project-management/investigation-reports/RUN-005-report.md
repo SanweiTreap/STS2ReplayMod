@@ -2,15 +2,15 @@
 
 ## 当前摘要（2026-11-03）
 
-- 本包进行中，已安装 **build-003终局候选**，待录制/原生观看验证。新增第三幕Boss→TheArchitect独立访问、原生对话/演出/WinRun边界核对与结算页任务收束，未宣称终局运行通过。既有**r4/002后段原生观看两次完整链通过**保持：Boss19步→第二次换幕→Nonupeipe/FurCoat→第三幕首战5步胜利；5次Back、3次Stop/重开退出正常。r3/001发现项FAIL保留；完整新局→三幕→终局同份证据、死亡末动作/观看、主动放弃实测仍待。
+- 本包进行中，已安装 **build-004终局战前加强候选**。r5/003原准备打不赢Aeonglass，37步封存为中断片、正常saved-exit，未触及真正终局，零观察器错误；不判终局通过。004默认关闭的一次准备，在原Boss战前Continue以原生工厂构建六牌/满血、原生保存读回后才入场录制，实际Boss与RNG不改，明确gap。003的TheArchitect/WinRun实现待动态验证；r4/002两次后段观看与5次Back/3次Stop原PASS保持，完整新局/死亡/放弃仍待。
 - Act0/1/2及两次换幕代表链已有证；003将最后原生奖励投票/EnterNextAct的final分支接入TheArchitect，不增加幕索引/强制房型/加载后幕checkpoint。终局事件独立visit/attempt，保留与Boss相同原生坐标/楼层，避免冒充Boss子场景或伪增楼层。
 - Lifecycle的Continue/saved-exit已有证；003最后事件操作可选Terminal=victory，After严格冻结真正OnEnded(true)前实际资源/RNG，与同visit/attempt/原始来源位置的Lifecycle事实一致；等待原生WinRun后续强杀/结算页后才封存该操作。播放走同边界比较并保留ShouldSave=false的隔离manager，平台统计/上传/删除普通Continue分支不启用。死亡/放弃仍只有分类基础、末动作/观看待接，不因终局强杀伪造死亡。
 - 默认关闭后段准备开关：下一次Continue当前第二幕普通保存点，在原生生成地图后、后续Boss checkpoint前将当前节点直连原生Boss；不改资源/RNG/敌人，明确写入gap并标记后段片。只从后续Boss合法存档起点验证，准备前旧记录不冒充连续整局；未来完整新局样本必须另录。
 - 原生TheArchitect为Combat布局但不是内部可战斗场景；003只开放该确切原生事件布局与实际按钮/选择任务，视觉生物不纳入战斗召唤追踪。结算页演出/摘要任务加入本次owner收束，原生返回菜单/时间线出口交现有Stop；终局演出中一次公开Stop开关供之后短测，未改正式UI/模式。
 - 主体/DirectContracts Release均0warnings/0errors；12项run-envelope、15项library、13项branch合同通过，含第三幕metadata及生命周期胜利防覆盖/存退可续/死亡与放弃区分/旧字段省略；旧RUN-004 root/第三场clip生产读取通过且原件不变。均非新增原生运行通过。
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
-- 当前实读同Run `2b0f7e321a3a4dcd9caf9ee83435a06f`、种子KTRJB2SKRSYV，native精确point20：Act2/ACT.GLORY第三幕首普通**完成未领奖**。原始root36项、selected33项、8visit/12attempt及三片不变；最终路线用新胜利source36，不含旧一步source35。Lifecycle仍为continued→saved-exit。game0，最新补存 `RUN005-post-r4-current-20261103-123446`，1089数据文件/51已知文件、零缺失/无restore；仅settings.save及backup变化，另一账户未读。
-- 下一步：003手动启动，启用后段准备后Continue当前第三幕普通完成点，领奖/原生前进直连本幕Boss并打赢，继续原生终局对话/演出到结算页，再回菜单/正常退出；只录制这段，不重测002后段。随后用本次合法Boss起点观看并合并终局Stop短测。死亡/放弃和真实新局完整三幕仍继续本包，正式UI/模式/D-147隐藏不扩入。
+- 当前实读同Run `2b0f7e321a3a4dcd9caf9ee83435a06f`、种子KTRJB2SKRSYV，native精确point22：Act2/ACT.GLORY第15层Aeonglass Boss**战前未完成**，80HP。root42项、selected39项、9visit/14attempt；新增37步中断片source42未写入原生战前存档，下一Continue应独立重试。Lifecycle仍continued→saved-exit。game0，最新运行补存 `RUN005-post-r5-current-20261103-131138`，183数据文件/51已知文件、零缺失/无restore，6项本轮正常存盘/设置变化保留，另一账户未读。
+- 下一步：004只启用“终局战前加强”，Continue现Boss保存点；用新六牌打赢本幕Boss，继续原生终局对话/演出到结算页、回菜单/正常退出。无需重打一幕/自动restore旧点。随后从新Boss合法锚点观看并合并终局Stop短测；死亡/放弃/真实新局整链继续本包，正式UI/模式/D-147隐藏不扩入。
 
 ## 首候选实现与边界
 
@@ -71,6 +71,16 @@ gameover的AnimateIn/Quote/Summary加入owner Task追踪；Stop可取消显示�
 后段准备开关扩到Act1或2，仍仅已访问普通节点在下一Boss checkpoint前改地图连接，资源/RNG/原生Boss不改，按真实幕号明确gap/marker；当前第三幕后段将另从本幕Boss合法起点验证，不让准备前链冒充完整连续新局。主DLL/DirectContracts Release0warnings/0errors，13项run-envelope含真实终局事实与来源位置拒绝、13项branches和15项library读取合同通过，r4实际root新reader实读通过。library首试在合成journal的File.Move遇AccessDenied，原FAIL与测试目录保留；未改生产写入，单独新目录复跑通过，原因未证，非游戏运行失败/终局PASS。
 
 安装 `preparation/build-003-55bcaf3c.json`：DLL `565CD1A9A9AF0C54B09E6FF3E1179FB341D412ABF56AB5ED2D1FD7E0B551DB7A`、manifest同002；002扫描树外封存保留。51已知文件备份/安装核对见 `preparation/pre-build003-current.json`、`post-build003-current.json`、`post-build003-check.json`；game0，无restore/另一账户读取。首轮仅请用户录制第三幕Boss→真正终局，死亡/放弃不混进同轮长测。
+
+## r5：003终局录制未完成；004准备加强
+
+会话 `e1ad3a97bb5447f6a0ab77b65d9264d7`，179事件、零观察器错误，唯一gap是本轮显式第三幕中段直连准备。实际Continue恢复第三幕普通完成point20，领奖/跳卡/前进与地图到Aeonglass Boss正常，native point22为新Boss战前。用户打不赢当前准备，正常存退后clip `404789de133e45a2b85715bfdeb68819`封存format10、37步interrupted/Victory=false，Battle6/Attempt1/Act2/第15层；rootsource42，未进入TheArchitect，无整局胜利/死亡/放弃。reader仅中断片合同通过，非新增播放/终局通过；事实 `runtime-verification-r5.json`、`checks/r5-interrupted.json`、`collection-r5.json`。保留183数据文件及51已知当前文件/4,223,057bytes，6项正常modded1最新replay/current_run及backup/progress/settings及backup变化，game0、无restore。
+
+原生Aeonglass开场512HP、3层Artifact，旧两张消耗Impervious/两张BodySlam准备缺持续格挡且不能依赖易伤。004不换怪/降HP/跳杀，新增一次默认关闭的RunBossPreparation：仅下一第三幕铁甲A0单人、无modifier、未完成Boss Continue且尚未创建房间；保留当前遗物/药水，原生RunState.CreateCard/归属登记构建Barricade+、2Impervious+、Entrench+、2BodySlam+，回满HP。皇家许可按原生CanEnchantCardType仅给五张攻击/技能先天保留，壁垒为能力牌不非法附魔，六牌加现有BagOfPreparation足以首回合全抽到。准备前写明确gap，删除旧deck牌也用原生RemoveInternal/RunState.RemoveCard；旧37步片/失败尝试不删，未按录像expected赋值，run RNG实采前后严格相同。
+
+在LoadIntoLatestMapCoord原生调用前，由真实RunManager.ToSave(null)取得本次准备的实际DTO，调用原生RunSaveManager.SaveRun(dto,false)，等待成功、精确读取存储fingerprint并用原生LoadRunSave再次读回；同一DTO避开第二次ToSave的时钟字段差异。Recorder.PreparedContinue只为后续BeginEntry替换此次实际已成功写读的战前输入，不追改原loaded/setup日志、不重关联原SL、不修改播放。然后调用一次原LoadIntoLatestMapCoord创建战斗，新片marker明确六牌/回满血/前缀缺口；后续播放只从该合法新战前点原生执行。错误不自动回滚，准备后原生Continue会保留六牌，安装前现有point22和旧牌组已备份。
+
+004只增准备/003来源兼容，不改003终局核心；主Release0warnings/0errors，未增加镜像合同替代原生检验。安装 `preparation/build-004-71f96920.json`：DLL `329A01248024F56D130AF6A09022BD9DCA2B540C5B260D413A05BA4F3B891310`、manifest同003；003扫描树外保留。51已知当前文件补存及核对见 `preparation/pre-build004-current.json`、`post-build004-current.json`、`post-build004-check.json`；game0、无restore/另一账号读取。下一轮只需Boss重试至终局，不重跑已通过的第二次换幕链。
 
 ## 后续必须完成
 

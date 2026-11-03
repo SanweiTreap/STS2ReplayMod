@@ -90,6 +90,7 @@ internal static class RunPatches
         RunActs.Install(h);
         RunCombatLoads.Install(h);
         RunEndings.Install(h);
+        RunBossPreparation.Install(h);
     }
     private static void RoomTypeChosen(MapPointType __0,RoomType __result)=>Runtime.Guard(()=>
     {
