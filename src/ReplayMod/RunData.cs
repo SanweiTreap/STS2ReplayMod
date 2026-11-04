@@ -35,7 +35,11 @@ public sealed class RunBranches
     public int ActiveAttempt {get;set;}
 }
 public sealed record RunStartInput(string Character,string Seed,string[] Acts,string GameMode,int Ascension,string Progress,string Prefs,
-    string? NeowDebugOption=null);
+    string? NeowDebugOption=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? Preparation=null)
+{
+    internal const string IroncladBlockDeck="ironclad-block-deck-v1";
+}
 public sealed record RunLifecycleEvent(string Kind,DateTimeOffset At,string Source,int Visit,int Act,int BeforeOperation,int? Attempt,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? State=null);
 internal static class RunLifecycle
@@ -144,7 +148,9 @@ internal sealed class RunStore(string root)
         if(run.Opening is {} opening)Codec.Require(opening.Character==run.Character&&opening.Seed.Length is >0 and <=128&&
             opening.Acts.Length is >0 and <=4&&opening.Acts.All(a=>Regex.IsMatch(a,"^ACT\\.[A-Z0-9_]+$"))&&
             opening.GameMode=="Standard"&&opening.Ascension==0&&opening.Progress.Length>0&&opening.Prefs.Length>0&&
-            opening.NeowDebugOption is null or "NEW_LEAF","run-opening-input-unsupported");
+            (opening.NeowDebugOption is null or "NEW_LEAF")&&
+            (opening.Preparation is null||opening.Preparation==RunStartInput.IroncladBlockDeck&&opening.Character=="CHARACTER.IRONCLAD"&&
+                opening.Acts.Length==3&&opening.NeowDebugOption is null),"run-opening-input-unsupported");
         Codec.Require(run.Continuations.All(c=>(c.Visit==0||run.Visits.Any(v=>v.Id==c.Visit))&&
             (c.BeforeOperation is null||c.BeforeOperation>=1&&c.BeforeOperation<=run.Operations.Count+1&&
              (c.Visit==0||c.BeforeOperation>run.Operations.Count||run.Operations[c.BeforeOperation.Value-1].Visit==c.Visit))),"run-continuation-position");

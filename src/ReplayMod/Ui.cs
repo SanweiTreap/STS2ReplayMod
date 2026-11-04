@@ -42,6 +42,18 @@ internal static class Ui
         actStop.Toggled+=value=>RunActs.StopTestArmed=value;box.AddChild(actStop);
         var terminalStop=new CheckBox{Text="RUN-005：下次终局演出中自动Stop（仅一次）",ButtonPressed=RunEndings.StopTestArmed};
         terminalStop.Toggled+=value=>RunEndings.StopTestArmed=value;box.AddChild(terminalStop);
+        var fullRun=new CheckBox{Text="RUN-005 三幕录制准备（下一铁甲 A0 新局）",ButtonPressed=RunOpening.FullRunArmed};
+        fullRun.Toggled+=value=>
+        {
+            RunOpening.FullRunArmed=value;
+            if(value)
+            {
+                TestEncounter.Armed=TestPreparation.None;RecordedState.Armed=false;neow.ButtonPressed=false;
+                RunTailPreparation.Armed=false;RunBossPreparation.Armed=false;
+            }
+            Runtime.Status=value?"下一铁甲 A0 新局：开局六张升级格挡牌、背包和灯笼；地图、敌人及换幕走原版":"已取消三幕录制准备";
+        };
+        box.AddChild(fullRun);
         var death=new CheckBox{Text="RUN-005 死亡录制短测（下一铁甲A0新局，首普通1HP）",ButtonPressed=TestEncounter.Armed==TestPreparation.DeathRecording};
         death.Toggled+=value=>{TestEncounter.Armed=value?TestPreparation.DeathRecording:TestPreparation.None;
             if(value){RecordedState.Armed=false;RunOpening.NewLeafArmed=false;}
