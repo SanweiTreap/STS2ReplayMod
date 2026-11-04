@@ -192,12 +192,18 @@ internal static class RunContracts
         {
             var value=run with{Opening=opening};store.Save(value);var read=store.Read(id);
             Need(Codec.Bytes(read).SequenceEqual(Codec.Bytes(value))&&Codec.Bytes(read.Operations).SequenceEqual(Codec.Bytes(run.Operations)),"new-run-inputs-lost-or-operations-changed");
+            Need(!JsonNode.Parse(Codec.Bytes(read.Opening))!.AsObject().ContainsKey("Preparation"),"legacy-opening-changed-checksum");
+            var prepared=opening with{Acts=["ACT.UNDERDOCKS","ACT.HIVE","ACT.GLORY"],NeowDebugOption=null,Preparation=RunStartInput.IroncladBlockDeck};
+            store.Save(run with{Opening=prepared});
+            Need(store.Read(id).Opening?.Preparation==RunStartInput.IroncladBlockDeck,"three-act-opening-preparation-lost");
         });
         Test("invalid-new-run-inputs-do-not-become-playable-records",()=>
         {
             foreach(var bad in new[]{opening with{Character="CHARACTER.DEFECT"},opening with{Seed=""},opening with{Acts=[]},
                 opening with{Acts=["CARD.STRIKE_IRONCLAD"]},opening with{GameMode="Daily"},opening with{Ascension=1},
-                opening with{Progress=""},opening with{Prefs=""},opening with{NeowDebugOption="OTHER"}})
+                opening with{Progress=""},opening with{Prefs=""},opening with{NeowDebugOption="OTHER"},
+                opening with{Preparation="OTHER"},
+                opening with{NeowDebugOption=null,Preparation=RunStartInput.IroncladBlockDeck}})
             {
                 var rejected=false;try{store.Save(run with{Opening=bad});}catch(InvalidDataException){rejected=true;}
                 Need(rejected,"invalid-opening-input-accepted");

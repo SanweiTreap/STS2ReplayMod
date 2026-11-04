@@ -90,7 +90,11 @@ internal static class Patches
     }
     private static void Menu(NMainMenu __instance)=>Runtime.Menu(__instance);
     private static void FreshBefore(RunState __0)=>Runtime.Guard(()=>TestEncounter.BeforeNew(__0));
-    private static void Fresh()=>Runtime.Guard(()=>{Recorder.NewRun();TestEncounter.AfterNew();});
+    private static void Fresh(RunState __0)
+    {
+        RunOpening.ApplyPreparation(__0);
+        Runtime.Guard(()=>{Recorder.NewRun();TestEncounter.AfterNew();});
+    }
     private static void Saved(SerializableRun __1){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Continue(__1));}
     private static void Checkpoint(SerializableRun __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Checkpoint(__result));}
     private static void SaveLoaded(SaveManager __instance,ReadSaveResult<SerializableRun> __result)

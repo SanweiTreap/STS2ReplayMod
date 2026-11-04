@@ -1,5 +1,6 @@
 using HarmonyLib;
 using System.Text.Json;
+using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Cards;
@@ -42,18 +43,9 @@ internal static class RunBossPreparation
         string Rng()=>JsonSerializer.Serialize(run.Rng.ToSerializable(),JsonSerializationUtility.GetTypeInfo<SerializableRunRngSet>());
         var rng=Rng();
         RunRecording.Unsupported("explicit-boss-preparation","终局短测加强：原生Boss战前替换六张升级先天保留牌并回满血；此前路线明确缺口");
-        foreach(var old in player.Deck.Cards.ToArray()){player.Deck.RemoveInternal(old,silent:true);run.RemoveCard(old);}
-        void Add<T>() where T:CardModel
-        {
-            var card=run.CreateCard<T>(player);card.UpgradeInternal();card.FinalizeUpgradeInternal();
-            var enchantment=ModelDb.Enchantment<MegaCrit.Sts2.Core.Models.Enchantments.RoyallyApproved>().ToMutable();
-            if(enchantment.CanEnchantCardType(card.Type)){card.EnchantInternal(enchantment,1);enchantment.ModifyCard();}
-            player.Deck.AddInternal(card,silent:true);
-        }
-        Add<Barricade>();Add<Impervious>();Add<Impervious>();Add<Entrench>();Add<BodySlam>();Add<BodySlam>();
+        InstallBlockDeck(run,player);
         player.Creature.SetCurrentHpInternal(player.Creature.MaxHp);
-        Codec.Require(player.Deck.Cards.Count==6&&player.Deck.Cards.All(c=>ReferenceEquals(c.Owner,player)&&run.ContainsCard(c))&&
-            Rng()==rng,"boss-preparation-registration-or-rng-mismatch");
+        Codec.Require(Rng()==rng,"boss-preparation-rng-mismatch");
         _prepared=run;
         var requested=RunManager.Instance.ToSave(null);
         var expected=RecordingJournal.NativeFingerprint(JsonSerializationUtility.ToJson(requested));
@@ -77,5 +69,20 @@ internal static class RunBossPreparation
         _entering=true;
         try{await RunManager.Instance.LoadIntoLatestMapCoord(preFinished);}
         finally{_entering=false;}
+    }
+
+    internal static void InstallBlockDeck(RunState run,Player player)
+    {
+        foreach(var old in player.Deck.Cards.ToArray()){player.Deck.RemoveInternal(old,silent:true);run.RemoveCard(old);}
+        void Add<T>() where T:CardModel
+        {
+            var card=run.CreateCard<T>(player);card.UpgradeInternal();card.FinalizeUpgradeInternal();
+            var enchantment=ModelDb.Enchantment<MegaCrit.Sts2.Core.Models.Enchantments.RoyallyApproved>().ToMutable();
+            if(enchantment.CanEnchantCardType(card.Type)){card.EnchantInternal(enchantment,1);enchantment.ModifyCard();}
+            player.Deck.AddInternal(card,silent:true);
+        }
+        Add<Barricade>();Add<Impervious>();Add<Impervious>();Add<Entrench>();Add<BodySlam>();Add<BodySlam>();
+        Codec.Require(player.Deck.Cards.Count==6&&player.Deck.Cards.All(c=>ReferenceEquals(c.Owner,player)&&run.ContainsCard(c)),
+            "block-deck-preparation-registration-mismatch");
     }
 }

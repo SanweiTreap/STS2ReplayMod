@@ -2,9 +2,9 @@
 
 ## 当前摘要（2026-11-04）
 
-- 当前 **build-016/r19** 已通过主动放弃代表链和遮罩回归。三次确认触发真实原生放弃、资源/RNG 精确核对与隔离 `AbandonedRun`；另一次在确认窗 Stop，只清理弹窗和遮罩，无终局或历史构建。用户确认两种关闭均无残留。此前 **015/r18** 的视觉失败保留。
-- 016 复用原生 `NModalContainer.Clear`：确认后执行原生遮罩淡出，窗内 Stop 清理同一弹窗。原版 `NVerticalPopup.Close` 是按钮独立回调，现也纳入放弃回放的输入保护。Release 0 警告/0 错误，安装收据 `evidence/run-005/preparation/build-016-e59cd977.json`。016 不要求重录。
-- 余项：从真实新局开始的三幕连续录播，直至原生胜利。之前通过的胜利样本仍为后段。
+- 当前 **build-017/r20–r21** 通过三幕新局起点录制与原生回放。新局 `b85d941b` 从原生工厂重建已记录的开局配方，涅奥选择、地图、首战三步至胜利匹配。真实 Continue 保持首战奖励页 point4，Stop 恢复原上下文。
+- **016/r19** 已通过主动放弃代表链和遮罩回归。三次确认触发真实原生放弃、资源/RNG 精确核对与隔离 `AbandonedRun`；另一次在确认窗 Stop，只清理弹窗和遮罩，无终局或历史构建。用户确认两种关闭均无残留。此前 **015/r18** 的视觉失败保留。
+- 下一步用同一局的 Continue 从首战奖励页续录，经过两次换幕直到第三幕 Boss 后的原生胜利结算。完成后从涅奥连续回放整局。之前通过的胜利样本仍为后段。
 
 ## build-015 阶段摘要（2026-11-03）
 
@@ -27,6 +27,20 @@
 ## r19：主动放弃遮罩与窗内 Stop（016）
 
 会话 `9998b134d5cf4a418d043681fa2ec28f`，250事件、四次观看。三次 `confirmed` 清理及一次确认前 `interrupted` 清理均启动原生遮罩淡出。确认前 Stop 无确认阶段、终局或新 History，`Complete=false`、`Error=null`，返回原上下文；三次确认均 `Complete=true`。四次原生任务收束无失败或取消，游戏正常退出。三份真实 History 及原录像和战斗片 SHA256 与 r18 一致，原存退与进度检查通过，49 个已知文件仅设置及其备份变化。证据 `evidence/run-005/runtime-verification-r19.json`、`evidence/run-005/collection-r19.json`。最新备份 `RUN005-post-r19-current-20261104-135830`。
+
+## 017：完整三幕样本的可重现起点
+
+新局 Ironclad A0 三幕可选一次 `ironclad-block-deck-v1`，沿 014 已验证尾段使用的同一套壁垒+、两张不动如山+、巩固+、两张全身撞击+（可附魔牌先天保留），另加 Bag of Preparation、Lantern。复用原生牌注册、遗物归属与抽取池移除，发生在进入第一房间前。开局输入保留原生种子、幕模型、账户输入与明确配方，回放由原生新局工厂重建；没有后幕读档或追加局内准备。新字段 null 时省略，旧录制保持兼容。主体与 direct Release 0警告/0错误，run-envelope 通过。安装收据 `evidence/run-005/preparation/build-017-2db74ff2.json`，安装后 `RUN005-post-build017-current-20261104-140208`、仅 settings.save 变化。开局准备和实际三幕覆盖均待人工验证。
+
+## r20：三幕新局录至首胜存退（017）
+
+会话 `046662492ff644f2a2109f1ff699654e`，37事件。新 Run `b85d941b40764b27b65b0a39dfe8e206`，种子 VT7BECB46PV6，暗港／蜂巢／荣耀。实际新局在首房前应用牌组和遗物配方，涅奥选 PHIAL_HOLSTER 并正常离开，经地图到 SludgeSpinnerWeak；4项路线操作均完成、2个 visit 无 gap。独立三步胜利片 `29157d445aae4a26a3da22a7f1e6be46`。root/clip 生产读取通过，实际从涅奥观看仍待。
+
+真实存退标记 `saved-exit`，原生磁盘 fingerprint 精确命中 point4（PreFinished=true，Path=[1,2,3,4]），菜单读取时观测到的归一化 SaveKey 同点一致。正常退出；三份历史原样。收据 `evidence/run-005/runtime-verification-r20.json`、`collection-r20.json`、`checks/r20-new-run.json`、`checks/r20-first-clip.json`。最新补备份 `RUN005-post-r20-current-20261104-152551`，保留新 Continue 及备份和实际账户进度。
+
+## r21：新局原生回放至首胜（017）
+
+会话 `f5f88b2be92c44209664a45554413021`，78事件。打开 `b85d941b` 的涅奥起点，隔离 manager 以原生新局工厂创建并应用记录的配方，未加载 checkpoint。涅奥选择、离开、地图三项资源和 RNG 匹配；SludgeSpinnerWeak 三个战斗动作及真实胜利投影均通过，Auto 关闭。Stop 收束9个路线任务，零失败或取消，恢复原上下文后游戏正常退出。49个已知文件只改 settings.save.backup；原 Continue/Progress、录像与三份真实历史核对一致。证据 `evidence/run-005/runtime-verification-r21.json`、`collection-r21.json`，最新备份 `RUN005-post-r21-current-20261104-152917`。这次验证范围截至首战，下一步同局续录。
 
 ## 首候选实现与边界
 
