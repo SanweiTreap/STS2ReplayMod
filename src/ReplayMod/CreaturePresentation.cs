@@ -2,7 +2,12 @@ using System.Collections;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Animation;
+using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Creatures;
+using MegaCrit.Sts2.Core.Models.Encounters;
+using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Powers;
+using MegaCrit.Sts2.Core.Nodes.Audio;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Models.Monsters;
@@ -19,18 +24,53 @@ internal sealed class CreaturePresentation
     private readonly float _defaultScale,_temporaryScale,_hue;
     private readonly Vector2 _scale,_position;
     private readonly string? _animation;
+    private readonly (int Respawns,bool Dead,Color Tint,(int Revision,float Progress) Music)? _testSubject;
     private CreatureAnimator? _restoreAnimator;
     private AnimState? _restoreLoop;
     private bool _continuedAnimation;
     private static readonly System.Reflection.FieldInfo TemporaryScale=AccessTools.Field(typeof(NCreature),"_tempScale");
     private static readonly System.Reflection.FieldInfo Animator=AccessTools.Field(typeof(NCreature),"_spineAnimator");
     private static readonly System.Reflection.FieldInfo Hue=AccessTools.Field(typeof(NCreatureVisuals),"_hue");
+    private const string TestSubjectMusicParameter="test_subject_progress";
+    private static CombatState? _musicCombat;
+    private static (int Revision,float Progress) _music;
+
+    internal static void ClearMusic(){_musicCombat=null;_music=default;}
+    internal static void MusicUpdated(string __0,float __1)
+    {
+        if(!NativeSeek.Enabled||__0!=TestSubjectMusicParameter||
+            CombatManager.Instance.DebugOnlyGetState() is not {Encounter:TestSubjectBoss} combat)return;
+        _music=(TestSubjectMusic(combat).Revision+1,__1);
+        _musicCombat=combat;
+        Runtime.Log("test-subject-music-parameter",new{Progress=__1,_music.Revision,NativeSeek.Restoring,
+            Retiring=NativePhaseRetirement.Active});
+    }
+    private static (int Revision,float Progress) TestSubjectMusic(ICombatState? combat)=>ReferenceEquals(combat,_musicCombat)?_music:default;
+
+    internal static void TestSubjectReviveStarted(NCreature node)
+    {
+        if(!NativeSeek.Enabled||node.Entity.Monster is not TestSubject||!node.Entity.IsAlive||
+            !node.Entity.HasPower<AdaptablePower>()||node.DeathAnimationTask is not {} previous)return;
+        // The retained knockout's AnimDie(false) has no post-wait removal
+        // work for Test Subject. It must not gate the next native knockout.
+        node.DeathAnimationTask=null;
+        Runtime.Log("test-subject-knockout-animation-released",new{PreviousStillRunning=!previous.IsCompleted});
+    }
+    internal static void TestSubjectDeathSound(MonsterModel? __0)
+    {
+        if(NativeSeek.Enabled&&__0 is TestSubject subject)
+            Runtime.Log("test-subject-native-death-sound",new{Sound=subject.DeathSfx,Retiring=NativePhaseRetirement.Active});
+    }
+
     internal CreaturePresentation(Creature creature)
     {
         _creature=creature;
         _node=NCombatRoom.Instance?.GetCreatureNode(creature)??throw new InvalidDataException("checkpoint-creature-visual-missing");
         _visuals=_node.Visuals;_body=_node.Body;_defaultScale=_visuals.DefaultScale;_temporaryScale=(float)TemporaryScale.GetValue(_node)!;
         _position=_node.Position;_hue=(float)Hue.GetValue(_visuals)!;
+        if(creature.Monster is TestSubject subject)
+            _testSubject=(TestSubjectRespawns(subject),creature.IsDead,_node.GetSpecialNode<CanvasGroup>("%CanvasGroup")!.SelfModulate,
+                TestSubjectMusic(creature.CombatState));
         if(Animator.GetValue(_node) is CreatureAnimator animator)
         {
             var state=(AnimState)AccessTools.Field(typeof(CreatureAnimator),"_currentState").GetValue(animator)!;
@@ -53,6 +93,9 @@ internal sealed class CreaturePresentation
     }
     internal bool SameNodes=>GodotObject.IsInstanceValid(_node)&&!_node.IsQueuedForDeletion()&&
         ReferenceEquals(NCombatRoom.Instance?.GetCreatureNode(_creature),_node)&&ReferenceEquals(_node.Visuals,_visuals)&&ReferenceEquals(_node.Body,_body);
+    private static int TestSubjectRespawns(TestSubject subject)=>(int)AccessTools.Field(typeof(TestSubject),"_respawns").GetValue(subject)!;
+    internal bool TestSubjectPhaseChanged=>_testSubject is {} phase&&_creature.Monster is TestSubject subject&&
+        (phase.Dead!=_creature.IsDead||phase.Respawns!=TestSubjectRespawns(subject));
     internal void BindEnemyDisplay()
     {
         Codec.Require(!_creature.IsPlayer,"direct-back-cannot-rebind-player");
@@ -79,7 +122,7 @@ internal sealed class CreaturePresentation
         if(AccessTools.Field(display.GetType(),"_showHideTween").GetValue(display) is Tween entrance&&GodotObject.IsInstanceValid(entrance))entrance.Kill();
         display.Position=(Vector2)AccessTools.Field(display.GetType(),"_originalPosition").GetValue(display)!;
         display.Modulate=Colors.White;display.Visible=true;
-        if(_creature.Monster is Osty)
+        if(_creature.Monster is Osty||_testSubject.HasValue)
         {
             // Native death fades this existing display, while StartReviveAnim only
             // restores alpha. A node rebuilt while dead must therefore remain Visible;
@@ -91,11 +134,28 @@ internal sealed class CreaturePresentation
                 _node.DisableInteractionForDeath();
                 AccessTools.Method(display.GetType(),"OnCreatureDied").Invoke(display,[_creature]);
             }
-            Runtime.Log("osty-hud-restored",new{_creature.CombatId,Alive=_creature.IsAlive,display.Visible,
+            if(_testSubject is {} subject)
+            {
+                _node.GetSpecialNode<CanvasGroup>("%CanvasGroup")!.SelfModulate=subject.Tint;
+                var previous=TestSubjectMusic(_creature.CombatState);
+                if(previous!=subject.Music&&_creature.CombatState is CombatState {Encounter:TestSubjectBoss encounter} combat&&
+                    NRunMusicController.Instance is {} music)
+                {
+                    // Setting the old value on an already advanced event does
+                    // not rewind its timeline. Start the native event again.
+                    music.PlayCustomMusic(encounter.CustomBgm);
+                    music.UpdateMusicParameter(TestSubjectMusicParameter,subject.Music.Progress);
+                    _musicCombat=combat;_music=subject.Music;
+                    Runtime.Log("test-subject-music-restored",new{From=previous.Progress,To=subject.Music.Progress,
+                        FromRevision=previous.Revision,ToRevision=subject.Music.Revision,NativeEventRestarted=true});
+                }
+            }
+            else Runtime.Log("osty-hud-restored",new{_creature.CombatId,Alive=_creature.IsAlive,display.Visible,
                 Alpha=display.Modulate.A,NativeReviveCanFadeIn=true,ReviveAnimationRun=false});
         }
         AccessTools.Method(display.GetType(),"RefreshValues").Invoke(display,null);
-        AccessTools.Method(typeof(NCreature),"UpdateBounds",[typeof(Node)]).Invoke(_node,[_visuals]);
+        var bounds=_testSubject is {Respawns:>0} phase?_visuals.GetNode<Control>($"RespawnBounds{phase.Respawns}"):(Node)_visuals;
+        AccessTools.Method(typeof(NCreature),"UpdateBounds",[typeof(Node)]).Invoke(_node,[bounds]);
     }
     private static string Destination(CreatureAnimator animator)
     {

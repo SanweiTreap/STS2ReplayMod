@@ -4,6 +4,7 @@ using System.Reflection;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Models.Monsters;
+using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.MonsterMoves.MonsterMoveStateMachine;
 using MegaCrit.Sts2.Core.Rooms;
@@ -14,7 +15,10 @@ internal static class CombatUnits
 {
     internal static bool IsOsty(Creature creature)=>LiveState.Format>=8&&creature.Monster is Osty&&ReferenceEquals(creature.PetOwner,LiveState.Player)&&
         creature.Side==CombatSide.Player;
-    internal static bool Restorable(Creature creature)=>creature.IsAlive||IsOsty(creature);
+    internal static bool Restorable(Creature creature)=>creature.IsAlive||IsOsty(creature)||
+        LiveState.Format>=10&&creature.IsEnemy&&creature.Monster is TestSubject&&
+        creature.CombatState?.ContainsCreature(creature)==true&&creature.HasPower<AdaptablePower>()&&
+        creature.Monster.NextMove?.Id=="RESPAWN_MOVE";
     internal static bool CanGenerate(MonsterModel monster,CombatSide side)=>side==CombatSide.Player?
         LiveState.Format>=8&&monster is Osty:LiveState.Format>=10&&side==CombatSide.Enemy&&monster.IsMutable&&monster.GetType().Assembly==typeof(MonsterModel).Assembly;
     internal static EnemyUnitEntry Enemy(Creature creature)

@@ -50,7 +50,7 @@ internal sealed class DirectCheckpoint
         _extraModels=(extraRoots??[]).OfType<AbstractModel>().Where(v=>v.IsMutable).ToArray();_extraProjection=route?ExtraProjection():null;
         if(!route)RequireReady();LiveState.Supported();
         _creatures=_combat.Creatures.ToArray();
-        Codec.Require(roster.Reason(_combat) is null,"direct-back-roster-unsupported");
+        if(roster.Reason(_combat) is {} reason)throw new InvalidDataException("direct-back-roster-unsupported: "+reason);
         Codec.Require(_creatures.All(CombatUnits.Restorable)&&LiveState.Player.PlayerCombatState!.Pets.All(CombatUnits.IsOsty),"direct-back-unsupported-death-or-pet");
         _presentation=_creatures.Select(c=>new CreaturePresentation(c)).ToArray();
         // Include removed original enemies too, so a checkpoint also describes their detached dead state.
@@ -125,7 +125,7 @@ internal sealed class DirectCheckpoint
         var before=_combat.Creatures.ToArray();var beforeSummary=CombatRoster.Summary(before);
         var previousNodes=before.ToDictionary(c=>c,c=>NCombatRoom.Instance!.GetCreatureNode(c));
         var forwardHandoff=_route&&NativeDisplayTrace.Replaying;
-        var rebuildEnemies=!_creatures.SequenceEqual(before);
+        var rebuildEnemies=!_creatures.SequenceEqual(before)||_presentation.Any(p=>p.TestSubjectPhaseChanged);
         var currentPowers=before.ToDictionary(c=>c,c=>c.Powers.ToArray());
         // A stable player phase may still contain a dead enemy's fading NCreature. Even when the
         // roster is identical at both checkpoints, retire that display before refreshing live UI.

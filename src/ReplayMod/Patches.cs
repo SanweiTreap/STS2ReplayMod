@@ -11,6 +11,7 @@ using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.Orbs;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Audio;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Screens.MainMenu;
@@ -57,6 +58,8 @@ internal static class Patches
         Patch(typeof(NCombatCardPile),"OnRelease",postfix:nameof(PileBrowsed));
         NativeDisplayTrace.Install(h);
         NativePhaseRetirement.Install(h);
+        h.Patch(AccessTools.DeclaredMethod(typeof(NRunMusicController),nameof(NRunMusicController.UpdateMusicParameter)),
+            postfix:new HarmonyMethod(typeof(CreaturePresentation),nameof(CreaturePresentation.MusicUpdated)));
         DisplayAssets.Install(h);
         var transform=typeof(CardCmd).GetMethods().Single(m=>m.Name=="Transform"&&m.ReturnType==typeof(Task<IEnumerable<CardPileAddResult>>));
         h.Patch(transform,postfix:new HarmonyMethod(typeof(Patches),nameof(TransformedAfter)));
@@ -73,7 +76,9 @@ internal static class Patches
         Patch(typeof(NPlayerTurnBanner),"Create",prefix:nameof(TurnBanner),parameters:[typeof(int)]);
         Patch(typeof(NEnemyTurnBanner),"Create",prefix:nameof(EnemyBanner),parameters:[]);
         Patch(typeof(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom),"OnCombatSetUp",postfix:nameof(OpeningRoomVisible),parameters:[typeof(CombatState)]);
-        Patch(typeof(NCreature),"StartReviveAnim",postfix:nameof(OstyReviveHud),parameters:[]);
+        Patch(typeof(NCreature),"StartReviveAnim",prefix:nameof(TestSubjectRevive),postfix:nameof(OstyReviveHud),parameters:[]);
+        h.Patch(AccessTools.DeclaredMethod(typeof(SfxCmd),nameof(SfxCmd.PlayDeath),[typeof(MonsterModel)]),
+            postfix:new HarmonyMethod(typeof(CreaturePresentation),nameof(CreaturePresentation.TestSubjectDeathSound)));
         var turnState=AccessTools.TypeByName("MegaCrit.Sts2.Core.Combat.CombatTurnState")??throw new MissingMemberException("CombatTurnState");
         Patch(typeof(CombatManager),"EndCombatInternal",prefix:nameof(EndBefore),postfix:nameof(EndTask),parameters:[turnState]);
         Patch(typeof(NCombatUi),"OnCombatWon",prefix:nameof(RewardUi),parameters:[typeof(MegaCrit.Sts2.Core.Rooms.CombatRoom)]);
@@ -230,6 +235,7 @@ internal static class Patches
     private static void OpeningRoomVisible(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom __instance,CombatState __0)=>Runtime.Guard(()=>
     {NativeSeek.OpeningRoomVisible(__instance,__0);RunOpening.TestCombatEntryStop(__instance,__0);});
     private static void OstyReviveHud(NCreature __instance)=>Runtime.Guard(()=>CreaturePresentation.VerifyNativeOstyRevive(__instance));
+    private static void TestSubjectRevive(NCreature __instance)=>Runtime.Guard(()=>CreaturePresentation.TestSubjectReviveStarted(__instance));
     private static void EndBefore(){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(BattleEnd.EndStarted);}
     private static void EndTask(Task __result){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(()=>BattleEnd.Track(__result));}
     private static bool RewardUi(MegaCrit.Sts2.Core.Rooms.CombatRoom __0)

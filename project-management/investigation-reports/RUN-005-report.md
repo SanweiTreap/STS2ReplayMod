@@ -2,10 +2,11 @@
 
 ## 当前摘要（2026-11-04）
 
-- 当前 **build-019/r23** 通过大录像续录与存退。用户确认卡顿消失；同局从二幕 point51 跨幕至荣耀首战，整局文件约 27.7 MB，后台写入正常收束。磁盘精确匹配首战开场 point61。
-- **017/r20–r21** 通过新局至首胜录播；**017/r22** 同局 Continue 命中 point4 并跨第一幕，但二幕第7层灯火钥匙战斗事件与第12层石中剑换玉剑留下两处真实缺口。这份录像无法作为完整三幕样本。
+- 当前 **build-024/r30** 通过实验体 Back 的音乐恢复、复生收束与洗牌清理。第9/13步边界的15次回退约39–149ms，状态/RNG匹配。唯一余留听感差异是首次正放第10步历史课击倒声；已见未静音的原生调用，尚无无模组对照。
+- **019/r24** 同一真实新局 `b85d941b` 录到原生整局胜利，实际历史 win=true、末动作和 Lifecycle 一致；41.5 MB 最终文件正常收束。原先缺口保留，新增第三幕第7层事件自定义领奖缺口。
+- **017/r20–r21** 通过新局至首胜录播；**017/r22** 续至二幕，发现灯火钥匙战斗事件与石中剑换玉剑缺口。**019/r23** 后台续录与存退、用户卡顿反馈通过。本次整局不能作为无缺口三幕样本。
 - **016/r19** 已通过主动放弃代表链和遮罩回归。三次确认触发真实原生放弃、资源/RNG 精确核对与隔离 `AbandonedRun`；另一次在确认窗 Stop，只清理弹窗和遮罩，无终局或历史构建。用户确认两种关闭均无残留。此前 **015/r18** 的视觉失败保留。
-- 下一步续当前荣耀首战至原生胜利，验证已录全的后段。另取无缺口的真实新局样本验证完整三幕；r22 原缺口和失败证据保留。
+- 下一步用 `b85d941b` 第3幕11层起点验证连续后段至原生胜利详情；佩尔眼可另用已有短片。仍需无缺口新局。
 
 ## build-015 阶段摘要（2026-11-03）
 
@@ -56,6 +57,48 @@
 会话 `4397cb63f033498bb477894630341a25`，143事件。Continue 恢复同局 point51、attempt31，封存二幕精英六步、Boss十步胜利；正常换幕、选择荣耀古神 NONUPEIPE、进 DevotedSculptorWeak。首战两步片为 interrupted，真实存档匹配 point61、PreFinished=false、所选路径止于 source166；重进该场开头。旧两处缺口保留，本轮无新 gap 或录制错误。
 
 用户确认继续走了几层已经不卡。退出前 84 个整局快照请求合并为 78 次写入，后台单次最大 152.3 ms，最终整局 27,687,112 bytes／167 原始操作通过生产读取，source160 至第三幕开场的后段和首战中断片检查通过；游戏正常退出，三份历史未变。证据 `runtime-verification-r23.json`、`collection-r23.json`、`checks/r23-later-chain.json`，最新备份 `RUN005-post-r23-current-20261104-155814`。后段的实际观看和最终胜利仍待。
+
+额外回合补查：r23 第三幕首战片 `35228c92` 的第1步原生 EndTurn 触发佩尔眼，`Player.TurnNumber` 1→2、`RoundNumber` 仍为1、Side 保持 Player，七张手牌进入消耗堆，佩尔眼 Active→Normal；第2步在该回合出壁垒。录制已取证。通用 EndTurn 等下一次原生玩家 StartTurn 和玩家回合号，不要求敌方回合。龙涎香的原生 AmbergrisPower 接同一额外回合机制，未在 r22/r23 封存战斗片观测到饮用触发。两种来源的原生回放与 Back/Step 均待实测。
+
+## r24：同一真实新局录至原生整局胜利（019）
+
+会话 `fb5b03ab66d544deb2f329fbcee6eedb`，444事件。先原生 Continue 匹配 point61，完成第三幕；在最终 Boss 战中保存退出，第二次 Continue 精确匹配战前 point80，旧中断片 raw225 保留并从最终所选路径排除。重打 Boss 完成 raw226 的 19 步胜利片，随后原生进入最终事件，原生 OnEnded(true) 与 raw230 `PROCEED` 的终局及资源一致。真实 history `1793777059.run` 胜利、未放弃，原生 Continue 及备份在结算后正常删除，之前三份 history 不变。最终 41,530,959 字节、49 visit、230 raw／225 selected，正常后台收束和退出。
+
+第三幕5层历史学家开笼选择及离开已录，7层 `THE_FUTURE_OF_POTIONS` 额外领奖窗触发原有保护，raw190/191 缺口。生产 reader 另定位第一幕9层和二幕14层战后奖励之间的丢药水状态变化（raw42、154），后续须覆盖奖励界面丢弃或选择合适的代表路线。上述均保留，未拼为整局。source206（第三幕11层精英）起的后段和 source226 胜利片生产读取通过。
+
+raw225 独立中断片 `897c2da1` 第10步再次录到佩尔眼，玩家回合3／战斗轮2；所选路径的 r24 战斗片未发现龙涎香饮用。证据 `runtime-verification-r24.json`、`collection-r24.json`、`checks/r24-third-act-tail.json`、`checks/r24-boss-extra-turn-fragment.json`，最新备份 `RUN005-post-r24-current-20261104-160755`。
+
+## r25：实验体第一次倒下被检查点拒绝（019）
+
+会话 `7aee9e26e92c464aa985b4a956804191`，486事件。source206 起三场原生胜利和路线匹配，进入实验体，前8步正常。第9步全身撞击使同一敌人 HP100→0、保留 AdaptablePower、进入 RESPAWN_MOVE；原生操作结果/RNG 验证在 Capture 前通过，`CombatUnits.Restorable` 拒绝这名仍在场的倒地敌人，`direct-back-roster-unsupported` 后恢复原上下文。正常退出，四份实际历史和原录像一致。证据 `runtime-verification-r25.json`、`collection-r25.json`。
+
+020 仅允许仍在所属战斗 roster、带 AdaptablePower 并处于 RESPAWN_MOVE 的倒地实验体进入既有检查点；正放继续由原版驱动击倒、复生和最后胜利。Back 跨存活状态或复生次数时重建敌人显示节点，恢复原生稳定动画、该形态的 bounds、颜色和 HUD，逻辑对象与 RNG 沿用检查点，旧显示任务留在退役节点。主体 Release 0警告/0错误，加入019 producer 兼容，收据 `preparation/build-020-418b2a42.json`；安装后 `RUN005-post-build020-current-20261104-162003`，只变 settings.save，实机待测。
+
+## r26：原生胜利通过，复生演出 Back 和音乐待修（020）
+
+会话 `b52d544381ec4f5f8423631a50ec1e9d`，1915事件。第15层起点完整完成 Boss 19 步、最终事件和隔离原生胜利详情。多次回到首次倒下及复生前后资源/RNG 匹配，未出现观察器错误，已正常退出。实测五次复生附近 Back 总耗时1537–2396ms，绝大部分在原生动作收束，已有缩短转场节奏仍未覆盖 `TestSubject.RespawnMove` 两段 `Cmd.Wait(0.8f)`、`Cmd.Wait(1.15f)`。音乐参数由原版在倒下/复生/击杀调用，但不在旧检查点记录内。原 run、Boss 片、四份实体历史一致，已归档 `runtime-verification-r26.json` 与 `collection-r26.json`。
+
+021 复用现有受审计的回合等待归属，绑定上述两段只负责复生演出节奏的等待，只有在在途动作收束时释放或跳过；原生动画触发、形态/HP/能力与结果校验仍执行。通过观察原生 `NRunMusicController.UpdateMusicParameter` 保存每个检查点的 `test_subject_progress`，入场默认段0，Back 调同一原生 API 复原。纯计时测试4项、主体0警告/0错误，收据 `preparation/build-021-0c9a4454.json`，安装后 `RUN005-post-build021-current-20261104-163446`。实际加速和音轨听感待测。
+
+## r27：参数写回后音乐仍偏离，复生后抽牌和自动出牌阻塞（021）
+
+会话 `82a735fb58184393bdaabadf9caff554`，1367事件。32次 Back 的战斗状态/RNG 均匹配，用户澄清状态问题主要是音乐阶段。6次原生参数写回（含2→1与1→0），听感仍未回到相应段。长 Back 有一次1.568s、一次0.646s，输入均发生在两段复生等待结束附近或之后。第一例1.500s原生收束里，已跳过换回玩家回合停顿，之后约0.82s抽牌并触发历史课，约0.51s才开始其自动全身撞击的攻击，恢复数据及界面只用约68ms。源日志 `runtime-verification-r27.json`、`collection-r27.json`，实体历史与原录像一致。
+
+022 为每次原生音乐参数调用附一个检查点内序号。跨过调用才通过原生 PlayCustomMusic 重启实验体专曲并恢复目标参数，涵盖一次动作内1→2→1、回到数值相同但时间线已前进的情况。选择按阶段重建，精确曲内时间不作为目标。缩短仅实验体战的 EndTurn 收束：原生 Shuffle/CardModel 演出定时进入既有 wait broker，CardPileCmd.Add/Shuffle 等待的本场动画 Tween 在收束时加速到原生完成信号，保留原生回调及状态核对。Release 0警告/0错误，安装收据 `preparation/build-022-12af2812.json`，安装后备份 `RUN005-post-build022-current-20261104-164942`。实际听感及遮罩时长待复测。
+
+## r28：022 初始化重载歧义（023 修复候选）
+
+用户启动后主菜单回放入口缺失。启动日志 `ReplayMod unavailable: AmbiguousMatchException`，初始化错误触发本模组 Harmony 补丁回滚。新增 `TweenHelper.AwaitFinished` 绑定漏指定参数，实际有 `(Tween,Node)` 与 `(Tween,CancellationToken)` 两个重载。023 指定本来要挂的 `(Tween,Node)`；实际游戏程序集反射校验唯一目标且返回 Task&lt;bool&gt;，主体 Release 0警告/0错误。022 未进入回放。收据 `runtime-verification-r28.json`、`checks/build023-tween-target.json`、`preparation/build-023-cbbfd7a3.json`；安装后备份 `RUN005-post-build023-current-20261104-165333`，只有 settings.save 变化。
+
+## r29：入口通过，实验体复生收束尾和正放音频待测（023/024）
+
+会话 `f8d133a1a8bf45cb8b39143398b06099`，1872事件，入口、回放、状态/RNG核对及正常退出通过。第二次复生 Back 五次约792–823ms；代表一例两个 `RespawnMove` 等待已释放，约0.62秒才到 `MonsterModel.PerformMove` 收尾，此后才进抽牌/洗牌。洗牌飞行本身独立运行，原生正放未被旧 SourceVisuals 收纳，故可在退完后残留。原件及四份历史保持。证据 `runtime-verification-r29.json`、`collection-r29.json`。
+
+024 将本 Boss EndTurn 中的 `CreatureCmd.Heal`、`PowerCmd.Apply/Remove` 原生演出计时纳入在途收束。把原生 Shuffle 飞行及配对拖尾纳入既有 Back 清理；恢复后通过原生牌堆刷新。原生复生时释放已留场击倒的旧 `DeathAnimationTask` 引用，允许下一次原生 `StartDeathAnim` 触发原音效；旧非移除任务继续原有收尾。记录实际阶段参数请求和原生死亡音效调用，以区别听感与触发，二阶段音乐仍待实测。主体 Release 0警告/0错误，固定 DLL 反射检查了新增签名。收据 `preparation/build-024-1818de71.json`、`checks/build024-native-targets.json`，安装后备份 `RUN005-post-build024-current-20261104-170638`。
+
+## r30：实验体 Back 回归通过（024）
+
+会话 `8d9cce0215fe4f99a644407762bf4eb6`，1760事件、零观察器失败。第9/13步边界共15次返回，端到端约38.6–148.8ms，全部状态/RNG匹配。已观测原生洗牌飞行与配对拖尾被同次清理；用户确认 Back 音乐、音效和大部分死亡声符合预期。第10步首次完整正放和 Back 后重做均有未处于收束的原生 `SfxCmd.PlayDeath(TestSubject)` 调用，请求同一 `test_subject_knock_out`；首次听感差异保留，不能据此定性为原版缺陷，也未追加人工重复音效。回放按本轮短测 Stop，游戏正常退出；四份实体历史和原录像一致。证据 `runtime-verification-r30.json`、`collection-r30.json`，备份 `RUN005-post-r30-current-20261104-171314`。
 
 ## 首候选实现与边界
 
