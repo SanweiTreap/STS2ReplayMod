@@ -82,7 +82,7 @@ internal static class Patches
         var turnState=AccessTools.TypeByName("MegaCrit.Sts2.Core.Combat.CombatTurnState")??throw new MissingMemberException("CombatTurnState");
         Patch(typeof(CombatManager),"EndCombatInternal",prefix:nameof(EndBefore),postfix:nameof(EndTask),parameters:[turnState]);
         Patch(typeof(NCombatUi),"OnCombatWon",prefix:nameof(RewardUi),parameters:[typeof(MegaCrit.Sts2.Core.Rooms.CombatRoom)]);
-        Patch(typeof(SaveManager),"UpdateProgressAfterCombatWon",prefix:nameof(ProgressOwner),postfix:nameof(ProgressWon));
+        Patch(typeof(SaveManager),"UpdateProgressAfterCombatWon",prefix:nameof(ProgressWinning),postfix:nameof(ProgressWon));
         Patch(typeof(SaveManager),"SaveProgressFile",prefix:nameof(ProgressOwner),parameters:[]);
         Patch(typeof(GameAction),"Cancel",prefix:nameof(Cancel),postfix:nameof(CancelSettled),parameters:[]);
         Patch(typeof(ActionQueueSet),"GetReadyAction",postfix:nameof(ReadyAction));
@@ -248,6 +248,11 @@ internal static class Patches
     {
         // Abort before a write if the victory chain ever escaped the isolated manager.
         if(PlayerLoop.Active&&BattleEnd.Ending)Codec.Require(ReferenceEquals(__instance,PlayerLoop.IsolatedManager),"victory-progress-outside-memory-context");
+    }
+    private static void ProgressWinning(SaveManager __instance)
+    {
+        ProgressOwner(__instance);
+        if(NativeSeek.Enabled&&PlayerLoop.Active&&BattleEnd.Ending)BattleEnd.CaptureVictoryProgress(__instance);
     }
     private static void ProgressWon(SaveManager __instance)
     {

@@ -67,6 +67,24 @@ internal sealed class MemorySession
                 IsolatedManagerOnly=true,FromPlaybackMemory=true,ExpectedStateInjected=false});
         };
     }
+    internal static Action CaptureVictoryProgress(SaveManager manager)
+    {
+        Codec.Require(ReferenceEquals(manager,PlayerLoop.IsolatedManager),"victory-progress-outside-memory-context");
+        var progress=manager.Progress;
+        // Native victory updates these statistics and can obtain an epoch.
+        // First-ever enemy discovery is gated by the enemy's FightStats.
+        var roots=new[]{"_encounterStats","_enemyStats","_epochs"}
+            .Select(name=>AccessTools.Field(typeof(ProgressState),name).GetValue(progress));
+        var data=new IdentityMemento(roots,value=>value is EncounterStats or EnemyStats or FightStats or SerializableEpoch,_=>true);
+        return ()=>
+        {
+            Codec.Require(PlayerLoop.Active&&ReferenceEquals(SaveManager.Instance,manager)&&
+                ReferenceEquals(manager,PlayerLoop.IsolatedManager)&&ReferenceEquals(manager.Progress,progress),"victory-progress-restore-owner");
+            data.Restore();
+            Runtime.Log("checkpoint-victory-progress-restored",new{EncounterStats=progress.EncounterStats.Count,EnemyStats=progress.EnemyStats.Count,
+                Epochs=progress.Epochs.Count,IsolatedManagerOnly=true,FromPlaybackMemory=true,ExpectedStateInjected=false});
+        };
+    }
     internal static void ApplyRecordedProgress(string json)
     {
         Codec.Require(PlayerLoop.Active&&ReferenceEquals(SaveManager.Instance,PlayerLoop.IsolatedManager),"run-progress-context-owner");
