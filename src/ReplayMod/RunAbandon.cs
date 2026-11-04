@@ -18,6 +18,7 @@ internal static class RunAbandon
         h.Patch(AccessTools.DeclaredMethod(typeof(NAbandonRunConfirmPopup),"OnYesButtonPressed"),
             prefix:new HarmonyMethod(typeof(RunAbandon),nameof(ConfirmBefore)),postfix:new HarmonyMethod(typeof(RunAbandon),nameof(ConfirmAfter)));
         h.Patch(AccessTools.DeclaredMethod(typeof(NAbandonRunConfirmPopup),"OnNoButtonPressed"),prefix:new HarmonyMethod(typeof(RunAbandon),nameof(CancelBefore)));
+        h.Patch(AccessTools.DeclaredMethod(typeof(NVerticalPopup),"Close"),prefix:new HarmonyMethod(typeof(RunAbandon),nameof(CloseBefore)));
         h.Patch(AccessTools.DeclaredMethod(typeof(RunManager),"Abandon"),prefix:new HarmonyMethod(typeof(RunAbandon),nameof(Record)));
         h.Patch(AccessTools.DeclaredMethod(typeof(RunManager),"AbandonInternal"),postfix:new HarmonyMethod(typeof(RunAbandon),nameof(TaskStarted)));
     }
@@ -32,6 +33,8 @@ internal static class RunAbandon
         _confirming=__instance;return true;
     }
     private static bool CancelBefore()=>InputAllowed("cancel");
+    private static bool CloseBefore(NVerticalPopup __instance)=>
+        !PlayerLoop.Active||RunPlayback.Driving||__instance.GetParent() is not NAbandonRunConfirmPopup;
     private static void ConfirmAfter()=>_confirming=null;
     private static void Record()
     {
@@ -59,15 +62,18 @@ internal static class RunAbandon
     {
         Codec.Require(operation is {Kind:"abandon",Terminal:"abandoned",Argument.Option:"native-confirm-popup"}&&
             LiveState.Run.CurrentRoom is CombatRoom,"unsupported-abandon-playback-input");
+        var modal=NModalContainer.Instance??throw new InvalidDataException("native-abandon-modal-unavailable");
+        Codec.Require(modal.OpenModal is null,"native-abandon-modal-already-occupied");
         var popup=NAbandonRunConfirmPopup.Create(null)??throw new InvalidDataException("native-abandon-popup-unavailable");
         _native=null;
         try
         {
-            RunPlayback.Native(()=>NModalContainer.Instance!.Add(popup));
+            RunPlayback.Native(()=>modal.Add(popup));
             await RunPlayback.Wait(()=>popup.IsNodeReady()&&
                 (RunPatches.Field(popup,"_tween") is not Tween tween||!GodotObject.IsInstanceValid(tween)||!tween.IsRunning()),"native-abandon-popup-not-ready");
             await RunPlayback.TakePhase("确认主动放弃");
             RunPlayback.Native(()=>AccessTools.Method(typeof(NAbandonRunConfirmPopup),"OnYesButtonPressed").Invoke(popup,[null]));
+            ClosePopup(modal,popup,"confirmed");
             await RunPlayback.Wait(()=>_native is not null,"native-abandon-task-not-started");
             await RunPlayback.Await(_native!);
             Runtime.Log("run-abandon-native-completed",new{operation.Sequence,NativePopupConfirmed=true,
@@ -75,8 +81,15 @@ internal static class RunAbandon
         }
         finally
         {
-            if(GodotObject.IsInstanceValid(popup)&&!popup.IsQueuedForDeletion())
-                RunPlayback.Native(()=>AccessTools.Method(typeof(NAbandonRunConfirmPopup),"OnNoButtonPressed").Invoke(popup,[null]));
+            ClosePopup(modal,popup,"interrupted");
         }
+    }
+
+    private static void ClosePopup(NModalContainer modal,NAbandonRunConfirmPopup popup,string reason)
+    {
+        if(!GodotObject.IsInstanceValid(modal)||!ReferenceEquals(modal.OpenModal,popup))return;
+        // A native button release closes the modal separately from the Yes/No handler.
+        RunPlayback.Native(modal.Clear);
+        Runtime.Log("run-abandon-modal-cleared",new{Reason=reason,NativeBackstopFadeStarted=true});
     }
 }

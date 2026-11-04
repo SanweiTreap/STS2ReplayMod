@@ -1,6 +1,12 @@
 # RUN-005：完整三幕录制与结局闭环
 
-## 当前摘要（2026-11-03）
+## 当前摘要（2026-11-04）
+
+- 当前 **build-016/r19** 已通过主动放弃代表链和遮罩回归。三次确认触发真实原生放弃、资源/RNG 精确核对与隔离 `AbandonedRun`；另一次在确认窗 Stop，只清理弹窗和遮罩，无终局或历史构建。用户确认两种关闭均无残留。此前 **015/r18** 的视觉失败保留。
+- 016 复用原生 `NModalContainer.Clear`：确认后执行原生遮罩淡出，窗内 Stop 清理同一弹窗。原版 `NVerticalPopup.Close` 是按钮独立回调，现也纳入放弃回放的输入保护。Release 0 警告/0 错误，安装收据 `evidence/run-005/preparation/build-016-e59cd977.json`。016 不要求重录。
+- 余项：从真实新局开始的三幕连续录播，直至原生胜利。之前通过的胜利样本仍为后段。
+
+## build-015 阶段摘要（2026-11-03）
 
 - 本包进行中，当前 **build-015，主动放弃观看候选，待原生播放**。**014/r17真实放弃录制/生产读取已通过**：一张防御独立interrupted前缀，随后原生确认放弃、Terminal/Lifecycle=abandoned，真实history was_abandoned=true/win=false，未误记死亡。015补确认/取消输入仅接受播放器授权，显式兼容该14原片。013/r16死亡分段已有证，旧FAIL保留；放弃观看/确认窗Stop及真正完整新局三幕仍待，不当整包完成。
 - Act0/1/2及两次换幕代表链已有证；最后奖励投票/EnterNextAct分支原生进入TheArchitect，独立visit/attempt，不增加幕索引/强制房型/加载后幕checkpoint。与Boss共用原生地图坐标，楼层取实际值（r6 Boss15层/终局16层），不自行增减楼层。
@@ -11,6 +17,16 @@
 - 仍受有界文件限制：run64MiB（原16）、clip16MiB（原4），访问256/路线操作2048/单战动作256保持；支持三幕增长余量，未做长局增长/性能实测，不加逐帧文件读取/全局序列化。新事实只在实际生命周期点落盘。
 - 新放弃Run `b5221ca5d465457ab90e1f93231fbfec`、clip `0ae0a298ed894a08ba328e7c426ffd5c`，Opening=null、raw5/source4战斗/source5放弃，不当完整新局。r17归档34文件/29事件，49已知文件：真实放弃正常更新native replay、Progress及backup、settings及backup，原进度保留、无restore。015唯一pair核对、014另存；胜利/死亡/新放弃三份history hash均不变、Continue/backup仍无。最新 `RUN005-post-build015-current-20261103-235107`，安装前相对r17全不变、安装后仅settings.save变化，game0、另一账号未读。
 - 下一步：从整局列表最新放弃局source4首战起点Auto，核防御→原生确认放弃→放弃结算及详情后Stop；重开>>完成防御、>打开确认窗但不确认，Stop清理后正常退出。复用现片，不重录。放弃仍只覆盖稳定完整动作前缀的直接战斗；随后真正完整新局三幕。
+
+## r18：主动放弃回放与确认遮罩（015）
+
+会话 `06bb68c038734c29a0bf2354afe9c057`，182事件。一次 Auto 与两次手动均完成防御、原生确认、实际 OnEnded(false)、隔离的原生 AbandonedRun 历史构建及 EOF。Auto 在结算详情留场；手动结算 Back 保持同一 RunState 与资源/RNG。三次 Stop 均恢复原管理器和进度，原生任务无失败/取消，游戏正常退出。三份实际胜利/死亡/放弃 history 哈希保持，Continue 及备份仍无；49 已知文件仅 settings.save 与其备份变化。证据 `evidence/run-005/runtime-verification-r18.json`、`evidence/run-005/collection-r18.json`。
+
+视觉 FAIL 保留。原版按钮的 Released 同时调用 Yes/No 与 `NVerticalPopup.Close`，015 直接调用 Yes 导致弹窗被释放，但没有清理 `NModalContainer.OpenModal` 或背景遮罩。016 显式补原生 Clear，按弹窗身份清理，确认与中断分别记录。当前安装后备份 `RUN005-post-build016-current-20261104-134114`。
+
+## r19：主动放弃遮罩与窗内 Stop（016）
+
+会话 `9998b134d5cf4a418d043681fa2ec28f`，250事件、四次观看。三次 `confirmed` 清理及一次确认前 `interrupted` 清理均启动原生遮罩淡出。确认前 Stop 无确认阶段、终局或新 History，`Complete=false`、`Error=null`，返回原上下文；三次确认均 `Complete=true`。四次原生任务收束无失败或取消，游戏正常退出。三份真实 History 及原录像和战斗片 SHA256 与 r18 一致，原存退与进度检查通过，49 个已知文件仅设置及其备份变化。证据 `evidence/run-005/runtime-verification-r19.json`、`evidence/run-005/collection-r19.json`。最新备份 `RUN005-post-r19-current-20261104-135830`。
 
 ## 首候选实现与边界
 
