@@ -43,17 +43,44 @@ internal static class Ui
         var terminalStop=new CheckBox{Text="RUN-005：下次终局演出中自动Stop（仅一次）",ButtonPressed=RunEndings.StopTestArmed};
         terminalStop.Toggled+=value=>RunEndings.StopTestArmed=value;box.AddChild(terminalStop);
         var fullRun=new CheckBox{Text="RUN-005 三幕录制准备（下一铁甲 A0 新局）",ButtonPressed=RunOpening.FullRunArmed};
+        var rewardsTest=new CheckBox{Text="RUN-005 领奖短测（下一铁甲 A0 新局）",ButtonPressed=RunOpening.RewardsTestArmed};
         fullRun.Toggled+=value=>
         {
             RunOpening.FullRunArmed=value;
             if(value)
             {
                 TestEncounter.Armed=TestPreparation.None;RecordedState.Armed=false;neow.ButtonPressed=false;
+                rewardsTest.ButtonPressed=false;
                 RunTailPreparation.Armed=false;RunBossPreparation.Armed=false;
             }
             Runtime.Status=value?"下一铁甲 A0 新局：开局六张升级格挡牌、背包和灯笼；地图、敌人及换幕走原版":"已取消三幕录制准备";
         };
         box.AddChild(fullRun);
+        rewardsTest.Toggled+=value=>
+        {
+            RunOpening.RewardsTestArmed=value;
+            if(value)
+            {
+                TestEncounter.Armed=TestPreparation.None;RecordedState.Armed=false;neow.ButtonPressed=false;fullRun.ButtonPressed=false;
+                RunTailPreparation.Armed=false;RunBossPreparation.Armed=false;
+            }
+            Runtime.Status=value?"下一铁甲 A0：选涅奥之骨并领完遗物；首战保留满药水栏，胜利后先丢一瓶再领药":"已取消领奖短测";
+        };
+        box.AddChild(rewardsTest);
+        var eventRewardsTest=new CheckBox{Text="RUN-005 问号药水领奖短测（下一铁甲 A0 新局）",
+            ButtonPressed=TestEncounter.Armed==TestPreparation.RunEventRewards};
+        eventRewardsTest.Toggled+=value=>
+        {
+            if(value)
+            {
+                TestEncounter.Armed=TestPreparation.RunEventRewards;RecordedState.Armed=false;
+                neow.ButtonPressed=false;fullRun.ButtonPressed=false;rewardsTest.ButtonPressed=false;
+                RunTailPreparation.Armed=false;RunBossPreparation.Armed=false;
+            }
+            else if(TestEncounter.Armed==TestPreparation.RunEventRewards)TestEncounter.Armed=TestPreparation.None;
+            Runtime.Status=value?"下一铁甲 A0：最左首普通→相连最左问号，付金币，领一瓶药后跳过另一瓶":"已取消问号药水领奖短测";
+        };
+        box.AddChild(eventRewardsTest);
         var death=new CheckBox{Text="RUN-005 死亡录制短测（下一铁甲A0新局，首普通1HP）",ButtonPressed=TestEncounter.Armed==TestPreparation.DeathRecording};
         death.Toggled+=value=>{TestEncounter.Armed=value?TestPreparation.DeathRecording:TestPreparation.None;
             if(value){RecordedState.Armed=false;RunOpening.NewLeafArmed=false;}

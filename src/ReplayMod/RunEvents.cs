@@ -25,8 +25,9 @@ internal static class RunEvents
     private static Task? _task;
     private static readonly AsyncLocal<EventOption?> NativeChoice=new();
     internal static bool OwnsNativeChoice=>_option is not null&&ReferenceEquals(NativeChoice.Value,_option);
-    private static RelicModel? _addingRelic;
-    private static Player? _addingPlayer;
+    private sealed record RelicGrant(EventOption Option,Player Player,RelicModel Relic);
+    private static readonly AsyncLocal<RelicGrant?> NativeGrant=new();
+    private sealed record GrantCall(RelicGrant? Prior);
     private sealed record ChoiceCall(EventOption? Prior,bool Owned);
     private static bool Input()=>!RunPlayback.Active||RunPlayback.Driving;
     private static EventModel Model=>RunManager.Instance.EventSynchronizer.GetLocalEvent();
@@ -46,7 +47,8 @@ internal static class RunEvents
         Patch(typeof(NAncientEventLayout),"OnDialogueHitboxClicked",nameof(Input));
         RunEventCombat.Install(h);
         h.Patch(AccessTools.DeclaredMethod(typeof(RelicCmd),"Obtain",[typeof(RelicModel),typeof(Player),typeof(int)]),
-            new HarmonyMethod(typeof(RunEvents),nameof(ObtainBefore)),new HarmonyMethod(typeof(RunEvents),nameof(ObtainAfter)));
+            prefix:new HarmonyMethod(typeof(RunEvents),nameof(ObtainBefore)),postfix:new HarmonyMethod(typeof(RunEvents),nameof(ObtainAfter)),
+            finalizer:new HarmonyMethod(typeof(RunEvents),nameof(ObtainEnd)));
     }
     private static JsonNode RngState(Rng rng)=>JsonSerializer.SerializeToNode(rng.ToSerializable(),JsonSerializationUtility.GetTypeInfo<SerializableRng>())!;
     internal static string State()
@@ -60,7 +62,7 @@ internal static class RunEvents
             Rng=RngState(model.Rng),SharedPage=RunPatches.Field(sync,"_pageIndex"),
             SharedRng=model.IsShared?RngState((Rng)RunPatches.Field(sync,"_multiplayerOptionSelectionRng")!):null},Codec.Json);
     }
-    internal static void Clear(){_option=null;_model=null;_recorded=null;_task=null;_addingRelic=null;_addingPlayer=null;NativeChoice.Value=null;}
+    internal static void Clear(){_option=null;_model=null;_recorded=null;_task=null;NativeGrant.Value=null;NativeChoice.Value=null;}
     private static bool Prepare(EventOption option,string kind,int index)
     {
         if(!InSupportedEvent)return !RunPlayback.Active;
@@ -121,18 +123,25 @@ internal static class RunEvents
         }
     }
     private static void Owned(Task __result)=>RunPlayback.Track(__result);
-    private static void ObtainBefore(RelicModel __0,Player __1,out bool __state)
+    private static void ObtainBefore(RelicModel __0,Player __1,out GrantCall? __state)
     {
-        __state=RunPlayback.Active&&RunPlayback.NonCombat&&RunPlayback.Current?.Kind=="event-choice"&&
-            _option is not null&&ReferenceEquals(NativeChoice.Value,_option)&&ReferenceEquals(_model?.Owner,__1)&&
-            ReferenceEquals(__1,LiveState.Player)&&_addingRelic is null;
-        if(__state){_addingRelic=__0;_addingPlayer=__1;}
+        __state=null;
+        if(!RunPlayback.Active||!RunPlayback.NonCombat||RunPlayback.Current?.Kind!="event-choice"||_option is not {} option||
+            !ReferenceEquals(_model?.Owner,__1)||!ReferenceEquals(__1,LiveState.Player))return;
+        var prior=NativeGrant.Value;
+        if(!OwnsNativeChoice&&!ReferenceEquals(prior?.Option,option)&&!RunPatches.OwnsRelicAdd(__1,__0))return;
+        // The native task inherits the grant scope across awaits, while the
+        // original caller regains its own exact grant when Obtain returns.
+        __state=new(prior);
+        NativeGrant.Value=new(option,__1,__0);
     }
-    private static void ObtainAfter(Task<RelicModel> __result,bool __state)
-    {if(__state){RunPlayback.Track(__result);_addingRelic=null;_addingPlayer=null;}}
+    private static void ObtainAfter(Task<RelicModel> __result,GrantCall? __state)
+    {if(__state is not null)RunPlayback.Track(__result);}
+    private static void ObtainEnd(GrantCall? __state)
+    {if(__state is not null)NativeGrant.Value=__state.Prior;}
     internal static bool OwnsRelicAdd(Player player,RelicModel relic)=>RunPlayback.Active&&RunPlayback.NonCombat&&
-        RunPlayback.Current?.Kind=="event-choice"&&ReferenceEquals(NativeChoice.Value,_option)&&_option is not null&&
-        ReferenceEquals(_addingPlayer,player)&&ReferenceEquals(_addingRelic,relic)&&ReferenceEquals(player,LiveState.Player);
+        RunPlayback.Current?.Kind=="event-choice"&&NativeGrant.Value is {} grant&&ReferenceEquals(grant.Option,_option)&&
+        ReferenceEquals(grant.Player,player)&&ReferenceEquals(grant.Relic,relic)&&ReferenceEquals(player,LiveState.Player);
     internal static async Task Play(RunOperation operation)
     {
         await RunPlayback.Wait(()=>NEventRoom.Instance is {} room&&GodotObject.IsInstanceValid(room)&&room.IsNodeReady()&&
@@ -165,6 +174,8 @@ internal static class RunEvents
         // opens game over. Finish this submitted business before Stop tears down.
         if(operation.Terminal=="victory")
         {await _task!;RunPlayback.CheckStop();}
+        else if(operation.Decisions.Any(d=>d.Kind=="event-rewards-open"))
+            await RunEventRewards.Play(_task!,operation.Sequence);
         else await RunPlayback.Await(_task!);
     }
 }

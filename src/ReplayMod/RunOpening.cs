@@ -3,6 +3,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Events;
+using MegaCrit.Sts2.Core.Models.Potions;
 using MegaCrit.Sts2.Core.Models.Relics;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Audio;
@@ -17,6 +18,7 @@ internal static class RunOpening
 {
     internal static bool NewLeafArmed;
     internal static bool FullRunArmed;
+    internal static bool RewardsTestArmed;
     internal static bool CombatStopTestArmed;
     private static RunStartInput? _captured,_playing;
     private static string? _recordedDebug;
@@ -32,7 +34,7 @@ internal static class RunOpening
     internal static void ApplyPreparation(RunState state)
     {
         var input=PlayerLoop.Active?_playing:_captured;
-        if(input?.Preparation==RunStartInput.IroncladBlockDeck)
+        if(input?.Preparation is RunStartInput.IroncladBlockDeck or RunStartInput.IroncladRewardsTest)
         {
             var player=state.Players.Single();
             RunBossPreparation.InstallBlockDeck(state,player);
@@ -44,8 +46,16 @@ internal static class RunOpening
                 state.SharedRelicGrabBag.Remove(relic);
             }
             AddRelic<BagOfPreparation>();AddRelic<Lantern>();
+            if(input.Preparation==RunStartInput.IroncladRewardsTest)
+            {
+                AddRelic<WhiteBeastStatue>();
+                for(var slot=0;slot<player.PotionSlots.Count;slot++)
+                    Codec.Require(player.AddPotionInternal(ModelDb.Potion<EnergyPotion>().ToMutable(),slot,silent:true).success,
+                        "reward-short-test-potion-belt-preparation-failed");
+            }
             Runtime.Log("run-opening-preparation-applied",new{input.Preparation,Playback=PlayerLoop.Active,BeforeFirstRoom=true,
-                Cards=player.Deck.Cards.Select(c=>c.Id.ToString()).ToArray(),Relics=player.Relics.Select(r=>r.Id.ToString()).ToArray()});
+                Cards=player.Deck.Cards.Select(c=>c.Id.ToString()).ToArray(),Relics=player.Relics.Select(r=>r.Id.ToString()).ToArray(),
+                Potions=player.PotionSlots.Select(p=>p?.Id.ToString()).ToArray()});
         }
     }
     private static void IsolateNativeWriters()
@@ -59,10 +69,12 @@ internal static class RunOpening
         if(PlayerLoop.Active)return;
         _captured=null;_recordedDebug=null;
         if(gameMode!=GameMode.Standard||ascensionLevel!=0||modifiers.Count!=0||TestEncounter.Armed!=TestPreparation.None||RecordedState.Armed)return;
-        var preparation=FullRunArmed&&character.Id.ToString()=="CHARACTER.IRONCLAD"&&acts.Count==3?
-            RunStartInput.IroncladBlockDeck:null;
-        if(preparation is not null)FullRunArmed=false;
-        _recordedDebug=preparation is null&&NewLeafArmed?"NEW_LEAF":null;NewLeafArmed=false;
+        var preparedCharacter=character.Id.ToString()=="CHARACTER.IRONCLAD"&&acts.Count==3;
+        var preparation=!preparedCharacter?null:RewardsTestArmed?RunStartInput.IroncladRewardsTest:
+            FullRunArmed?RunStartInput.IroncladBlockDeck:null;
+        if(preparation is not null){FullRunArmed=false;RewardsTestArmed=false;}
+        _recordedDebug=preparation==RunStartInput.IroncladRewardsTest?"NEOWS_BONES":preparation is null&&NewLeafArmed?"NEW_LEAF":null;
+        NewLeafArmed=false;
         _captured=new(character.Id.ToString(),seed,acts.Select(a=>a.Id.ToString()).ToArray(),gameMode.ToString(),ascensionLevel,
             RunResources.Progress(),JsonSerializationUtility.ToJson(SaveManager.Instance.PrefsSave),_recordedDebug,preparation);
         Runtime.Log("run-opening-input-captured",new{Character=_captured.Character,Seed=seed,Acts=_captured.Acts,gameMode,ascensionLevel,

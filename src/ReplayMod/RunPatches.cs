@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
+using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.RestSite;
 using MegaCrit.Sts2.Core.Map;
@@ -28,10 +29,10 @@ internal static class RunPatches
     internal static Task? UiTask,ProceedTask,RestAnimation;
     internal static Task<bool>? ResultTask;
     private static Reward? _selectedReward;
+    private static Reward? _drivenReward;
     internal static bool OwnsRelicAdd(Player player,RelicModel relic)=>RunPlayback.Active&&RunPlayback.NonCombat&&
-        RunPlayback.Current?.Kind=="reward"&&_selectedReward is RelicReward selected&&
-        ReferenceEquals(selected.Relic,relic)&&ReferenceEquals(selected.Player,player)&&ReferenceEquals(player,LiveState.Player)&&
-        Rewards?.Rewards.IndexOf(selected)==RunPlayback.Current.Argument.RewardIndex;
+        _selectedReward is RelicReward selected&&ReferenceEquals(selected,_drivenReward)&&
+        ReferenceEquals(selected.Relic,relic)&&ReferenceEquals(selected.Player,player)&&ReferenceEquals(player,LiveState.Player);
     internal static RunOperation? Record(string kind,Func<RunOperation?> begin)
     {
         try{return begin();}
@@ -73,6 +74,8 @@ internal static class RunPatches
         Patch(typeof(RunManager),"EnterMapCoord",after:nameof(EnteredMap));
         Patch(typeof(RewardsSetSynchronizer),"BeginRewardsSet",before:nameof(RewardsBegan));
         Patch(typeof(NRewardsScreen),"ShowScreen",after:nameof(RewardsShown));
+        Patch(typeof(NRewardsScreen),"OnProceedButtonPressed",before:nameof(RewardProceed));
+        Patch(typeof(NRewardButton),"OnRelease",before:nameof(RewardInput));
         Patch(typeof(NCombatUi),"ShowRewards",after:nameof(OwnedTask));
         Patch(typeof(NCombatUi),"ProceedWithoutRewards",after:nameof(OwnedTask));
         Patch(typeof(NRewardButton),"GetReward",after:nameof(ButtonTask));
@@ -86,11 +89,13 @@ internal static class RunPatches
         RunTreasures.Install(h);
         RunMerchants.Install(h);
         RunEvents.Install(h);
+        RunEventRewards.Install(h);
         RunOpening.Install(h);
         RunActs.Install(h);
         RunCombatLoads.Install(h);
         RunEndings.Install(h);
         RunBossPreparation.Install(h);
+        RunRewardPotions.Install(h);
     }
     private static void RoomTypeChosen(MapPointType __0,RoomType __result)=>Runtime.Guard(()=>
     {
@@ -114,40 +119,67 @@ internal static class RunPatches
     }
     private static void RewardsBegan(RewardsSet __0)
     {if((RunRecording.Enabled||RunPlayback.Active)&&ReferenceEquals(__0.Player,LiveState.Player))Rewards=__0;}
-    private static void RewardsShown(NRewardsScreen __result)
+    private static void RewardsShown(RewardsSet __0,bool __1,NRewardsScreen __result)
     {
         if(RunRecording.Enabled||RunPlayback.Active)RewardsScreen=__result;
         if(RunPlayback.Active&&RunPlayback.Current?.Kind=="treasure-open")Runtime.Guard(()=>throw new InvalidDataException("treasure-extra-reward-screen-not-yet-supported"));
-        if(RunRecording.Pending is {Kind:"event-choice"})Runtime.Guard(()=>RunRecording.Unsupported("event-rewards","事件内额外领奖页仍待接入"));
-        if(RunPlayback.Active&&RunPlayback.Current?.Kind=="event-choice")Runtime.Guard(()=>throw new InvalidDataException("event-extra-reward-screen-not-yet-supported"));
+        if(RunRecording.Pending is {Kind:"event-choice"}||RunPlayback.Active&&RunPlayback.Current?.Kind=="event-choice")
+            Runtime.Guard(()=>RunEventRewards.Open(__0,__1,__result));
         if(RunEventCombat.Returning)
         {
             if(RunPlayback.Active)Runtime.Guard(()=>throw new InvalidDataException("event-return-extra-reward-screen-not-yet-supported"));
             else Runtime.Guard(()=>RunRecording.Unsupported("event-return-reward","返回事件的额外领奖页尚未支持"));
         }
     }
-    private static void RewardBefore(Reward __0,out RunOperation? __state)
+    private static bool RewardInput()=>!RunPlayback.Active||RunPlayback.Driving;
+    private static bool RewardProceed(NRewardsScreen __instance)
+    {
+        if(!RewardInput())return false;
+        RunEventRewards.RecordClose(__instance);
+        return true;
+    }
+    private static void RewardBefore(Reward __0,out (RunOperation? Operation,RewardsSet? EventSet) __state)
     {
         if(RunPlayback.Active)
         {
-            Codec.Require(RunPlayback.Driving&&RunPlayback.NonCombat&&RunPlayback.Current is {Kind:"reward"} current&&
-                _selectedReward is null&&Rewards?.Rewards.IndexOf(__0)==current.Argument.RewardIndex&&
+            Codec.Require(RunPlayback.Driving&&RunPlayback.NonCombat&&
+                _selectedReward is null&&ReferenceEquals(_drivenReward,__0)&&
                 ReferenceEquals(__0.Player,LiveState.Player),"run-reward-selection-outside-operation");
             _selectedReward=__0;
         }
-        __state=null;if(!RunRecording.Enabled)return;
+        __state=default;if(!RunRecording.Enabled)return;
         if(RunRecording.Pending is {Kind:"treasure-open"}){Runtime.Guard(()=>RunRecording.Unsupported("treasure-extra-reward","附加奖励页尚未接入"));return;}
         var index=Rewards?.Rewards.IndexOf(__0)??-1;
         if(index<0)return;
-        __state=Record("reward",()=>RunRecording.Begin("reward",new(RewardIndex:index,RewardKey:RewardKey(__0))));
+        if(RunEventRewards.RecordReward(__0,index))__state.EventSet=Rewards;
+        else __state.Operation=Record("reward",()=>RunRecording.Begin("reward",new(RewardIndex:index,RewardKey:RewardKey(__0))));
     }
-    private static void RewardAfter(ref Task<bool> __result,RunOperation? __state)
+    private static void RewardAfter(ref Task<bool> __result,(RunOperation? Operation,RewardsSet? EventSet) __state)
     {
-        __result=RunRecording.Wrap(__result,__state);
+        __result=__state.EventSet is {} set?RunEventRewards.RecordResult(__result,set):RunRecording.Wrap(__result,__state.Operation);
         if(!RunPlayback.Active)return;
         var selected=_selectedReward;__result=Finish(__result);ResultTask=__result;RunPlayback.Track(__result);
         async Task<bool> Finish(Task<bool> native)
         {try{return await native;}finally{if(ReferenceEquals(_selectedReward,selected))_selectedReward=null;}}
+    }
+    internal static async Task<bool> PlayReward(int index,string key)
+    {
+        var rewards=Rewards!;
+        Codec.Require(index>=0&&index<rewards.Rewards.Count,"run-reward-index");
+        var reward=rewards.Rewards[index];
+        Codec.Require(RewardKey(reward)==key,"run-reward-content-mismatch");
+        var buttons=(IEnumerable<Control>)Field(RewardsScreen!,"_rewardButtons")!;
+        var button=buttons.OfType<NRewardButton>().SingleOrDefault(b=>ReferenceEquals(b.Reward,reward));
+        Codec.Require(button is not null,"run-reward-button-missing");
+        UiTask=null;ResultTask=null;_drivenReward=reward;
+        try
+        {
+            RunPlayback.Native(()=>AccessTools.Method(typeof(NRewardButton),"OnRelease").Invoke(button,[]));
+            Codec.Require(UiTask is not null&&ResultTask is not null,"run-reward-native-handler-not-started");
+            await RunPlayback.Await(UiTask!);
+            return ResultTask!.Result;
+        }
+        finally{_drivenReward=null;}
     }
     private static void ProceedBefore(out RunOperation? __state)
     {
@@ -173,5 +205,5 @@ internal static class RunPatches
     private static void OwnedTask(Task __result)=>RunPlayback.Track(__result);
     private static void RestProceedBefore(out RunOperation? __state)=>__state=Record("rest-proceed",()=>RunRecording.Begin("rest-proceed",new()));
     private static void RestProceedAfter(RunOperation? __state){if(__state is not null)Runtime.Guard(()=>RunRecording.Complete(__state));}
-    internal static void Clear(){Rewards=null;RewardsScreen=null;Travel=null;UiTask=null;ProceedTask=null;ResultTask=null;RestAnimation=null;_selectedReward=null;}
+    internal static void Clear(){Rewards=null;RewardsScreen=null;Travel=null;UiTask=null;ProceedTask=null;ResultTask=null;RestAnimation=null;_selectedReward=null;_drivenReward=null;RunEventRewards.Clear();RunRewardPotions.Clear();}
 }

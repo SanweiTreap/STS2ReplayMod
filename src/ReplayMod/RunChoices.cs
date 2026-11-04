@@ -3,6 +3,7 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
 using MegaCrit.Sts2.Core.Saves;
@@ -16,7 +17,10 @@ internal static class RunChoices
     {
         h.Patch(AccessTools.Method(typeof(NCardRewardSelectionScreen),"OptionSelected"),postfix:new HarmonyMethod(typeof(RunChoices),nameof(Reward)));
         h.Patch(AccessTools.Method(typeof(NCardGridSelectionScreen),"CardsSelected"),postfix:new HarmonyMethod(typeof(RunChoices),nameof(Deck)));
+        h.Patch(AccessTools.DeclaredMethod(typeof(NChooseACardSelectionScreen),"CardsSelected",[]),
+            postfix:new HarmonyMethod(typeof(RunChoices),nameof(ChooseOne)));
         foreach(var (type,methods) in new[]{(typeof(NCardRewardSelectionScreen),new[]{"SelectCard","OnAlternateRewardSelected"}),
+            (typeof(NChooseACardSelectionScreen),new[]{"SelectHolder","OnSkipButtonReleased"}),
             (typeof(NDeckUpgradeSelectScreen),new[]{"OnCardClicked","ConfirmSelection","CancelSelection","CloseSelection"}),
             (typeof(NDeckCardSelectScreen),new[]{"OnCardClicked","ConfirmSelection","CancelSelection","CloseSelection"}),
             (typeof(NDeckTransformSelectScreen),new[]{"OnCardClicked","ConfirmSelection","CancelSelection","CloseSelection","CompleteSelection"})})
@@ -80,6 +84,30 @@ internal static class RunChoices
             {
                 await RunPlayback.TakePhase(decision.Selected.Length==0?"取消选择":__instance is NDeckUpgradeSelectScreen?"确认升级":"确认选择");
                 RunPlayback.Native(()=>AccessTools.Method(__instance.GetType(),decision.Selected.Length==0?"CloseSelection":"ConfirmSelection").Invoke(__instance,[null]));
+            }
+        });
+    }
+    private static void ChooseOne(NChooseACardSelectionScreen __instance,ref Task<IEnumerable<CardModel>> __result)
+    {
+        if(!RunRecording.Choosing&&!RunPlayback.NonCombat)return;
+        var cards=((IReadOnlyList<CardModel>)RunPatches.Field(__instance,"_cards")!).ToArray();
+        var canSkip=(bool)RunPatches.Field(__instance,"_canSkip")!;
+        var options=cards.Select(CardKey).Append(canSkip?"can-skip":"must-select").ToArray();
+        __result=Watch(__result,"choose-one-card",options,
+            selected=>selected.Select(c=>Array.FindIndex(cards,v=>ReferenceEquals(v,c))).ToArray(),async decision=>
+        {
+            Codec.Require(decision.Selected.Length==0&&canSkip||decision.Selected is [var index]&&index>=0&&index<cards.Length,
+                "run-choose-one-card-selection-invalid");
+            await Ready(__instance);
+            var skip=decision.Selected.Length==0;
+            await RunPlayback.TakePhase(skip?"跳过选牌":"选择一张牌");
+            if(skip)RunPlayback.Native(()=>AccessTools.DeclaredMethod(typeof(NChooseACardSelectionScreen),"OnSkipButtonReleased").Invoke(__instance,[null]));
+            else
+            {
+                var card=cards[decision.Selected[0]];
+                var row=(Control)RunPatches.Field(__instance,"_cardRow")!;
+                var holder=row.GetChildren().OfType<NCardHolder>().Single(h=>ReferenceEquals(h.CardModel,card));
+                RunPlayback.Native(()=>AccessTools.DeclaredMethod(typeof(NChooseACardSelectionScreen),"SelectHolder").Invoke(__instance,[holder]));
             }
         });
     }

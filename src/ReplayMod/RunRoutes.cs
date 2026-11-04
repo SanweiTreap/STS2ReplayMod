@@ -89,7 +89,7 @@ internal static class RunRoutes
         var next=run.Operations.SingleOrDefault(o=>o.Sequence==point.BeforeOperation);
         Codec.Require(battle is {Status:"complete",Clip:not null,Battle.Completion:"victory"}&&battle.Battle.Entry!="event"&&
             save!.Attempt==attempt!.Parent&&battle.Visit==point.Visit&&battle.Battle.Act==visit.Act&&
-            next is {Kind:"reward" or "proceed" or "act-proceed"}&&next.Visit==point.Visit&&next.Attempt==point.Attempt,
+            next is {Kind:"reward" or "proceed" or "act-proceed" or "reward-discard-potion"}&&next.Visit==point.Visit&&next.Attempt==point.Attempt,
             "run-completed-map-load-anchor-missing");
         return battle;
     }

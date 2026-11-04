@@ -6,7 +6,6 @@ using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
-using MegaCrit.Sts2.Core.Nodes.Rewards;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Rooms;
@@ -62,7 +61,10 @@ internal static class RunPlayback
     internal const string AbandonRecordingBuild="5EF89002446D5E464717FC8E8A2F87845C3805871332274FE75FB6FAC1C9760B";
     internal const string FullRunRecordingBuild="572FFCB169D37C5EB7705A6306D4F4063CB8AD7F1380E81E2F3E7DD1FC7BE39F";
     internal const string FullRunVictoryRecordingBuild="D58370E28CFE3FE06F32FE96F15FF31111375F5607FDAFE8B45555DD3D384401";
-    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==FullRunVictoryRecordingBuild||hash==FullRunRecordingBuild||hash==AbandonRecordingBuild||hash==DeathRecordingBuild||hash==PreparedFinalRecordingBuild||hash==FinalEventRecordingBuild||hash==ThirdActPlaybackBuild||hash==ThirdActRecordingBuild||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild||hash==ActRecordingBuild||hash==AcceptedActRecordingBuild;
+    internal const string RunProgressRewindBuild="17FA8B05F614A93BE9D4857EE1ECED733CC5B0ED4F99C7D3BBDABDF1EFD5E6E3";
+    internal const string RunRewardsRecordingBuild="177EE6F3709A7316761AEAB8E673FDF5A2FD4688E3C7851B19F594D029A14BF6";
+    internal const string HollowRecordingBuild="912353A0EEAB33775E39EFA0538194835A65C120027BC7D74E1AA0D02DC7445D";
+    internal static bool Compatible(string hash)=>hash==Runtime.ModHash||hash==HollowRecordingBuild||hash==RunRewardsRecordingBuild||hash==RunProgressRewindBuild||hash==FullRunVictoryRecordingBuild||hash==FullRunRecordingBuild||hash==AbandonRecordingBuild||hash==DeathRecordingBuild||hash==PreparedFinalRecordingBuild||hash==FinalEventRecordingBuild||hash==ThirdActPlaybackBuild||hash==ThirdActRecordingBuild||hash==RecordingBuild||hash==AcceptedChainRecordingBuild||hash==Run001Baseline||hash==TreasureRecordingBuild||hash==TreasureObtainBuild||hash==AccountContextBuild||hash==MerchantRecordingBuild||hash==EventRecordingBuild||hash==EventAcceptedBuild||hash==InternalEventRecordingBuild||hash==EventLoadBuild||hash==EventPresentationBuild||hash==EventStopBuild||hash==NeowRecordingBuild||hash==EliteRecordingBuild||hash==BossRecordingBuild||hash==ActRecordingBuild||hash==AcceptedActRecordingBuild;
     internal static bool BattleVerified(int source)=>VerifiedBattles.Contains(source);
     internal static bool NeedsComputedSave(int source)=>NeededComputedSaves.Contains(source);
     internal static RunOperation? Current;
@@ -208,6 +210,7 @@ internal static class RunPlayback
         var expected=Current!.Decisions[_decision++];
         Codec.Require(expected.Kind==kind&&expected.Options.SequenceEqual(options),"run-native-choice-options-mismatch");return expected;
     }
+    internal static RunDecision? NextDecision=>Current is {} operation&&_decision<operation.Decisions.Length?operation.Decisions[_decision]:null;
     internal static async Task Wait(Func<bool> ready,string reason)
     {
         var at=Stopwatch.GetTimestamp();
@@ -250,7 +253,7 @@ internal static class RunPlayback
                 await ApplyContinuations(Current);
                 if(_rewardsRoom is {} room&&room.Encounter.ShouldGiveRewards)
                 {
-                    Codec.Require(Current.Kind is "reward" or "proceed" or "act-proceed","run-missing-reward-operation");
+                    Codec.Require(Current.Kind is "reward" or "proceed" or "act-proceed" or RunRewardPotions.Kind,"run-missing-reward-operation");
                     await TakePhase("显示战斗奖励");
                     _allowRewards=true;
                     try{Native(()=>AccessTools.Method(typeof(NCombatUi),"OnCombatWon").Invoke(NCombatRoom.Instance!.Ui,[room]));}
@@ -331,10 +334,10 @@ internal static class RunPlayback
     {if(operation.Before is {} expected)Compare(operation.Sequence,"before",expected,RunResources.Capture());}
     private static async Task Execute(RunOperation operation)
     {
-        if(operation.Kind is "reward" or "proceed" or "act-proceed")await RewardsReady(requireVisible:false);
+        if(operation.Kind is "reward" or "proceed" or "act-proceed" or RunRewardPotions.Kind)await RewardsReady(requireVisible:false);
         if(operation.Kind=="map")await Wait(()=>NMapScreen.Instance is {IsOpen:true,IsTravelEnabled:true} map&&!TweenRunning(map,"_tween")&&!TweenRunning(map,"_actAnimTween"),"run-map-not-ready");
         if(operation.Kind=="rest")await Wait(()=>NRestSiteRoom.Instance is not null,"run-rest-site-not-ready");
-        await TakePhase(operation.Kind switch{"reward"=>"领取奖励","act-proceed"=>"前往下一幕","map"=>"地图选路","rest"=>"营火选择","treasure-open"=>"打开宝箱","treasure-pick"=>"领取遗物",
+        await TakePhase(operation.Kind switch{"reward"=>"领取奖励",RunRewardPotions.Kind=>"丢弃药水","act-proceed"=>"前往下一幕","map"=>"地图选路","rest"=>"营火选择","treasure-open"=>"打开宝箱","treasure-pick"=>"领取遗物",
             "merchant-open"=>"打开商店","merchant-close"=>"关闭商店","merchant-buy"=>"购买商品","merchant-remove"=>"商店删牌","event-choice"=>"事件选项","event-return"=>"返回事件","abandon"=>"打开放弃确认",
             "proceed" or "rest-proceed" or "treasure-proceed" or "merchant-proceed" or "event-proceed"=>"离开房间",_=>operation.Kind});
         if(operation.Progress is {} progress)
@@ -363,17 +366,9 @@ internal static class RunPlayback
                 if(eventLoad is {} load)await RunEventCombat.RestoreCompletedReturn(load.Point,load.Battle,operation);
                 else await RunEventCombat.PlayReturn();break;
             case "reward":
-                var rewards=RunPatches.Rewards!;var index=operation.Argument.RewardIndex??-1;
-                Codec.Require(index>=0&&index<rewards.Rewards.Count,"run-reward-index");var reward=rewards.Rewards[index];
-                Codec.Require(RunPatches.RewardKey(reward)==operation.Argument.RewardKey,"run-reward-content-mismatch");
-                var buttons=(IEnumerable<Control>)RunPatches.Field(RunPatches.RewardsScreen!,"_rewardButtons")!;
-                var button=buttons.OfType<NRewardButton>().SingleOrDefault(b=>ReferenceEquals(b.Reward,reward));
-                Codec.Require(button is not null,"run-reward-button-missing");
-                RunPatches.UiTask=null;RunPatches.ResultTask=null;
-                Native(()=>AccessTools.Method(typeof(NRewardButton),"OnRelease").Invoke(button,[]));
-                Codec.Require(RunPatches.UiTask is not null&&RunPatches.ResultTask is not null,"run-reward-native-handler-not-started");
-                await Await(RunPatches.UiTask!);
-                Codec.Require(RunPatches.ResultTask!.Result==operation.Success,"run-reward-result-mismatch");break;
+                Codec.Require(await RunPatches.PlayReward(operation.Argument.RewardIndex??-1,operation.Argument.RewardKey!)==operation.Success,
+                    "run-reward-result-mismatch");break;
+            case RunRewardPotions.Kind:await RunRewardPotions.Play(operation);break;
             case "rest":
                 Codec.Require(operation.Argument.Option is "HEAL" or "SMITH","run-rest-option-unsupported");
                 var options=RunManager.Instance.RestSiteSynchronizer.GetLocalOptions();var option=options.ToList().FindIndex(o=>o.OptionId==operation.Argument.Option);
@@ -447,7 +442,7 @@ internal static class RunPlayback
         }
     }
     private static bool TweenRunning(object owner,string name)=>RunPatches.Field(owner,name) is Tween tween&&GodotObject.IsInstanceValid(tween)&&tween.IsRunning();
-    private static async Task RewardsReady(bool requireVisible)
+    internal static async Task RewardsReady(bool requireVisible)
     {
         await Wait(()=>RunPatches.Rewards is not null&&RunPatches.RewardsScreen is {} screen&&GodotObject.IsInstanceValid(screen)&&screen.IsNodeReady()&&screen.IsVisibleInTree()&&
             ReferenceEquals(NOverlayStack.Instance?.Peek(),screen)&&!TweenRunning(screen,"_fadeTween")&&

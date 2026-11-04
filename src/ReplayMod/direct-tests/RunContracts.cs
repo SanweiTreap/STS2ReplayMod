@@ -239,6 +239,9 @@ internal static class RunContracts
             var prepared=opening with{Acts=["ACT.UNDERDOCKS","ACT.HIVE","ACT.GLORY"],NeowDebugOption=null,Preparation=RunStartInput.IroncladBlockDeck};
             store.Save(run with{Opening=prepared});
             Need(store.Read(id).Opening?.Preparation==RunStartInput.IroncladBlockDeck,"three-act-opening-preparation-lost");
+            var rewardsTest=prepared with{NeowDebugOption="NEOWS_BONES",Preparation=RunStartInput.IroncladRewardsTest};
+            store.Save(run with{Opening=rewardsTest});
+            Need(Codec.Bytes(store.Read(id).Opening).SequenceEqual(Codec.Bytes(rewardsTest)),"rewards-test-opening-preparation-lost");
         });
         Test("invalid-new-run-inputs-do-not-become-playable-records",()=>
         {
@@ -246,6 +249,8 @@ internal static class RunContracts
                 opening with{Acts=["CARD.STRIKE_IRONCLAD"]},opening with{GameMode="Daily"},opening with{Ascension=1},
                 opening with{Progress=""},opening with{Prefs=""},opening with{NeowDebugOption="OTHER"},
                 opening with{Preparation="OTHER"},
+                opening with{NeowDebugOption="NEOWS_BONES"},
+                opening with{Preparation=RunStartInput.IroncladRewardsTest,NeowDebugOption="NEOWS_BONES"},
                 opening with{NeowDebugOption=null,Preparation=RunStartInput.IroncladBlockDeck}})
             {
                 var rejected=false;try{store.Save(run with{Opening=bad});}catch(InvalidDataException){rejected=true;}

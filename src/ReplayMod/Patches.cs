@@ -113,6 +113,8 @@ internal static class Patches
     private static void Entry(Task __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Entry(__result));}
     private static bool Queue(GameAction __0)
     {
+        if(__0 is DiscardPotionGameAction {WasEnqueuedInCombat:false} discard&&(RunPlayback.Active||RunRecording.Enabled))
+            return RunRewardPotions.Queue(discard);
         if(RunPlayback.Active&&__0 is VoteToMoveToNextActAction actVote)
         {var owned=false;Runtime.Guard(()=>owned=RunActs.OwnsVote(actVote));return owned;}
         if(RunPlayback.Active&&__0 is PickRelicAction pick)
@@ -138,7 +140,12 @@ internal static class Patches
         }
         Runtime.Guard(()=>ActionMonitor.Queue(__0));return true;
     }
-    private static void ActionTask(GameAction __instance,Task __result)=>Runtime.Guard(()=>ActionMonitor.ActionTask(__instance,__result));
+    private static void ActionTask(GameAction __instance,ref Task __result)
+    {
+        if(__instance is DiscardPotionGameAction {WasEnqueuedInCombat:false} discard)
+        {__result=RunRewardPotions.Observe(discard,__result);return;}
+        var task=__result;Runtime.Guard(()=>ActionMonitor.ActionTask(__instance,task));
+    }
     private static void MapTask(MoveToMapCoordAction __instance,Task __result)=>Runtime.Guard(()=>RunPlayback.MapTask(__instance,__result));
     private static void ActionStarted(GameAction __instance)=>Runtime.Guard(()=>ActionMonitor.Started(__instance));
     private static void CardTask(CardModel __instance,bool isAutoPlay,Task __result)=>Runtime.Guard(()=>ActionMonitor.CardTask(__instance,isAutoPlay,__result));
