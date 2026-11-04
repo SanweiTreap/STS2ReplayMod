@@ -36,6 +36,7 @@ internal static class RunRecording
 {
     internal static RunStore Store=>new(Path.Combine(Runtime.Root,"runs"));
     private static RunDocument? _run;
+    private static RunWriteQueue? _writes;
     private static int _visit;
     internal static RunOperation? Pending;
     private static int _battleSequence;
@@ -48,11 +49,13 @@ internal static class RunRecording
     internal static void Attach(bool continuation,SerializableRun? save=null,string? loadedJson=null)
     {
         if(PlayerLoop.Active||Runtime.Journal.CurrentRun is not {} id)return;
+        DrainWrites();
         Pending=null;_battleSequence=0;_visit=0;_entryProgress=null;_restoredEntry=false;_unknownLoad=false;_saveExit=false;
         RunEndings.Clear();
         var path=Path.Combine(Runtime.Root,"runs",id+".json");
         _run=File.Exists(path)?Store.Read(id):new(1,id,Runtime.GameHash,Runtime.ModHash,Runtime.Scope,
             save?.Players[0].CharacterId?.ToString()??LiveState.Player.Character.Id.ToString(),DateTimeOffset.UtcNow,[],[],[],new(),Opening:continuation?null:RunOpening.Take());
+        _writes=new(Store);
         if(continuation)
         {
             _visit=_run.Visits.LastOrDefault()?.Id??0;
@@ -215,6 +218,13 @@ internal static class RunRecording
         if(!Enabled||_battleSequence==0)return;
         var op=_run!.Operations[_battleSequence-1];Replace(op with{Status="complete",Clip=clip.Id,Battle=clip.Battle});Save();
     }
+    internal static void BattleFailed(Clip? clip)
+    {
+        if(!Enabled||clip is null||_battleSequence==0)return;
+        var op=_run!.Operations[_battleSequence-1];
+        if(op.Clip!=clip.Id||op.Status!="pending")return;
+        Replace(op with{Status="missing"});Save();
+    }
     internal static void EntryContext(string? progress=null){if(Enabled)_entryProgress=progress??RunResources.Progress();}
     internal static void MissingOperation(string kind,string reason)
     {
@@ -226,9 +236,14 @@ internal static class RunRecording
     {if(Pending is {} pending)Missing(pending,reason);MissingOperation(kind,reason);}
     internal static void Exit()
     {
-        if(!Enabled)return;if(Pending is {} pending)Missing(pending,"退出时选择或转换尚未完成");
-        NoteLifecycle(_saveExit?"saved-exit":"interrupted",_saveExit?"native-pause-CloseToMenu":"native-CleanUp-without-terminal");
-        Save();_run=null;Pending=null;_saveExit=false;
+        if(!Enabled)return;
+        try
+        {
+            if(Pending is {} pending)Missing(pending,"退出时选择或转换尚未完成");
+            NoteLifecycle(_saveExit?"saved-exit":"interrupted",_saveExit?"native-pause-CloseToMenu":"native-CleanUp-without-terminal");
+            DrainWrites();
+        }
+        finally{_run=null;_writes=null;Pending=null;_saveExit=false;}
     }
     private static void Missing(RunOperation operation,string reason)
     {if(!Enabled)return;Replace(operation with{Status="missing"});if(Pending?.Sequence==operation.Sequence)Pending=null;Save();Runtime.Log("run-operation-missing",new{operation.Sequence,Reason=reason});}
@@ -240,5 +255,7 @@ internal static class RunRecording
     }
     private static void Replace(RunOperation operation)=>_run!.Operations[operation.Sequence-1]=operation;
     private static int? CurrentAttempt=>_run?.Branches is {ActiveAttempt:>0} b?b.ActiveAttempt:null;
-    private static void Save(){if(_run is not null)Store.Save(_run);}
+    private static void Save(){if(_run is not null)_writes!.Enqueue(_run);}
+    private static void DrainWrites(){if(_writes is not null)Runtime.Log("run-recording-write-drained",_writes.Drain());}
+    internal static void DrainAtProcessExit()=>_writes?.Drain();
 }

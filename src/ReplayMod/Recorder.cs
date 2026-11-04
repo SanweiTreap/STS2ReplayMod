@@ -222,7 +222,11 @@ internal static class Recorder
         else if(_waiting)Runtime.Log("recording-opening-interrupted",new{Id=_clip?.Id,_clip?.Battle,NoCompleteInitialState=true});
         ResetSegment();
     }
-    internal static void EndRun(){try{Interrupt();RunRecording.Exit();}finally{_enabled=false;_continueSave=null;}}
+    internal static void EndRun()
+    {
+        try{try{Interrupt();}finally{RunRecording.Exit();}}
+        finally{_enabled=false;_continueSave=null;}
+    }
     private static void Publish(bool interrupted)
     {
         Codec.Require(Operations.Count>0,"no-completed-operations-to-seal");var victory=Operations[^1].Victory;var defeat=Operations[^1].Defeat;
@@ -243,6 +247,7 @@ internal static class Recorder
     {
         if(!Active&&!_waiting&&_clip is null)return;
         Runtime.Log("recording-unsupported-or-failed",new{Reason=reason,Id=_clip?.Id,_clip?.Battle,CompletedOperations=Operations.Count,NextSupportedRoomCanRecord=true});
+        RunRecording.BattleFailed(_clip);
         Active=false;_waiting=false;_captureEntry=false;_clip=null;_release=true;Runtime.Status="本段未封存，下一普通战斗会重试："+reason;
     }
 }

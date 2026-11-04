@@ -198,6 +198,7 @@ internal static class Patches
         if(__originalMethod.Name=="AddRelicInternal"&&(RunPatches.OwnsRelicAdd(__instance,__0)||RunTreasures.OwnsRelicAdd(__instance,__0)||RunMerchants.OwnsRelicAdd(__instance,__0)||RunEvents.OwnsRelicAdd(__instance,__0)))
         {Runtime.Log("run-owned-relic-membership",new{Operation=RunPlayback.Current?.Sequence,SourceSequence=RunPlayback.Current?.SourceSequence,
             Model=__0.Id.ToString(),NativeObtain=true,ExactInstance=true});return;}
+        Runtime.Log("unsupported-relic-membership",new{Method=__originalMethod.Name,Model=__0.Id.ToString()});
         Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-relic-membership-change"));
     }
     private static bool FlowerVisuals(HappyFlower __instance,ref Task __result)
