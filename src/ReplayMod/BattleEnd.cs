@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.Saves;
 
 namespace ReplayMod;
 
@@ -21,7 +22,10 @@ internal static class BattleEnd
     private static bool _deathScreen;
     private static long _wonAt;
     private static bool _readyLogged;
-    internal static void Reset(){Room=null;_enemies=[];VictoryTask=null;_deathTasks=[];Ending=false;WonEvent=false;Projection=null;DeathProjection=null;_deathScreen=false;_wonAt=0;_readyLogged=false;}
+    private static Action? _restoreVictoryProgress;
+    internal static void Reset(){Room=null;_enemies=[];VictoryTask=null;_deathTasks=[];Ending=false;WonEvent=false;Projection=null;DeathProjection=null;_deathScreen=false;_wonAt=0;_readyLogged=false;_restoreVictoryProgress=null;}
+    internal static void CaptureVictoryProgress(SaveManager manager)=>_restoreVictoryProgress??=MemorySession.CaptureVictoryProgress(manager);
+    internal static void RestoreVictoryProgress()=>_restoreVictoryProgress?.Invoke();
     internal static void Lost(string terminalResources)
     {
         Codec.Require((Recorder.Active||PlayerLoop.Active)&&ReferenceEquals(Room,LiveState.Run.CurrentRoom)&&LiveState.Player.Creature.IsDead&&

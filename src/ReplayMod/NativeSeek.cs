@@ -427,7 +427,11 @@ internal static class NativeSeek
             await Drain(fastPhase:true);var drained=Stopwatch.GetTimestamp();_generation++;fromVictory=PlayerLoop.VictoryReached;
             _phase="正在恢复操作边界";Ui.Refresh();
             var continueTurnLoop=false;
-            if(fromVictory){await BattleEnd.WaitForUiCleanup();continueTurnLoop=await NativeTurnContinuation.PrepareVictoryRestore();}
+            if(fromVictory)
+            {
+                await BattleEnd.WaitForUiCleanup();continueTurnLoop=await NativeTurnContinuation.PrepareVictoryRestore();
+                BattleEnd.RestoreVictoryProgress();
+            }
             _applyingRestore=true;Ui.Refresh();await point.Restore();
             if(fromVictory)
             {
