@@ -4,6 +4,49 @@ using ReplayMod;
 
 internal static class RunContracts
 {
+    internal static void VerifyWriter(string output,string root,string id)
+    {
+        var run=new RunStore(root).Read(id);
+        var scratch=Path.Combine(Path.GetTempPath(),"replay-run-writer-"+Guid.NewGuid().ToString("N"));
+        var store=new RunStore(scratch);
+        try
+        {
+            var at=System.Diagnostics.Stopwatch.GetTimestamp();
+            store.Save(run);
+            var synchronous=System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds;
+            var writer=new RunWriteQueue(store);
+            var original=run.Lifecycle?.ToArray()??[];
+            var lifecycle=new List<RunLifecycleEvent>(original);
+            var working=run with{Lifecycle=lifecycle};
+            var maxEnqueue=0d;
+            for(var i=0;i<12;i++)
+            {
+                lifecycle.Add(new("interrupted",DateTimeOffset.UnixEpoch,$"test-write-{i}",0,0,run.Operations.Count+1,null));
+                at=System.Diagnostics.Stopwatch.GetTimestamp();
+                writer.Enqueue(working);
+                maxEnqueue=Math.Max(maxEnqueue,System.Diagnostics.Stopwatch.GetElapsedTime(at).TotalMilliseconds);
+            }
+            var expected=lifecycle.ToArray();
+            lifecycle.Clear();
+            var stats=writer.Drain();
+            var persisted=store.Read(id);
+            Codec.Require(persisted.Lifecycle!.SequenceEqual(expected),"background-run-write-lost-final-snapshot");
+            Codec.Require(Codec.Bytes(persisted with{Lifecycle=run.Lifecycle}).SequenceEqual(Codec.Bytes(run)),"background-run-write-modified-other-fields");
+            var size=new FileInfo(Path.Combine(scratch,id+".json")).Length;
+            File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS",Bytes=size,SynchronousMilliseconds=synchronous,
+                MaxEnqueueMilliseconds=maxEnqueue,Stats=stats,OriginalRecordingChanged=false,NativeFrameTimingMeasured=false}));
+            Console.WriteLine("PASS_RUN_WRITER");
+        }
+        finally
+        {
+            if(Directory.Exists(scratch))
+            {
+                File.Delete(Path.Combine(scratch,run.Id+".json.pending"));
+                File.Delete(Path.Combine(scratch,run.Id+".json"));
+                Directory.Delete(scratch);
+            }
+        }
+    }
     internal static void Verify(string output,string root,string id,int? startSource=null)
     {
         var path=Path.Combine(root,id+".json");var before=File.ReadAllBytes(path);var raw=new RunStore(root).Read(id);var run=RunRoutes.Playback(raw);
