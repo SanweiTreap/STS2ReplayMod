@@ -1531,8 +1531,10 @@ internal sealed class NativeDisplayTrace
     }
     private static void ShuffleReady(NCardFlyShuffleVfx __instance)
     {
-        if(_capture is null)return;SourceVisuals.Add(__instance);
+        if(_capture is null&&!NativeSeek.Enabled)return;
+        SourceVisuals.Add(__instance);
         if(Get(__instance,"_vfx") is Node trail)SourceVisuals.Add(trail);
+        if(_capture is null)return;
         var pose=new ShufflePose((Vector2)Get(__instance,"_startPos")!,(Vector2)Get(__instance,"_endPos")!,
             (string)Get(__instance,"_trailPath")!,((CardPile)Get(__instance,"_targetPile")!).Type,
             (float)Get(__instance,"_controlPointOffset")!,(float)Get(__instance,"_speed")!,(float)Get(__instance,"_accel")!,

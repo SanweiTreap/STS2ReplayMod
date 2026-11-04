@@ -83,7 +83,7 @@ internal static class NativeSeek
     {
         Enabled=false;_generation++;Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;_deathAutoSummary=false;
         _loadRoom=null!;_resetRoom=null!;
-        NativePhaseRetirement.Clear();_applyingRestore=false;_coverRetirement=false;
+        NativePhaseRetirement.Clear();CreaturePresentation.ClearMusic();_applyingRestore=false;_coverRetirement=false;
         Opening=false;_openingNavigation=null;_rebuildingOpening=false;_openingReentryPending=false;_openingRequestedAt=0;
         _choiceReady=false;_choiceMoving=false;_retiring=false;_restoring=false;_stopping=false;_completed=0;Host=0;_seek=null;_phase="";_choiceOwner=0;
     }
