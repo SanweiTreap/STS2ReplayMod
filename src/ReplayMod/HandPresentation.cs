@@ -11,11 +11,17 @@ namespace ReplayMod;
 internal static class HandPresentation
 {
     internal sealed record Changes(int Reused,int Created,int Removed);
+    private static readonly System.Reflection.MethodInfo ReloadOverlay=AccessTools.DeclaredMethod(typeof(NCard),"ReloadOverlay",[]);
+
+    internal static Dictionary<NCard,AfflictionModel?> CaptureAfflictions(NPlayerHand hand)=>
+        hand.CardHolderContainer.GetChildren().OfType<NHandCardHolder>().Select(h=>h.CardNode)
+            .OfType<NCard>().ToDictionary(card=>card,card=>card.Model?.Affliction);
+
     private static void KillTween(object owner,string field)
     {
         if(AccessTools.Field(owner.GetType(),field).GetValue(owner) is Tween tween&&GodotObject.IsInstanceValid(tween))tween.Kill();
     }
-    internal static Changes Synchronize(NPlayerHand hand,IReadOnlyList<CardModel> expected)
+    internal static Changes Synchronize(NPlayerHand hand,IReadOnlyList<CardModel> expected,IReadOnlyDictionary<NCard,AfflictionModel?> previousAfflictions)
     {
         Codec.Require(!hand.InCardPlay&&!hand.IsInCardSelection,"direct-back-hand-ui-busy");
         AccessTools.Property(typeof(NPlayerHand),nameof(NPlayerHand.FocusedHolder)).SetValue(hand,null);
@@ -36,6 +42,11 @@ internal static class HandPresentation
                 var card=NCard.Create(model)??throw new InvalidDataException("direct-back-card-ui-create");
                 card.Scale=Vector2.One; // Avoid NHandCardHolder.SetCard's automatic scale-in tween.
                 holder=hand.Add(card);created++;
+            }
+            else if(holder.CardNode is {} reusedCard&&previousAfflictions.TryGetValue(reusedCard,out var before)&&before?.Id!=model.Affliction?.Id)
+            {
+                // Restoring model fields does not emit the native AfflictionChanged event.
+                ReloadOverlay.Invoke(reusedCard,null);
             }
             hand.CardHolderContainer.MoveChild(holder,i);holder.UpdateCard();
         }

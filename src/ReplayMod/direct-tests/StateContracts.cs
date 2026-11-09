@@ -105,6 +105,26 @@ internal static class StateContracts
         BadFile(wire,clip with{ModHash="other-build"});
         BadFile(StateFile.Encode(authority with{Position=2}),clip);
         passed.Add("state-file-roundtrip-checksum-version-and-clip-position-build-association");
+        viewer.Energy=123;viewer.Block=456;
+        var prepare=bindings.PrepareApply(Read());
+        Need(viewer.Energy==123&&viewer.Block==456);
+        prepare()();
+        Need(viewer.Energy==2&&viewer.Block==5);
+        passed.Add("detached-restore-plan-makes-no-live-writes-before-apply");
+        var anchorRoot=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(output))!,"turn-anchor-"+Guid.NewGuid().ToString("N"));
+        var key=new TurnAnchorKey(clip.Id,clip.GameHash,clip.ModHash,clip.Scope,1,StateFile.HashProjection(clip.Initial),authority.ExpectedHash);
+        var anchor=new TurnAnchorData(key,"projection",frozen);
+        Need(TurnAnchorFile.Write(anchorRoot,anchor)>0);
+        Need(TurnAnchorFile.Read(anchorRoot,key) is {} read&&Codec.Bytes(read).SequenceEqual(Codec.Bytes(anchor)));
+        var wrong=key with{Expected="other"};
+        Need(TurnAnchorFile.Read(anchorRoot,wrong) is null);
+        TurnAnchorFile.Write(anchorRoot,anchor with{Key=wrong});
+        var paths=Directory.GetFiles(Path.Combine(anchorRoot,"turn-anchors"));
+        var original=paths.Single(p=>Path.GetFileName(p).StartsWith(Codec.Hash(Codec.Bytes(key)),StringComparison.Ordinal));
+        var other=paths.Single(p=>p!=original);
+        File.Copy(original,other,overwrite:true);
+        try{TurnAnchorFile.Read(anchorRoot,wrong);throw new Exception("turn-anchor-accepted-wrong-result");}catch(InvalidDataException){}
+        passed.Add("compressed-turn-cache-roundtrips-and-rejects-a-file-from-another-result");
         var cursor=new PlaybackCursor(9);cursor.ArriveFromFile(1);Need(cursor.Position==1&&!cursor.Playing&&!cursor.Busy);
         cursor.Toggle();Need(cursor.TryBegin()&&cursor.Position==1&&cursor.Playing);cursor.Complete();Need(cursor.Position==2&&cursor.Playing);
         var step=new PlaybackCursor(9);step.ArriveFromFile(1);step.Step();Need(step.TryBegin()&&!step.Playing);step.Complete();Need(step.Position==2&&!step.Playing);

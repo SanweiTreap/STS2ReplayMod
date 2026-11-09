@@ -59,7 +59,8 @@ internal static class RunContracts
         var continuations=run.Continuations.Where(c=>c.PreFinished&&c.Visit>=anchor!.Visit&&c.BeforeOperation>=anchor.Sequence)
             .Select(c=>new{c.Visit,c.Attempt,BeforeOperation=RunStore.ContinueBefore(run,c),LegacyVisitBoundary=c.BeforeOperation is null,
                 CompletedEventBattleSource=RunRoutes.CompletedEventBattle(run,c)?.SourceSequence,
-                CompletedMapBattleSource=RunRoutes.CompletedMapBattle(run,c)?.SourceSequence}).ToArray();
+                CompletedMapBattleSource=RunRoutes.CompletedMapBattle(run,c)?.SourceSequence,
+                CompletedAncientChoiceSource=RunRoutes.CompletedAncientChoice(run,c)?.SourceSequence}).ToArray();
         var destinations=run.Operations.Zip(run.Operations.Skip(1)).Where(p=>p.First.Kind=="map"&&p.First.Sequence>=anchor!.Sequence)
             .Select(p=>{var destination=RunRoutes.Destination(run,p.First,p.Second);
                 return new{Operation=p.First.Sequence,destination.Visit.Id,destination.Visit.MapType,destination.Type,destination.Model};}).ToArray();
@@ -97,6 +98,19 @@ internal static class RunContracts
         });
         Test("incomplete-operation-is-never-promoted-to-complete-on-read",()=>
         {var read=store.Read(id);Need(read.Operations[^1].Status=="pending"&&read.Operations[^1].After is null,"incomplete-operation-falsified");});
+        Test("noncombat-potion-use-persists-its-slot-target-and-screen-without-changing-legacy-arguments",()=>
+        {
+            var use=new RunPotionUse(2,"POTION.BLOOD_POTION",0,"rewards");
+            var op=new RunOperation(2,1,"use-potion",new(PotionUse:use),"before","after","complete",[]);
+            var potionRun=run with{Id=Guid.NewGuid().ToString("N"),Operations=[run.Operations[0],op]};
+            store.Save(potionRun);
+            Need(store.Read(potionRun.Id).Operations[1].Argument.PotionUse==use&&
+                !JsonNode.Parse(Codec.Bytes(run.Operations[1].Argument))!.AsObject().ContainsKey("PotionUse"),"run-potion-argument-lost-or-legacy-changed");
+            var rejected=false;
+            try{store.Save(potionRun with{Operations=[potionRun.Operations[0],op with{Argument=new(PotionUse:use with{PlayerIndex=1})}]});}
+            catch(InvalidDataException){rejected=true;}
+            Need(rejected,"run-potion-nonlocal-target-accepted");
+        });
         Test("recorded-continue-position-is-preserved-instead-of-moving-it-to-first-reward",()=>
         {
             var point=new RunContinuation(DateTimeOffset.UtcNow,1,true,"native-save","native-continue",3);
@@ -134,6 +148,14 @@ internal static class RunContracts
             var steps=run.Operations.ToList();steps[2]=steps[2] with{Before="unrecorded-claim"};var gap=run with{Operations=steps};
             var before=Codec.Bytes(gap);
             Need(RunStore.ResourceDiscontinuities(gap).SequenceEqual(new[]{3})&&RunStore.ResourceDiscontinuities(run).Length==0&&Codec.Bytes(gap).SequenceEqual(before),"missing-transition-not-truthfully-diagnosed");
+        });
+        Test("native-event-history-empty-loc-vars-are-optional-but-meaningful-state-stays-strict",()=>
+        {
+            const string loaded="""{"players":[{"rng":10}],"map_point_history":[[{"player_stats":[{"event_choices":[{"title":"choice"}]}]}]]}""";
+            var live=loaded.Replace("\"title\":\"choice\"","\"title\":\"choice\",\"variables\":{}",StringComparison.Ordinal);
+            Need(RunStore.ResourcesMatch(live,loaded)&&RunStore.ResourcesMatch(loaded,live),"empty-event-history-variables-differ");
+            Need(!RunStore.ResourcesMatch(live.Replace("\"rng\":10","\"rng\":11",StringComparison.Ordinal),loaded)&&
+                !RunStore.ResourcesMatch(live.Replace("{}","{\"Amount\":1}",StringComparison.Ordinal),loaded),"resource-or-event-variable-mismatch-hidden");
         });
         Test("altered-run-payload-is-rejected-while-another-good-run-remains-readable",()=>
         {
@@ -230,6 +252,19 @@ internal static class RunContracts
                 Need(RunStore.ResourceDiscontinuities(value with{Operations=[entry,changed]}).SequenceEqual(new[]{2}),"resource-rng-or-choice-difference-hidden-as-native-opening");
             Need(!RunStore.NativeFinalOpening(value with{Visits=[value.Visits[0] with{Act=1},value.Visits[1]]},entry,choice),"ordinary-act-change-treated-as-final-opening");
         });
+        Test("architect-entry-can-start-with-a-recorded-final-event-potion-discard",()=>
+        {
+            var visit=new RoomVisit(2,2,16,14,3,"Victory","Event","EVENT.THE_ARCHITECT",1,"entered",null);
+            var discard=new RunOperation(2,visit.Id,RunStore.NonCombatPotionDiscard,
+                new(RewardIndex:0,RewardKey:"POTION.SWIFT_POTION",Option:RunStore.FinalEventPotionContext),"ready","after","complete",[]);
+            Need(RunStore.IsNativeFinalEventEntry(visit,discard),"native-final-event-rejected-first-potion-discard");
+            Need(RunStore.IsNativeFinalEventEntry(visit,discard with{Kind="event-choice",Argument=new(Option:"THE_ARCHITECT.dialogue.0")}),
+                "native-final-event-rejected-first-dialogue");
+            Need(!RunStore.IsNativeFinalEventEntry(visit,discard with{Argument=discard.Argument with{Option="merchant"}})&&
+                !RunStore.IsNativeFinalEventEntry(visit,discard with{Visit=1})&&
+                !RunStore.IsNativeFinalEventEntry(visit,discard with{Status="missing"})&&
+                !RunStore.IsNativeFinalEventEntry(visit with{MapType="Unknown"},discard),"wrong-final-event-context-accepted");
+        });
         var opening=new RunStartInput(run.Character,"actual-seed",["ACT.UNDERDOCKS"],"Standard",0,"actual-progress","actual-prefs","NEW_LEAF");
         Test("new-run-inputs-roundtrip-with-preparation-and-account-inputs-without-changing-operations",()=>
         {
@@ -242,6 +277,21 @@ internal static class RunContracts
             var rewardsTest=prepared with{NeowDebugOption="NEOWS_BONES",Preparation=RunStartInput.IroncladRewardsTest};
             store.Save(run with{Opening=rewardsTest});
             Need(Codec.Bytes(store.Read(id).Opening).SequenceEqual(Codec.Bytes(rewardsTest)),"rewards-test-opening-preparation-lost");
+            foreach(var option in new[]{"KALEIDOSCOPE","HEFTY_TABLET","LARGE_CAPSULE"})
+            {
+                var path=prepared with{NeowDebugOption=option};
+                store.Save(run with{Opening=path});
+                Need(Codec.Bytes(store.Read(id).Opening).SequenceEqual(Codec.Bytes(path)),"neow-path-test-opening-preparation-lost");
+            }
+            var bundle=prepared with{NeowDebugOption="SCROLL_BOXES",Preparation=RunStartInput.IroncladBundleEnchantTest};
+            store.Save(run with{Opening=bundle});
+            Need(Codec.Bytes(store.Read(id).Opening).SequenceEqual(Codec.Bytes(bundle)),"bundle-and-enchant-opening-preparation-lost");
+            foreach(var recipe in new[]{RunStartInput.IroncladSeaGlassTest,RunStartInput.IroncladAncientEnchantTest})
+            {
+                var ancient=prepared with{NeowDebugOption="GOLDEN_PEARL",Preparation=recipe};
+                store.Save(run with{Opening=ancient});
+                Need(Codec.Bytes(store.Read(id).Opening).SequenceEqual(Codec.Bytes(ancient)),"ancient-choice-opening-preparation-lost");
+            }
         });
         Test("invalid-new-run-inputs-do-not-become-playable-records",()=>
         {
@@ -250,6 +300,7 @@ internal static class RunContracts
                 opening with{Progress=""},opening with{Prefs=""},opening with{NeowDebugOption="OTHER"},
                 opening with{Preparation="OTHER"},
                 opening with{NeowDebugOption="NEOWS_BONES"},
+                opening with{NeowDebugOption="KALEIDOSCOPE"},
                 opening with{Preparation=RunStartInput.IroncladRewardsTest,NeowDebugOption="NEOWS_BONES"},
                 opening with{NeowDebugOption=null,Preparation=RunStartInput.IroncladBlockDeck}})
             {

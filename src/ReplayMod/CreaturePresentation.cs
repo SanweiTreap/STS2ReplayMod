@@ -3,14 +3,18 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Animation;
 using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.Context;
+using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
+using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models.Encounters;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Powers;
-using MegaCrit.Sts2.Core.Nodes.Audio;
+using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Models.Monsters;
+using MegaCrit.Sts2.Core.Rooms;
 
 namespace ReplayMod;
 
@@ -24,37 +28,31 @@ internal sealed class CreaturePresentation
     private readonly float _defaultScale,_temporaryScale,_hue;
     private readonly Vector2 _scale,_position;
     private readonly string? _animation;
-    private readonly (int Respawns,bool Dead,Color Tint,(int Revision,float Progress) Music)? _testSubject;
+    private readonly bool _wasDead;
+    private readonly bool _interactable;
+    private readonly bool? _spawnVisible;
+    private readonly EnemyScenePresentation? _enemyScene;
+    private readonly Texture2D? _segmentPhobiaTexture;
+    private readonly (int Respawns,bool Dead,Color Tint)? _testSubject;
     private CreatureAnimator? _restoreAnimator;
     private AnimState? _restoreLoop;
-    private bool _continuedAnimation;
+    private bool _continuedAnimation,_rebuiltEnemy;
     private static readonly System.Reflection.FieldInfo TemporaryScale=AccessTools.Field(typeof(NCreature),"_tempScale");
     private static readonly System.Reflection.FieldInfo Animator=AccessTools.Field(typeof(NCreature),"_spineAnimator");
     private static readonly System.Reflection.FieldInfo Hue=AccessTools.Field(typeof(NCreatureVisuals),"_hue");
-    private const string TestSubjectMusicParameter="test_subject_progress";
-    private static CombatState? _musicCombat;
-    private static (int Revision,float Progress) _music;
+    private static readonly System.Reflection.FieldInfo ShakeTween=AccessTools.Field(typeof(NCreature),"_shakeTween");
 
-    internal static void ClearMusic(){_musicCombat=null;_music=default;}
-    internal static void MusicUpdated(string __0,float __1)
+    internal static void RetainedEnemyReviveStarted(NCreature node)
     {
-        if(!NativeSeek.Enabled||__0!=TestSubjectMusicParameter||
-            CombatManager.Instance.DebugOnlyGetState() is not {Encounter:TestSubjectBoss} combat)return;
-        _music=(TestSubjectMusic(combat).Revision+1,__1);
-        _musicCombat=combat;
-        Runtime.Log("test-subject-music-parameter",new{Progress=__1,_music.Revision,NativeSeek.Restoring,
-            Retiring=NativePhaseRetirement.Active});
-    }
-    private static (int Revision,float Progress) TestSubjectMusic(ICombatState? combat)=>ReferenceEquals(combat,_musicCombat)?_music:default;
-
-    internal static void TestSubjectReviveStarted(NCreature node)
-    {
-        if(!NativeSeek.Enabled||node.Entity.Monster is not TestSubject||!node.Entity.IsAlive||
-            !node.Entity.HasPower<AdaptablePower>()||node.DeathAnimationTask is not {} previous)return;
-        // The retained knockout's AnimDie(false) has no post-wait removal
-        // work for Test Subject. It must not gate the next native knockout.
+        if(!NativeSeek.Enabled||!node.Entity.IsAlive||node.DeathAnimationTask is not {} previous)return;
+        var subject=node.Entity.Monster is TestSubject&&node.Entity.HasPower<AdaptablePower>();
+        var segment=CombatUnits.IsRetainedSegment(node.Entity);
+        if(!subject&&!segment&&!CombatUnits.IsRetainedIllusion(node.Entity))return;
+        // These retained enemies' AnimDie(false) has no removal work after
+        // its wait. An earlier knockout must not gate the next native knockout.
         node.DeathAnimationTask=null;
-        Runtime.Log("test-subject-knockout-animation-released",new{PreviousStillRunning=!previous.IsCompleted});
+        Runtime.Log(subject?"test-subject-knockout-animation-released":segment?"decimillipede-knockout-animation-released":"illusion-knockout-animation-released",
+            new{node.Entity.CombatId,PreviousStillRunning=!previous.IsCompleted});
     }
     internal static void TestSubjectDeathSound(MonsterModel? __0)
     {
@@ -65,12 +63,17 @@ internal sealed class CreaturePresentation
     internal CreaturePresentation(Creature creature)
     {
         _creature=creature;
+        _wasDead=creature.IsDead;
         _node=NCombatRoom.Instance?.GetCreatureNode(creature)??throw new InvalidDataException("checkpoint-creature-visual-missing");
+        _interactable=_node.IsInteractable;
+        if(NativeSpawnPresentation.Reveals(creature))_spawnVisible=_node.Visible||NativeSpawnPresentation.WillReveal(creature);
         _visuals=_node.Visuals;_body=_node.Body;_defaultScale=_visuals.DefaultScale;_temporaryScale=(float)TemporaryScale.GetValue(_node)!;
+        if(NativeSeek.Enabled&&creature.IsEnemy)_enemyScene=new(_node);
         _position=_node.Position;_hue=(float)Hue.GetValue(_visuals)!;
+        if(creature.Monster is DecimillipedeSegment&&_visuals.IsUsingPhobiaModeBody&&_body is Sprite2D sprite)
+            _segmentPhobiaTexture=sprite.Texture;
         if(creature.Monster is TestSubject subject)
-            _testSubject=(TestSubjectRespawns(subject),creature.IsDead,_node.GetSpecialNode<CanvasGroup>("%CanvasGroup")!.SelfModulate,
-                TestSubjectMusic(creature.CombatState));
+            _testSubject=(TestSubjectRespawns(subject),creature.IsDead,_node.GetSpecialNode<CanvasGroup>("%CanvasGroup")!.SelfModulate);
         if(Animator.GetValue(_node) is CreatureAnimator animator)
         {
             var state=(AnimState)AccessTools.Field(typeof(CreatureAnimator),"_currentState").GetValue(animator)!;
@@ -94,35 +97,62 @@ internal sealed class CreaturePresentation
     internal bool SameNodes=>GodotObject.IsInstanceValid(_node)&&!_node.IsQueuedForDeletion()&&
         ReferenceEquals(NCombatRoom.Instance?.GetCreatureNode(_creature),_node)&&ReferenceEquals(_node.Visuals,_visuals)&&ReferenceEquals(_node.Body,_body);
     private static int TestSubjectRespawns(TestSubject subject)=>(int)AccessTools.Field(typeof(TestSubject),"_respawns").GetValue(subject)!;
-    internal bool TestSubjectPhaseChanged=>_testSubject is {} phase&&_creature.Monster is TestSubject subject&&
+    internal bool RequiresEnemyDisplayRebuild=>(_creature.Monster is DecimillipedeSegment||CombatUnits.IsRetainedIllusion(_creature))&&_wasDead!=_creature.IsDead||
+        _testSubject is {} phase&&_creature.Monster is TestSubject subject&&
         (phase.Dead!=_creature.IsDead||phase.Respawns!=TestSubjectRespawns(subject));
     internal void BindEnemyDisplay()
     {
         Codec.Require(!_creature.IsPlayer,"direct-back-cannot-rebind-player");
-        _node=NCombatRoom.Instance!.GetCreatureNode(_creature)??throw new InvalidDataException("direct-back-restored-enemy-node-missing");
+        var restored=NCombatRoom.Instance!.GetCreatureNode(_creature)??throw new InvalidDataException("direct-back-restored-enemy-node-missing");
+        _rebuiltEnemy=!ReferenceEquals(_node,restored);
+        _node=restored;
         _visuals=_node.Visuals;_body=_node.Body;
     }
     internal void Restore(bool continueAnimation=false)
     {
         Codec.Require(SameNodes,"direct-back-creature-visual-replaced");
+        var rebuiltEnemy=NativeSeek.Restoring&&_creature.IsEnemy&&_rebuiltEnemy;
+        if(_spawnVisible is {} visible)_node.Visible=visible;
+        var retiredShake=NativeSeek.Restoring&&StopShake(_node);
+        if(retiredShake)_visuals.Position=Vector2.Zero;
+        var retiredHurt=NativeSeek.Restoring&&_animation is not null&&_visuals.IsPlayingHurtAnimation();
         if(AccessTools.Field(typeof(NCreature),"_scaleTween").GetValue(_node) is Tween tween&&GodotObject.IsInstanceValid(tween))tween.Kill();
         _node.Position=_position;
         _visuals.SetScaleAndHue(_defaultScale,_hue);TemporaryScale.SetValue(_node,_temporaryScale);
         AccessTools.Method(typeof(NCreature),"DoScaleTween").Invoke(_node,[_scale]);
         if(_animation is not null&&Animator.GetValue(_node) is CreatureAnimator animator)
         {
+            var oldState=(AnimState)AccessTools.Field(typeof(CreatureAnimator),"_currentState").GetValue(animator)!;
+            var retiredTransition=NativeSeek.Restoring&&
+                (!oldState.IsLooping&&oldState.Id!=_animation||_creature.Monster is DevotedSculptor);
             var state=ReferenceEquals(animator,_restoreAnimator)?_restoreLoop:null;
             state??=AnimationStates(animator).FirstOrDefault(s=>s.Id==_animation&&s.IsLooping)
                 ??throw new InvalidDataException("direct-back-animation-state-missing");
             _restoreAnimator=animator;_restoreLoop=state;
-            _continuedAnimation=continueAnimation&&Destination(animator)==_animation;
+            _continuedAnimation=!rebuiltEnemy&&continueAnimation&&Destination(animator)==_animation;
+            if(rebuiltEnemy)EnemyScenePresentation.ClearStartupTrack(_node);
             if(!_continuedAnimation)AccessTools.Method(typeof(CreatureAnimator),"SetNextState").Invoke(animator,[state]);
+            if(rebuiltEnemy||retiredHurt||retiredTransition)
+            {
+                // No old action or fresh scene's default pose should blend into the restored loop.
+                using var track=_node.SpineAnimation.GetCurrentTrack();
+                track?.SetMixDuration(0);
+            }
         }
+        if(retiredShake||retiredHurt)Runtime.Log("native-creature-impact-motion-retired",new{_creature.CombatId,Model=_creature.ModelId.ToString(),
+            LocalShake=retiredShake,HurtBlend=retiredHurt});
         var display=(Control)AccessTools.Field(typeof(NCreature),"_stateDisplay").GetValue(_node)!;
         if(AccessTools.Field(display.GetType(),"_showHideTween").GetValue(display) is Tween entrance&&GodotObject.IsInstanceValid(entrance))entrance.Kill();
         display.Position=(Vector2)AccessTools.Field(display.GetType(),"_originalPosition").GetValue(display)!;
         display.Modulate=Colors.White;display.Visible=true;
-        if(_creature.Monster is Osty||_testSubject.HasValue)
+        if(NativeSeek.Restoring&&_creature.IsEnemy&&_creature.IsAlive)_node.ToggleIsInteractable(_interactable);
+        if(CombatUnits.IsRetainedSegment(_creature))
+        {
+            _node.ToggleIsInteractable(!_creature.IsDead);
+            AccessTools.Method(display.GetType(),_creature.IsDead?"OnCreatureDied":"OnCreatureRevived").Invoke(display,[_creature]);
+            if(_segmentPhobiaTexture is not null&&_body is Sprite2D sprite)sprite.Texture=_segmentPhobiaTexture;
+        }
+        if(_creature.Monster is Osty||_testSubject.HasValue||CombatUnits.IsRetainedIllusion(_creature))
         {
             // Native death fades this existing display, while StartReviveAnim only
             // restores alpha. A node rebuilt while dead must therefore remain Visible;
@@ -134,28 +164,43 @@ internal sealed class CreaturePresentation
                 _node.DisableInteractionForDeath();
                 AccessTools.Method(display.GetType(),"OnCreatureDied").Invoke(display,[_creature]);
             }
-            if(_testSubject is {} subject)
-            {
-                _node.GetSpecialNode<CanvasGroup>("%CanvasGroup")!.SelfModulate=subject.Tint;
-                var previous=TestSubjectMusic(_creature.CombatState);
-                if(previous!=subject.Music&&_creature.CombatState is CombatState {Encounter:TestSubjectBoss encounter} combat&&
-                    NRunMusicController.Instance is {} music)
-                {
-                    // Setting the old value on an already advanced event does
-                    // not rewind its timeline. Start the native event again.
-                    music.PlayCustomMusic(encounter.CustomBgm);
-                    music.UpdateMusicParameter(TestSubjectMusicParameter,subject.Music.Progress);
-                    _musicCombat=combat;_music=subject.Music;
-                    Runtime.Log("test-subject-music-restored",new{From=previous.Progress,To=subject.Music.Progress,
-                        FromRevision=previous.Revision,ToRevision=subject.Music.Revision,NativeEventRestarted=true});
-                }
-            }
-            else Runtime.Log("osty-hud-restored",new{_creature.CombatId,Alive=_creature.IsAlive,display.Visible,
+            else if(CombatUnits.IsRetainedIllusion(_creature))
+                AccessTools.Method(display.GetType(),"OnCreatureRevived").Invoke(display,[_creature]);
+            if(_testSubject is {} subject)_node.GetSpecialNode<CanvasGroup>("%CanvasGroup")!.SelfModulate=subject.Tint;
+            else Runtime.Log(_creature.Monster is Osty?"osty-hud-restored":"illusion-hud-restored",new{_creature.CombatId,Alive=_creature.IsAlive,display.Visible,
                 Alpha=display.Modulate.A,NativeReviveCanFadeIn=true,ReviveAnimationRun=false});
         }
         AccessTools.Method(display.GetType(),"RefreshValues").Invoke(display,null);
-        var bounds=_testSubject is {Respawns:>0} phase?_visuals.GetNode<Control>($"RespawnBounds{phase.Respawns}"):(Node)_visuals;
+        Node bounds=_testSubject is {Respawns:>0} phase?_visuals.GetNode<Control>($"RespawnBounds{phase.Respawns}"):
+            NativeSeek.Restoring&&_restoreLoop?.BoundsContainer is {} path?_visuals.GetNode<Control>(path):_visuals;
         AccessTools.Method(typeof(NCreature),"UpdateBounds",[typeof(Node)]).Invoke(_node,[bounds]);
+        if(_creature.Monster is ThievingHopper)RestoreStolenCardDisplay();
+        _enemyScene?.Restore(_node,rebuiltEnemy);
+        _rebuiltEnemy=false;
+    }
+    private void RestoreStolenCardDisplay()
+    {
+        if(_node.GetSpecialNode<Marker2D>("%StolenCardPos") is not {} marker)return;
+        // SwipePower owns the theft; the marker only mirrors its local cards.
+        var missing=_creature.GetPowerInstances<SwipePower>().Select(p=>p.StolenCard).OfType<CardModel>().Where(LocalContext.IsMine).ToHashSet();
+        foreach(var node in marker.GetChildren().OfType<NCard>())
+        {
+            if(node.Model is {} model&&missing.Remove(model))continue;
+            marker.RemoveChild(node);node.QueueFreeSafely();
+        }
+        foreach(var model in missing)
+        {
+            var card=NCard.Create(model)??throw new InvalidDataException("restored-stolen-card-display-missing");
+            marker.AddChild(card);
+            card.Position+=card.Size*.5f;
+            card.UpdateVisuals(PileType.Deck,CardPreviewMode.Normal);
+        }
+    }
+    internal static bool StopShake(NCreature node)
+    {
+        if(ShakeTween.GetValue(node) is not Tween shake||!GodotObject.IsInstanceValid(shake)||!shake.IsRunning())return false;
+        shake.Kill();
+        return true;
     }
     private static string Destination(CreatureAnimator animator)
     {

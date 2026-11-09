@@ -37,6 +37,17 @@ internal static class PhaseWaitContracts
             timer.SetException(new InvalidOperationException("retired-pure-timer"));
             Need(faults.Count==1&&faults[0].Message=="retired-pure-timer","late-timer-fault-unobserved");
         });
+        await Test("prefix-computation-skips-only-its-pure-timer-without-opening-retirement",async ()=>
+        {
+            var observed=new TaskCompletionSource<Exception>();var p=new RetiringPhaseWait(error=>observed.SetResult(error));
+            var skipped=new TaskCompletionSource();var normal=new TaskCompletionSource();
+            await p.Skip(skipped.Task);
+            var next=p.Wrap(normal.Task);
+            Need(!skipped.Task.IsCompleted&&!p.Active&&!next.IsCompleted,"prefix-skip-leaked-to-forward");
+            var fault=new InvalidOperationException("prefix-pure-timer");skipped.SetException(fault);
+            Need(ReferenceEquals(fault,await observed.Task.WaitAsync(TimeSpan.FromSeconds(1))),"prefix-late-timer-fault-unobserved");
+            normal.SetResult();await next;
+        });
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
         File.WriteAllBytes(output,Codec.Bytes(new{Result="PASS_PURE_PHASE_WAIT_RETIREMENT_ONLY",Tests=passed,
             NativeGameplayTasksExecuted=false,NativeCallerBindingAndStateRngAccelerationVerified=false}));

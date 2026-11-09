@@ -19,8 +19,8 @@ internal static class GameOverVisuals
             // letting that tween finish there would move the model to (0,0).
             // Keep the current pose for the ORIGINAL Reparent call. The spine death
             // animation, HUD fade and native game-over tasks remain untouched.
-            if(RunPatches.Field(creature,"_shakeTween") is not Tween shake||!GodotObject.IsInstanceValid(shake)||!shake.IsRunning())continue;
-            var position=creature.Visuals.GlobalPosition;shake.Kill();
+            if(!CreaturePresentation.StopShake(creature))continue;
+            var position=creature.Visuals.GlobalPosition;
             Runtime.Log("native-game-over-coordinate-tween-retired",new{Playback=PlayerLoop.Active,Model=creature.Entity.ModelId.ToString(),
                 Tween="NCreature.AnimShake",BeforeNativeReparent=true,PreservedX=position.X,PreservedY=position.Y,
                 DeathAnimationChanged=false,NativeReparentReplaced=false});

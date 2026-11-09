@@ -18,13 +18,50 @@ internal static class HealthDisplayTail
     internal static void SettleRestored(IEnumerable<Creature> creatures)
     {
         if(NativeDisplayTrace.Replaying)return;
-        var count=0;
-        foreach(var creature in creatures)if(Bar(creature) is {} bar&&Get(bar,"_middlegroundTween") is Tween tween&&GodotObject.IsInstanceValid(tween)&&tween.IsRunning())
-        {tween.CustomStep(2.1);count++;}
-        Runtime.Log("back-health-tails-settled",new{Count=count,RestoredHpDoesNotAnimateAsHealing=true});
+        var count=0;var blocks=0;
+        foreach(var creature in creatures)
+        {
+            if(Bar(creature) is not {} bar)continue;
+            if(Get(bar,"_middlegroundTween") is Tween tween&&GodotObject.IsInstanceValid(tween)&&tween.IsRunning())
+            {tween.CustomStep(2.1);count++;}
+            if(SnapBlock(bar))blocks++;
+        }
+        Runtime.Log("back-health-tails-settled",new{Count=count,BlockIconsSnapped=blocks,RestoredHpDoesNotAnimateAsHealing=true});
     }
-    internal static void Install(Harmony harmony)=>harmony.Patch(AccessTools.DeclaredMethod(typeof(NHealthBar),"RefreshMiddleground"),
-        prefix:new HarmonyMethod(typeof(HealthDisplayTail),nameof(Before)),postfix:new HarmonyMethod(typeof(HealthDisplayTail),nameof(After)));
+    private static bool SnapBlock(NHealthBar bar)
+    {
+        var block=(Control)Get(bar,"_blockContainer");
+        var position=(Vector2)Get(bar,"_originalBlockPosition");
+        if(Get(bar,"_blockTween") is Tween entrance&&GodotObject.IsInstanceValid(entrance)&&entrance.IsRunning())entrance.Kill();
+        var moved=!block.Position.IsEqualApprox(position)||!Mathf.IsEqualApprox(block.Modulate.A,1);
+        block.Position=position;block.Modulate=block.Modulate with{A=1};
+        return moved;
+    }
+    internal static void Install(Harmony harmony)
+    {
+        harmony.Patch(AccessTools.DeclaredMethod(typeof(NHealthBar),"RefreshMiddleground"),
+            prefix:new HarmonyMethod(typeof(HealthDisplayTail),nameof(Before)),postfix:new HarmonyMethod(typeof(HealthDisplayTail),nameof(After)));
+        harmony.Patch(AccessTools.DeclaredMethod(typeof(NHealthBar),nameof(NHealthBar.AnimateInBlock)),
+            postfix:new HarmonyMethod(typeof(HealthDisplayTail),nameof(BlockEntrance)));
+        harmony.Patch(AccessTools.DeclaredMethod(typeof(NHealthBar),nameof(NHealthBar.UpdateLayoutForCreatureBounds)),
+            prefix:new HarmonyMethod(typeof(HealthDisplayTail),nameof(BlockLayoutBefore)),
+            postfix:new HarmonyMethod(typeof(HealthDisplayTail),nameof(BlockLayoutAfter)));
+    }
+    private static void BlockEntrance(NHealthBar __instance,int oldBlock,int blockGain)
+    {
+        if(oldBlock==0&&blockGain!=0&&NativeSeek.RetiringPresentation)SnapBlock(__instance);
+    }
+    private static void BlockLayoutBefore(NHealthBar __instance,out Vector2? __state)
+        =>__state=NativeSeek.Enabled?(Vector2)Get(__instance,"_originalBlockPosition"):null;
+    private static void BlockLayoutAfter(NHealthBar __instance,Vector2? __state)
+    {
+        if(__state is not {} original)return;
+        var position=(Vector2)Get(__instance,"_originalBlockPosition");
+        // Native layout moves the shield horizontally, then records its current
+        // position. The Y at that instant can belong to an in-flight entrance.
+        if(!Mathf.IsEqualApprox(position.Y,original.Y))
+            AccessTools.Field(typeof(NHealthBar),"_originalBlockPosition").SetValue(__instance,position with{Y=original.Y});
+    }
     private static void Before(NHealthBar __instance,out (Tween? Tween,float Offset) __state)
         =>__state=(Get(__instance,"_middlegroundTween") as Tween,((Control)Get(__instance,"_hpMiddleground")).OffsetRight);
     private static void After(NHealthBar __instance,(Tween? Tween,float Offset) __state)

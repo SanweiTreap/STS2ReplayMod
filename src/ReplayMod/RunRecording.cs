@@ -43,14 +43,17 @@ internal static class RunRecording
     private static string? _entryProgress;
     private static bool _restoredEntry,_unknownLoad;
     private static bool _saveExit;
+    private static JsonObject? _savedHistory;
     internal sealed record SaveLocation(string Run,int Visit,int Attempt,int[] Path);
+    private sealed record EntrySave(SaveLocation Location,RunOperation Travel,RoomEntrySave Save);
+    private static EntrySave? _nativeEntry;
     internal static bool Enabled=>_run is not null&&!PlayerLoop.Active;
     internal static bool Choosing=>Enabled&&Pending?.Kind is "reward" or "rest" or "treasure-pick" or "merchant-buy" or "merchant-remove" or "event-choice";
     internal static void Attach(bool continuation,SerializableRun? save=null,string? loadedJson=null)
     {
         if(PlayerLoop.Active||Runtime.Journal.CurrentRun is not {} id)return;
         DrainWrites();
-        Pending=null;_battleSequence=0;_visit=0;_entryProgress=null;_restoredEntry=false;_unknownLoad=false;_saveExit=false;
+        Pending=null;_battleSequence=0;_visit=0;_entryProgress=null;_restoredEntry=false;_unknownLoad=false;_saveExit=false;_savedHistory=null;_nativeEntry=null;
         RunEndings.Clear();
         var path=Path.Combine(Runtime.Root,"runs",id+".json");
         _run=File.Exists(path)?Store.Read(id):new(1,id,Runtime.GameHash,Runtime.ModHash,Runtime.Scope,
@@ -81,6 +84,7 @@ internal static class RunRecording
         NoteLifecycle(continuation?"continued":"in-progress",continuation?"native-SetUpSavedSingleplayer":"native-new-run",act:save?.CurrentActIndex);
     }
     internal static void SaveExitIntent(){if(Enabled)_saveExit=true;}
+    internal static void HistorySaved(JsonObject history){if(Enabled)_savedHistory=history;}
     internal static void NoteLifecycle(string kind,string source,string? state=null,int? act=null)
     {
         if(!Enabled)return;
@@ -101,10 +105,15 @@ internal static class RunRecording
             RecordingJournal.NativeFingerprint(native),RecordingJournal.SaveKey(native),preFinished);
         Save();Runtime.Log("run-save-point-observed",new{Run=_run.Id,point.Id,point.Visit,point.Attempt,point.PreFinished,Path=point.Path,
             SuccessfulNativeSave=true,ExactNativeLoadFingerprint=true});
+        if(!preFinished&&Pending is {Kind:"map"} travel&&location.Visit==_visit&&location.Attempt==CurrentAttempt&&
+            location.Path.LastOrDefault()==travel.Sequence&&
+            LiveState.Run.CurrentMapPoint?.PointType is MapPointType.Unknown or MapPointType.Ancient or MapPointType.RestSite or MapPointType.Shop or MapPointType.Treasure)
+            _nativeEntry=new(location,travel,new(native,RunResources.Progress()));
     }
     internal static void Entry(MapCoord coord,bool preFinished,bool saveGame)
     {
         if(!Enabled)return;var run=LiveState.Run;var last=_run!.Visits.LastOrDefault();
+        _nativeEntry=null;
         if(_restoredEntry)
         {
             var index=_run.Visits.FindIndex(v=>v.Id==_visit);var restored=_run.Visits[index];
@@ -178,6 +187,16 @@ internal static class RunRecording
         if(Pending is not null){Gap("尚未完成的房间操作被新的操作打断");return null;}
         var operation=new RunOperation(_run!.Operations.Count+1,_visit,kind,argument,RunResources.Capture(),null,"pending",[],
             Progress:RunResources.Progress(),Attempt:CurrentAttempt);
+        if(_nativeEntry is {} native&&native.Location.Visit==_visit&&native.Location.Attempt==CurrentAttempt&&
+            LiveState.Run.CurrentRoom is EventRoom or RestSiteRoom or MerchantRoom or TreasureRoom)
+        {
+            _nativeEntry=null;
+            var key=RoomEntryCacheFile.KeyFor(_run,native.Travel,operation);
+            var root=Runtime.Root;
+            // These are detached DTO strings from the successful native save and
+            // the observed room's first input. No game objects go to the worker.
+            _=Task.Run(()=>RoomEntryCacheFile.Write(root,key,native.Save));
+        }
         RunRoutes.Append(_run,operation);Pending=operation;Save();return operation;
     }
     internal static async Task<T> Wrap<T>(Task<T> native,RunOperation? operation)
@@ -234,6 +253,8 @@ internal static class RunRecording
     }
     internal static void Unsupported(string kind,string reason)
     {if(Pending is {} pending)Missing(pending,reason);MissingOperation(kind,reason);}
+    internal static void CancelOperation(RunOperation operation,string reason)
+    {if(Pending?.Sequence==operation.Sequence)Missing(operation,reason);}
     internal static void Exit()
     {
         if(!Enabled)return;
@@ -242,8 +263,9 @@ internal static class RunRecording
             if(Pending is {} pending)Missing(pending,"退出时选择或转换尚未完成");
             NoteLifecycle(_saveExit?"saved-exit":"interrupted",_saveExit?"native-pause-CloseToMenu":"native-CleanUp-without-terminal");
             DrainWrites();
+            if(_savedHistory is {} history&&_run is {} run)NativeHistoryUi.Publish(run,history);
         }
-        finally{_run=null;_writes=null;Pending=null;_saveExit=false;}
+        finally{_run=null;_writes=null;Pending=null;_saveExit=false;_savedHistory=null;}
     }
     private static void Missing(RunOperation operation,string reason)
     {if(!Enabled)return;Replace(operation with{Status="missing"});if(Pending?.Sequence==operation.Sequence)Pending=null;Save();Runtime.Log("run-operation-missing",new{operation.Sequence,Reason=reason});}
@@ -257,5 +279,9 @@ internal static class RunRecording
     private static int? CurrentAttempt=>_run?.Branches is {ActiveAttempt:>0} b?b.ActiveAttempt:null;
     private static void Save(){if(_run is not null)_writes!.Enqueue(_run);}
     private static void DrainWrites(){if(_writes is not null)Runtime.Log("run-recording-write-drained",_writes.Drain());}
-    internal static void DrainAtProcessExit()=>_writes?.Drain();
+    internal static void DrainAtProcessExit()
+    {
+        _writes?.Drain();
+        if(_savedHistory is {} history&&_run is {} run)NativeHistoryUi.Publish(run,history,log:false);
+    }
 }

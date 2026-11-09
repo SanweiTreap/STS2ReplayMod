@@ -17,7 +17,8 @@ internal sealed class OperationRequests
     // Running is an internal lifecycle gate, not a public playback mode.
     internal bool Running {get;private set;}=true;
     internal bool Auto {get;private set;}
-    internal bool ManualWaiting=>Running&&!Auto&&Active is null&&_pending.Count==0;
+    internal bool HasForwardWork=>Active is not null||_pending.Count!=0;
+    internal bool ManualWaiting=>Running&&!Auto&&!HasForwardWork;
     internal bool CanRequestFine=>ManualWaiting&&Stage<Route[^1].Stage;
     internal PlaybackIntent Intent=>new(Running,Auto);
     internal ForwardRequest? Active {get;private set;}

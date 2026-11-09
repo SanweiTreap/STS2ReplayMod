@@ -92,10 +92,11 @@ internal static class RunPatches
         RunEventRewards.Install(h);
         RunOpening.Install(h);
         RunActs.Install(h);
-        RunCombatLoads.Install(h);
+        RunComputedLoads.Install(h);
         RunEndings.Install(h);
         RunBossPreparation.Install(h);
         RunRewardPotions.Install(h);
+        RunPotionUses.Install(h);
     }
     private static void RoomTypeChosen(MapPointType __0,RoomType __result)=>Runtime.Guard(()=>
     {
@@ -103,7 +104,8 @@ internal static class RunPatches
             Playback=RunPlayback.Active,NativeRollExecuted=true,RoomTypeForced=false});
         Recorder.RoomTypeChosen(__0,__result);
     });
-    private static void GeneratedMap(ActMap __0)=>Runtime.Guard(()=>{TestEncounter.ConfigureRunRoute(__0);RunTailPreparation.Apply(__0);});
+    private static void GeneratedMap(ActMap __0)=>Runtime.Guard(()=>
+    {if(!ReplayMap.Swapping){TestEncounter.ConfigureRunRoute(__0);RunOpening.ConfigureShortRoute(__0);RunTailPreparation.Apply(__0);}});
     private static void Room(AbstractRoom __0,ref Task __result)
     {var native=__result;__result=Finish();async Task Finish(){await native;Runtime.Guard(()=>RunRecording.Room(__0));}}
     private static bool Map(NMapPoint __0)
@@ -174,7 +176,7 @@ internal static class RunPatches
         UiTask=null;ResultTask=null;_drivenReward=reward;
         try
         {
-            RunPlayback.Native(()=>AccessTools.Method(typeof(NRewardButton),"OnRelease").Invoke(button,[]));
+            RunPlayback.ClickNative(button!);
             Codec.Require(UiTask is not null&&ResultTask is not null,"run-reward-native-handler-not-started");
             await RunPlayback.Await(UiTask!);
             return ResultTask!.Result;
@@ -205,5 +207,5 @@ internal static class RunPatches
     private static void OwnedTask(Task __result)=>RunPlayback.Track(__result);
     private static void RestProceedBefore(out RunOperation? __state)=>__state=Record("rest-proceed",()=>RunRecording.Begin("rest-proceed",new()));
     private static void RestProceedAfter(RunOperation? __state){if(__state is not null)Runtime.Guard(()=>RunRecording.Complete(__state));}
-    internal static void Clear(){Rewards=null;RewardsScreen=null;Travel=null;UiTask=null;ProceedTask=null;ResultTask=null;RestAnimation=null;_selectedReward=null;_drivenReward=null;RunEventRewards.Clear();RunRewardPotions.Clear();}
+    internal static void Clear(){Rewards=null;RewardsScreen=null;Travel=null;UiTask=null;ProceedTask=null;ResultTask=null;RestAnimation=null;_selectedReward=null;_drivenReward=null;RunEventRewards.Clear();RunRewardPotions.Clear();RunPotionUses.Clear();}
 }

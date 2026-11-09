@@ -6,7 +6,9 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
+using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
@@ -16,6 +18,7 @@ using MegaCrit.Sts2.Core.Nodes.Relics;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.sts2.Core.Nodes.TopBar;
 using MegaCrit.Sts2.Core.Random;
+using MegaCrit.Sts2.Core.Rewards;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -30,7 +33,13 @@ internal sealed class DirectCheckpoint
     private readonly Action? _restoreDiscoveries;
     private readonly CombatRoster _roster;
     private readonly Creature[] _creatures;
+    private readonly Creature[] _escaped;
+    private readonly CombatUnitSubscriptions.ModelSubscription[] _modelSubscriptions;
+    private readonly (Player Player,Reward[] Rewards)[] _rewardLists;
     private readonly CreaturePresentation[] _presentation;
+    internal CombatMusic.Point? Music {get;}
+    private readonly CombatLoops.Point? _loops;
+    private readonly EnemyScenePresentation.CrabBackground? _crabBackground;
     private readonly RegentPresentation _regent=new();
     private readonly CombatHudTrace.Sample _combatHud=CombatHudTrace.Capture();
     private readonly object? _endTurnUiState=Get(NCombatRoom.Instance!.Ui.EndTurnButton,"_state");
@@ -52,8 +61,17 @@ internal sealed class DirectCheckpoint
         _creatures=_combat.Creatures.ToArray();
         if(roster.Reason(_combat) is {} reason)throw new InvalidDataException("direct-back-roster-unsupported: "+reason);
         Codec.Require(_creatures.All(CombatUnits.Restorable)&&LiveState.Player.PlayerCombatState!.Pets.All(CombatUnits.IsOsty),"direct-back-unsupported-death-or-pet");
+        _escaped=_combat.EscapedCreatures.ToArray();
+        _modelSubscriptions=LiveState.Format>=10?CombatUnitSubscriptions.CaptureModels(_creatures):[];
+        _rewardLists=route?((CombatRoom)LiveState.Run.CurrentRoom!).ExtraRewards.Select(pair=>(pair.Key,pair.Value.ToArray())).ToArray():[];
         _presentation=_creatures.Select(c=>new CreaturePresentation(c)).ToArray();
-        // Include removed original enemies too, so a checkpoint also describes their detached dead state.
+        if(NativeSeek.Enabled)
+        {
+            Music=CombatMusic.Capture(_combat);
+            _loops=CombatLoops.Capture(_combat,NCombatRoom.Instance!);
+            _crabBackground=EnemyScenePresentation.CrabBackground.Capture(NCombatRoom.Instance!);
+        }
+        // Include detached enemies and the native room's pending reward lists.
         if(captureData)_data=new(Roots(roster).Concat(extraRoots??[]),v=>Data(v)||route&&v is AbstractRoom,
             f=>Field(f)&&(!route||f.FieldType.Namespace?.StartsWith("MegaCrit.Sts2.Core.GameActions",StringComparison.Ordinal)!=true),Special);
         if(captureData&&PlayerLoop.Active)_restoreDiscoveries=MemorySession.CaptureDiscoveryContext();
@@ -111,24 +129,82 @@ internal sealed class DirectCheckpoint
         Codec.Require(SignalTask(signal) is {IsCompleted:false}&&SignalTask(enemySignal) is {IsCompleted:false},"direct-back-turn-loop-not-waiting");
     }
 
-    internal async Task Restore(Action? fileData=null)
+    internal bool CanSettleComputedTurn=>SameRoster&&_creatures.SequenceEqual(_roster.Initial)&&
+        _creatures.All(c=>c.IsAlive&&c.PetOwner is null&&!c.HasPower<DoomPower>())&&
+        _presentation.All(p=>p.SameNodes&&!p.RequiresEnemyDisplayRebuild)&&
+        _crabBackground is null&&_combat.EscapedCreatures.Count==0&&LiveState.Player.PlayerCombatState!.OrbQueue.Orbs.Count==0;
+
+    internal async Task<bool> SettleComputedTurn(int sourcePicture)
+    {
+        Codec.Require(NativeSeek.CanRestore&&CanSettleComputedTurn,"computed-turn-picture-not-stable");
+        var room=NCombatRoom.Instance!;
+        await NativeDisplayTrace.RetireSourceVisuals(replaceRoomLayers:true);
+        EnemyScenePresentation.RetireTweens();
+        CombatVisualLayers.Rotate(room,sourcePicture,NativeSeek.Generation);
+        foreach(var presentation in _presentation)presentation.Restore();
+        foreach(var enemy in _combat.Enemies)
+        {
+            var node=room.GetCreatureNode(enemy)!;
+            if(Get(node,"_intentFadeTween") is Tween fade&&GodotObject.IsInstanceValid(fade))fade.Kill();
+            node.IntentContainer.Modulate=Colors.White;
+        }
+        if(_loops is {} loops)CombatLoops.Restore(loops,room);
+        var hand=NPlayerHand.Instance!;
+        var cards=LiveState.Player.PlayerCombatState!.Hand.Cards;
+        if(hand.CardHolderContainer.GetChildren().OfType<NHandCardHolder>().Select(holder=>holder.CardModel).SequenceEqual(cards))
+            HandPresentation.Snap(hand);
+        else HandPresentation.Synchronize(hand,cards,HandPresentation.CaptureAfflictions(hand));
+        RoutePresentation.Synchronize();
+        CombatHudTrace.RestoreEnergy(_combatHud);
+        CombatHudTrace.RestoreStars();
+        CombatHudTrace.RefreshTurnCaption();
+        HealthDisplayTail.SettleRestored(_creatures);
+        CreatureHudTrace.SettleRestoredEnemyPowers(room,_creatures);
+        ContentPresentation.SettleRestoredRelicActivations(LiveState.Player.Relics);
+        ContentPresentation.RefreshRelics();
+        Codec.Require(LiveState.ChoiceProjection()==Projection&&ExtraProjection()==_extraProjection,"computed-turn-state-mismatch");
+        try
+        {
+            var potionsRebuilt=ContentPresentation.SettleComputedPotions(_potions);
+            Codec.Require(HandPresentation.Matched(hand,cards)&&_presentation.All(p=>p.Matched)&&
+                _combat.Enemies.All(e=>e.Monster?.NextMove is not {} move||
+                    room.GetCreatureNode(e)!.IntentContainer.GetChildCount()==move.Intents.Count),
+                "computed-turn-display-mismatch");
+            Runtime.Log("computed-turn-picture-settled",new{Position,Turn,Display=RoutePresentation.Check(),
+                PotionsRebuilt=potionsRebuilt,CombatDataReapplied=false,CreatureNodesRecreated=false});
+            return true;
+        }
+        catch(InvalidDataException ex)
+        {
+            Runtime.Log("computed-turn-full-restore-needed",new{Position,Turn,Reason=ex.Message});return false;
+        }
+    }
+
+    internal Task Restore(Action? fileData=null,int? sourcePicture=null)=>RestoreCore(fileData,sourcePicture);
+    internal Task<bool> RestoreTurnAnchor(Func<bool> apply,int sourcePicture)=>RestoreCore(null,sourcePicture,apply);
+
+    private async Task<bool> RestoreCore(Action? fileData,int? sourcePicture,Func<bool>? turnAnchor=null)
     {
         var started=Stopwatch.GetTimestamp();
         var fromVictory=NativeSeek.Enabled&&PlayerLoop.VictoryReached;
         if(!_route)RequireReady();else Codec.Require(NativeSeek.Enabled?NativeSeek.CanRestore:DecisionRoute.CanRestore,"route-data-restore-while-business-running");
-        if(_route)await NativeDisplayTrace.RetireSourceVisuals();
+        if(_route)await NativeDisplayTrace.RetireSourceVisuals(replaceRoomLayers:sourcePicture.HasValue);
+        if(NativeSeek.Restoring)EnemyScenePresentation.RetireTweens();
         var retired=Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         Codec.Require(ReferenceEquals(_run,LiveState.Run)&&ReferenceEquals(_combat,((CombatRoom)LiveState.Run.CurrentRoom!).CombatState)&&
             ReferenceEquals(_turnState,Get(CombatManager.Instance,"_turnState")),"direct-back-context-changed");
-        Codec.Require(_roster.Reason(_combat) is null,"direct-back-roster-or-visual-unsupported");
+        Codec.Require(_roster.Reason(_combat,fromVictory) is null,"direct-back-roster-or-visual-unsupported");
         Codec.Require(_presentation.Where((_,i)=>_creatures[i].IsPlayer).All(p=>p.SameNodes),"direct-back-player-visual-replaced");
         var before=_combat.Creatures.ToArray();var beforeSummary=CombatRoster.Summary(before);
+        var escapedBefore=_combat.EscapedCreatures.Select(c=>c.CombatId).ToArray();
         var previousNodes=before.ToDictionary(c=>c,c=>NCombatRoom.Instance!.GetCreatureNode(c));
-        var forwardHandoff=_route&&NativeDisplayTrace.Replaying;
-        var rebuildEnemies=!_creatures.SequenceEqual(before)||_presentation.Any(p=>p.TestSubjectPhaseChanged);
+        var forwardHandoff=sourcePicture is null&&_route&&NativeDisplayTrace.Replaying;
+        var rebuildEnemies=sourcePicture.HasValue||!_creatures.SequenceEqual(before)||_presentation.Any(p=>p.RequiresEnemyDisplayRebuild);
         var currentPowers=before.ToDictionary(c=>c,c=>c.Powers.ToArray());
-        // A stable player phase may still contain a dead enemy's fading NCreature. Even when the
-        // roster is identical at both checkpoints, retire that display before refreshing live UI.
+        var previousAfflictions=HandPresentation.CaptureAfflictions(NPlayerHand.Instance!);
+        // Drain and native-owned visual cleanup have finished. Replace both room
+        // VFX layers and the old enemy picture before applying checkpoint data.
+        if(sourcePicture is {} generation)CombatVisualLayers.Rotate(NCombatRoom.Instance!,generation,NativeSeek.Generation);
         var removedDisplays=rebuildEnemies?(forwardHandoff?_roster.RemoveForForwardTarget(_creatures):_roster.RemoveEnemyDisplays()):_roster.RemoveRetiredEnemyDisplays(_combat);
         Runtime.Log("checkpoint-display-cleanup",new{Position,RebuildLiveEnemies=rebuildEnemies,Removed=removedDisplays,WaitedForDeathAnimations=false});
         var keptPotions=_route&&ContentPresentation.CanKeepPotions(_potions);
@@ -145,12 +221,23 @@ internal sealed class DirectCheckpoint
         // Native removal unsubscribed the dead enemy. Reconcile explicitly without setup/spawn hooks.
         if(LiveState.Format>=10)CombatUnitSubscriptions.Retire(_roster.Anchors);
         else foreach(var creature in before)CombatManager.Instance.StateTracker.Unsubscribe(creature);
-        if(fileData is not null)fileData();else (_data??throw new InvalidDataException("checkpoint-data-missing")).Restore();
+        var appliedAnchor=turnAnchor?.Invoke()==true;
+        if(fileData is not null)fileData();
+        else if(!appliedAnchor)(_data??throw new InvalidDataException("checkpoint-data-missing")).Restore();
         if(fileData is null)_restoreDiscoveries?.Invoke();
+        if(sourcePicture.HasValue)ContentPresentation.SettleRestoredRelicActivations(LiveState.Player.Relics);
         var restored=Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         foreach(var removed in before.Except(_creatures))removed.CombatState=null;
         Codec.Require(_creatures.SequenceEqual(_combat.Creatures)&&_creatures.All(CombatUnits.Restorable),"direct-back-restored-membership-mismatch");
         Codec.Require(_creatures.All(c=>ReferenceEquals(c.CombatState,_combat)&&ReferenceEquals(_combat.GetCreature(c.CombatId),c)),"direct-back-restored-target-identity-mismatch");
+        if(LiveState.Format>=10)
+            Codec.Require(_escaped.SequenceEqual(_combat.EscapedCreatures)&&_roster.MatchesNativeIdentities(_combat),"direct-back-restored-escape-list-or-identity-mismatch");
+        if(_route)
+        {
+            var rewards=((CombatRoom)LiveState.Run.CurrentRoom!).ExtraRewards;
+            Codec.Require(rewards.Count==_rewardLists.Length&&_rewardLists.All(p=>rewards.TryGetValue(p.Player,out var actual)&&
+                actual.SequenceEqual(p.Rewards)),"direct-back-restored-extra-rewards-mismatch");
+        }
         if(LiveState.Format>=10)CombatUnitSubscriptions.Restore(_roster.Anchors,_creatures);
         else foreach(var creature in _creatures)CombatManager.Instance.StateTracker.Subscribe(creature);
         foreach(var card in LiveState.Player.PlayerCombatState!.AllCards.Distinct())CombatManager.Instance.StateTracker.Subscribe(card);
@@ -167,23 +254,29 @@ internal sealed class DirectCheckpoint
         _roster.AddPetDisplays(_combat);
         for(var i=0;i<_creatures.Length;i++)if(!_creatures[i].IsPlayer)_presentation[i].BindEnemyDisplay();
         foreach(var presentation in _presentation)presentation.Restore(_route&&NativeDisplayTrace.Replaying);
+        _crabBackground?.Restore(NCombatRoom.Instance!);
+        if(_loops is {} loops)CombatLoops.Restore(loops,NCombatRoom.Instance!);
         _regent.Restore(_route&&NativeDisplayTrace.Replaying);
         Invoke(NCombatRoom.Instance!,"UpdateCreatureNavigation");
         var creatures=Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         // The normal turn-loop/synchronizer is still waiting in this same combat. IDs and tasks stay monotonic.
         if(!_route){ActionMonitor.Pending=null;ActionMonitor.Completed=null;ActionMonitor.Error=null;ActionMonitor.StartTurnTask=Task.CompletedTask;ChoiceTape.Restore(_choicePosition);}
         else ChoiceTape.ViewPosition(_choicePosition);
-        await RefreshUi(currentPowers,rebuildEnemies,previousNodes);if(!_route)RequireReady();
+        if(_endTurnUiState is not null)Invoke(NCombatRoom.Instance!.Ui.EndTurnButton,"SetState",_endTurnUiState);
+        await RefreshUi(currentPowers,rebuildEnemies,previousNodes,previousAfflictions);if(!_route)RequireReady();
+        if(sourcePicture.HasValue)CreatureHudTrace.SettleRestoredEnemyPowers(NCombatRoom.Instance!,_combat.Enemies);
+        if(LiveState.Format>=10)CombatUnitSubscriptions.RestoreModels(_roster.Anchors,_modelSubscriptions);
         if(fromVictory)
         {
-            if(_endTurnUiState is not null)Invoke(NCombatRoom.Instance!.Ui.EndTurnButton,"SetState",_endTurnUiState);
             using var hud=new CombatHudTrace.View();hud.Prepare();hud.Handoff(_combatHud);
             Runtime.Log("native-victory-hud-restored",new{Position,HandEntrance=false,NativeHudSnapshot=true});
         }
         var ui=Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-        Codec.Require((_route?LiveState.ChoiceProjection():LiveState.Capture())==Projection,"direct-back-restored-projection-differs");
+        if(!appliedAnchor)
+            Codec.Require((_route?LiveState.ChoiceProjection():LiveState.Capture())==Projection,"direct-back-restored-projection-differs");
         if(_route)Codec.Require(_extraProjection==ExtraProjection(),"route-owned-source-or-candidate-state-mismatch");
         Runtime.Log("checkpoint-roster-restored",new{Position,Before=beforeSummary,After=CombatRoster.Summary(_combat.Creatures),
+            EscapedBefore=escapedBefore,EscapedAfter=_escaped.Select(c=>c.CombatId).ToArray(),
             AllOriginalAnchors=CombatRoster.Summary(_roster.Initial),
             OriginalObjectsRetained=_creatures.All(c=>_roster.Initial.Contains(c)&&ReferenceEquals(_combat.GetCreature(c.CombatId),c)),
             VisitedPointObjectsRetained=_creatures.All(c=>ReferenceEquals(_combat.GetCreature(c.CombatId),c)),
@@ -192,6 +285,7 @@ internal sealed class DirectCheckpoint
         if(_route)Runtime.Log("checkpoint-restore-timing",new{Position,RetireMilliseconds=retired,DataMilliseconds=restored-retired,
             CreatureAndContentMilliseconds=creatures-restored,UiMilliseconds=ui-creatures,ValidationAndLogMilliseconds=Stopwatch.GetElapsedTime(started).TotalMilliseconds-ui,
             TotalMilliseconds=Stopwatch.GetElapsedTime(started).TotalMilliseconds,PotionsReused=keptPotions});
+        return appliedAnchor;
     }
     private string ExtraProjection()=>LiveState.Fingerprint(_extraModels.Select(v=>v switch
     {
@@ -210,10 +304,11 @@ internal sealed class DirectCheckpoint
         return null;
     }
 
-    private async Task RefreshUi(Dictionary<Creature,PowerModel[]> previousPowers,bool rebuiltEnemies,Dictionary<Creature,NCreature?> previousNodes)
+    private async Task RefreshUi(Dictionary<Creature,PowerModel[]> previousPowers,bool rebuiltEnemies,Dictionary<Creature,NCreature?> previousNodes,
+        IReadOnlyDictionary<NCard,AfflictionModel?> previousAfflictions)
     {
         var hand=NPlayerHand.Instance??throw new InvalidDataException("direct-back-hand-ui-missing");
-        var handChanges=HandPresentation.Synchronize(hand,LiveState.Player.PlayerCombatState!.Hand.Cards);
+        var handChanges=HandPresentation.Synchronize(hand,LiveState.Player.PlayerCombatState!.Hand.Cards,previousAfflictions);
         foreach(var pile in LiveState.Player.PlayerCombatState.AllPiles)pile.InvokeContentsChanged();
         IEnumerable<Node> Nodes(Node root)
         {
@@ -252,8 +347,10 @@ internal sealed class DirectCheckpoint
                 var powers=(IList)Get(container,"_powerNodes")!;
                 var owner=(Creature?)Get(container,"_creature");
                 var expectedPowers=owner?.Powers.Where(p=>p.IsVisible).ToArray()??[];
-                foreach(var old in powers.Cast<NPower>().Where(n=>!expectedPowers.Contains(n.Model)).ToArray())
-                {powers.Remove(old);old.GetParent().RemoveChild(old);old.QueueFree();}
+                var attached=container.GetChildren().OfType<NPower>();
+                foreach(var old in powers.Cast<NPower>().Concat(attached).Distinct()
+                    .Where(n=>!powers.Contains(n)||!expectedPowers.Contains(n.Model)).ToArray())
+                {powers.Remove(old);old.GetParent()?.RemoveChild(old);old.QueueFree();}
                 foreach(var power in expectedPowers)
                 {
                     var existing=powers.Cast<NPower>().FirstOrDefault(n=>ReferenceEquals(n.Model,power));

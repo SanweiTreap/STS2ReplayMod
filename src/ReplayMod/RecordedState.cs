@@ -7,6 +7,7 @@ using MegaCrit.Sts2.Core.Combat.History.Entries;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.Random;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Saves;
@@ -44,18 +45,27 @@ internal static class RecordedState
         Codec.Require(value is Rng&&r.Counter>=0&&(r.State0|r.State1|r.State2|r.State3)!=0,"state-rng-invalid");
         return ()=>((Rng)value).LoadFromSerializable(new SerializableRng{counter=r.Counter,state0=r.State0,state1=r.State1,state2=r.State2,state3=r.State3});
     }
-    internal static StateGraph Bind(CombatRoster roster)
+    internal static StateGraph Bind(CombatRoster roster,bool turnAnchor=false)
     {
         // Deserialized deck cards can have fewer lazy cost caches than cards created through the new-run UI.
         // Materialize the same public data before binding; no cards are played and no RNG is consumed.
         foreach(var card in LiveState.Player.Deck.Cards.Concat(LiveState.Player.PlayerCombatState!.AllCards).Distinct())
         { _=card.EnergyCost;_=card.DynamicVars; }
-        return new(DirectCheckpoint.Roots(roster),DirectCheckpoint.Data,Field,NewObjects.Contains,Special,PrepareSpecial,AdditionalTypes);
+        Type[] turnTypes=[typeof(PlowPower),typeof(CardDiscardedEntry),typeof(CardExhaustedEntry),typeof(MonsterPerformedMoveEntry)];
+        return turnAnchor?
+            new(DirectCheckpoint.Roots(roster),DirectCheckpoint.Data,
+                f=>Field(f)&&f.FieldType.Namespace?.StartsWith("MegaCrit.Sts2.Core.GameActions",StringComparison.Ordinal)!=true&&
+                    !(f.DeclaringType==typeof(AbstractModel)&&f.Name=="<Id>k__BackingField")&&
+                    !(f.DeclaringType==typeof(PowerModel)&&f.Name is "_canonicalInstance" or "_dynamicVars"),
+                t=>NewObjects.Contains(t)||turnTypes.Contains(t),Special,PrepareSpecial,[..AdditionalTypes,..turnTypes],
+                t=>t==typeof(PlowPower)?ModelDb.Power<PlowPower>().ToMutable():null):
+            new(DirectCheckpoint.Roots(roster),DirectCheckpoint.Data,Field,NewObjects.Contains,Special,PrepareSpecial,AdditionalTypes);
     }
-    private static Dictionary<int,object> LogicalBindings(RecordedStateData state,StateGraph graph,CombatRoster roster)
+    internal static Dictionary<int,object> LogicalBindings(string clip,StateGraphData saved,StateGraph graph,CombatRoster roster,bool turnAnchor=false)
     {
-        var saved=state.Graph;var anchors=new Dictionary<int,object>();var roots=DirectCheckpoint.Roots(roster).ToArray();
-        Codec.Require(roots.Length==8+roster.Initial.Length,"authority-root-layout");
+        var anchors=new Dictionary<int,object>();var roots=DirectCheckpoint.Roots(roster).ToArray();
+        var firstCreature=turnAnchor?Array.IndexOf(roots,roster.Initial[0]):8;
+        Codec.Require(firstCreature>=8&&roots.Length==firstCreature+roster.Initial.Length,"authority-root-layout");
         for(var i=0;i<roots.Length;i++)anchors.Add(i,roots[i]);
         int Ref(int owner,string suffix)
         {
@@ -81,11 +91,11 @@ internal static class RecordedState
         for(var i=0;i<cards.Count;i++){Codec.Require(deck.Items[i].Kind=="ref","authority-deck-card-reference");Card(deck.Items[i].Ref,cards[i]);}
         for(var i=0;i<roster.Initial.Length;i++)
         {
-            var id=saved.Nodes[8+i].Fields.Single(f=>f.Name.EndsWith("/<CombatId>k__BackingField",StringComparison.Ordinal)).Value;
+            var id=saved.Nodes[firstCreature+i].Fields.Single(f=>f.Name.EndsWith("/<CombatId>k__BackingField",StringComparison.Ordinal)).Value;
             Codec.Require(id.Kind=="scalar"&&id.Text==roster.Initial[i].CombatId!.Value.ToString(CultureInfo.InvariantCulture),"authority-creature-id-anchor");
         }
         var result=graph.BindLogical(saved,anchors);
-        Runtime.Log("authority-logical-bindings",new{state.Clip,RecordedBindings=saved.Bindings,CurrentInitialBindings=graph.BindingCount,
+        Runtime.Log("authority-logical-bindings",new{Clip=clip,RecordedBindings=saved.Bindings,CurrentInitialBindings=graph.BindingCount,
             RecordedShape=saved.BindingShape,CurrentShape=graph.Shape,Anchors=anchors.Count,Bound=result.Count,
             Rule="fixed-roots-creature-ids-combat-card-ids-deck-order-then-fields-and-dictionary-keys",PrefixOperations=0});
         return result;
@@ -151,7 +161,7 @@ internal static class RecordedState
         Codec.Require(state.RecordingRuntime!=Runtime.SessionId&&
             (state.ProcessId!=Runtime.ProcessId||state.ProcessStartedUtc!=Runtime.ProcessStartedUtc),"authority-test-requires-new-recording-process");
         Codec.Require(LiveState.Turn==1&&ActionMonitor.Pending is null,"authority-unsafe-context");
-        var logical=LogicalBindings(state,bindings,roster);
+        var logical=LogicalBindings(state.Clip,state.Graph,bindings,roster);
         var ui=new DirectCheckpoint(state.Position,roster,captureData:false,projection:clip.Operations[0].After);
         var graphHash=Codec.Hash(Codec.Bytes(state.Graph));
         await ui.Restore(()=>

@@ -1,8 +1,10 @@
 using System.Text.Json;
 using System.Diagnostics;
 using Godot;
+using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Creatures;
+using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
@@ -23,7 +25,24 @@ internal static class BattleEnd
     private static long _wonAt;
     private static bool _readyLogged;
     private static Action? _restoreVictoryProgress;
-    internal static void Reset(){Room=null;_enemies=[];VictoryTask=null;_deathTasks=[];Ending=false;WonEvent=false;Projection=null;DeathProjection=null;_deathScreen=false;_wonAt=0;_readyLogged=false;_restoreVictoryProgress=null;}
+    private static Tween? _playContainerFade;
+    internal static void Reset(){Room=null;_enemies=[];VictoryTask=null;_deathTasks=[];Ending=false;WonEvent=false;Projection=null;DeathProjection=null;_deathScreen=false;_wonAt=0;_readyLogged=false;_restoreVictoryProgress=null;_playContainerFade=null;}
+    internal static void Install(Harmony harmony)=>harmony.Patch(AccessTools.DeclaredMethod(typeof(NCombatUi),"PostCombatCleanUp",[]),
+        prefix:new HarmonyMethod(typeof(BattleEnd),nameof(BeforeUiCleanup)),postfix:new HarmonyMethod(typeof(BattleEnd),nameof(AfterUiCleanup)));
+    private static bool BeforeUiCleanup(NCombatUi __instance,out HashSet<ulong>? __state)
+    {
+        __state=null;
+        if(!NativeSeek.Enabled||!WonEvent||!ReferenceEquals(NCombatRoom.Instance?.Ui,__instance))return true;
+        if(NativeSeek.Restoring)return false;
+        __state=__instance.GetTree().GetProcessedTweens().Select(t=>t.GetInstanceId()).ToHashSet();
+        return true;
+    }
+    private static void AfterUiCleanup(NCombatUi __instance,HashSet<ulong>? __state)
+    {
+        if(__state is null)return;
+        // This synchronous native method creates exactly one tween, the PlayContainer fade.
+        _playContainerFade=__instance.GetTree().GetProcessedTweens().SingleOrDefault(t=>!__state.Contains(t.GetInstanceId()));
+    }
     internal static void CaptureVictoryProgress(SaveManager manager)=>_restoreVictoryProgress??=MemorySession.CaptureVictoryProgress(manager);
     internal static void RestoreVictoryProgress()=>_restoreVictoryProgress?.Invoke();
     internal static void Lost(string terminalResources)
@@ -63,6 +82,7 @@ internal static class BattleEnd
                 Rng=new{Counter=rng.counter,State0=rng.state0,State1=rng.state1,State2=rng.state2,State3=rng.state3}};}).ToArray()},Codec.Json);
         _deathTasks=NCombatRoom.Instance?.RemovingCreatureNodes.Where(GodotObject.IsInstanceValid).Select(n=>n.DeathAnimationTask).OfType<Task>().ToArray()??[];
         Runtime.Log(PlayerLoop.Active?"playback-victory-observed":"recording-victory-observed",new{Encounter=room.Encounter.Id.ToString(),EnemyCount=_enemies.Length,RoomPreFinished=true,RewardBoundary="before-generation",DeathTasks=_deathTasks.Length});
+        CombatMusic.AtVictory(room);
     }
     internal static bool Ready
     {
@@ -83,11 +103,11 @@ internal static class BattleEnd
             return ready;
         }
     }
-    internal static async Task WaitForUiCleanup()
+    internal static void RetireUiCleanup()
     {
-        // NCombatUi.PostCombatCleanUp starts an unowned .25s PlayContainer fade after
-        // CombatWon. Let that short native tail finish before restoring its appearance.
-        // Hand/energy exit tweens are separately retired by the HUD restoration.
-        while(WonEvent&&Stopwatch.GetElapsedTime(_wonAt).TotalSeconds<.3)await Runtime.NextFrame();
+        var fade=_playContainerFade;_playContainerFade=null;
+        var retired=fade is not null&&GodotObject.IsInstanceValid(fade)&&fade.IsValid()&&fade.IsRunning();
+        if(retired)fade!.Kill(); // The restored checkpoint sets PlayContainer.Modulate.
+        Runtime.Log("native-victory-ui-cleanup-retired",new{Captured=fade is not null,ActiveFadeRetired=retired});
     }
 }

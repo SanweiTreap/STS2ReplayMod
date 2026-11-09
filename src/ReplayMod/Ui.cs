@@ -10,12 +10,16 @@ internal static class Ui
     private static Label? _menuStatus,_playStatus,_recordStatus,_choiceStatus;
     private static CanvasLayer? _playLayer,_recordLayer;
     private static Control? _inputBlock;
+    private static Control[]? _pauseAperture;
+    private static PanelContainer? _playPanel;
     private static ColorRect? _seekCover;
     private static Button? _play,_step,_back,_stop,_seal,_inject;
     private static OptionButton? _seekPoints;
     private static Button? _seekGo;
     private static Button? _auto;
     private static Button? _fine;
+    private static bool _deskPetEnabled;
+    private static ReplayDeskPet? _deskPet;
     private static bool Valid(GodotObject? node)=>node is not null&&GodotObject.IsInstanceValid(node);
     private static Label Label(string text)=>new(){Text=text,AutowrapMode=TextServer.AutowrapMode.WordSmart,CustomMinimumSize=new Vector2(350,0)};
     private static Button Button(BoxContainer box,string text,Action clicked)
@@ -26,10 +30,13 @@ internal static class Ui
     {
         var panel=new PanelContainer{Name="ReplayModEntry",AnchorLeft=.79f,AnchorRight=.96f,AnchorTop=.82f,AnchorBottom=.89f};
         var button=new Button{Name="ReplayModWatchButton",Text="回放"};button.Pressed+=()=>ReplayLibraryUi.Open(menu);panel.AddChild(button);menu.AddChild(panel);
+        menu.SubmenuStack.StackModified+=()=>panel.Visible=!menu.SubmenuStack.SubmenusOpen;
     }
     internal static void BuildDevelopment(BoxContainer box)
     {
         _menuStatus=Label(Runtime.Status);box.AddChild(_menuStatus);
+        var deskPet=new CheckBox{Text="UI-001 小鸡煲回放控件",ButtonPressed=_deskPetEnabled};
+        deskPet.Toggled+=value=>_deskPetEnabled=value;box.AddChild(deskPet);
         string? id=null;Clip? clip=null;
         try{id=Runtime.Store.LatestId();if(id is not null)clip=Runtime.ReadClip(id);}catch(Exception){/* No compatible recent authority sample. */}
         var neow=new CheckBox{Text="RUN-003 涅奥新叶选牌准备（仅下一新局）",ButtonPressed=RunOpening.NewLeafArmed};
@@ -38,6 +45,8 @@ internal static class Ui
         box.AddChild(neow);
         var combatStop=new CheckBox{Text="RUN-003：下次整局首战入场自动Stop（仅一次）",ButtonPressed=RunOpening.CombatStopTestArmed};
         combatStop.Toggled+=value=>RunOpening.CombatStopTestArmed=value;box.AddChild(combatStop);
+        var mapStop=new CheckBox{Text="RUN-005：下次进战的地图移动途中自动 Stop（仅一次）",ButtonPressed=RunPlayback.MapStopTestArmed};
+        mapStop.Toggled+=value=>RunPlayback.MapStopTestArmed=value;box.AddChild(mapStop);
         var actStop=new CheckBox{Text="RUN-004：下次换幕加载中自动Stop（仅一次）",ButtonPressed=RunActs.StopTestArmed};
         actStop.Toggled+=value=>RunActs.StopTestArmed=value;box.AddChild(actStop);
         var terminalStop=new CheckBox{Text="RUN-005：下次终局演出中自动Stop（仅一次）",ButtonPressed=RunEndings.StopTestArmed};
@@ -81,6 +90,28 @@ internal static class Ui
             Runtime.Status=value?"下一铁甲 A0：最左首普通→相连最左问号，付金币，领一瓶药后跳过另一瓶":"已取消问号药水领奖短测";
         };
         box.AddChild(eventRewardsTest);
+        var neowPathTest=new OptionButton();
+        neowPathTest.AddItem("RUN-005 涅奥／先古奖励短测 · 关闭");
+        (string Key,string Name)[] neowPaths=[("KALEIDOSCOPE","万花筒"),("HEFTY_TABLET","沉重石板"),("LARGE_CAPSULE","巨大扭蛋"),
+            ("SCROLL_BOXES","选卡包 → 问号木雕附魔"),("SEA_GLASS","奥罗巴斯 · 海玻璃多选"),("ELECTRIC_SHRYMP","奥罗巴斯 · 先古附魔")];
+        foreach(var path in neowPaths)neowPathTest.AddItem("RUN-005 短测 · "+path.Name);
+        neowPathTest.Select(Array.FindIndex(neowPaths,p=>p.Key==RunOpening.ChoicePathTest)+1);
+        neowPathTest.ItemSelected+=index=>
+        {
+            if(index==0){RunOpening.ChoicePathTest=null;return;}
+            neow.ButtonPressed=false;fullRun.ButtonPressed=false;rewardsTest.ButtonPressed=false;eventRewardsTest.ButtonPressed=false;
+            TestEncounter.Armed=TestPreparation.None;RecordedState.Armed=false;RunTailPreparation.Armed=false;RunBossPreparation.Armed=false;
+            var path=neowPaths[index-1];RunOpening.ChoicePathTest=path.Key;
+            Runtime.Status=path.Key switch
+            {
+                "SCROLL_BOXES"=>"下一铁甲 A0：涅奥选卡包 → 最左首战 → 相连最左问号木雕，选择蛇并确认附魔",
+                "SEA_GLASS" or "ELECTRIC_SHRYMP"=>$"下一铁甲 A0：涅奥第一项 → 第一幕 Boss → 第二幕{path.Name}",
+                _=>$"下一铁甲 A0：涅奥第一项为{path.Name}；完成选择后打赢首战，停在战后奖励页"
+            };
+        };
+        foreach(var other in new[]{neow,fullRun,rewardsTest,eventRewardsTest})
+            other.Toggled+=value=>{if(value){neowPathTest.Select(0);RunOpening.ChoicePathTest=null;}};
+        box.AddChild(neowPathTest);
         var death=new CheckBox{Text="RUN-005 死亡录制短测（下一铁甲A0新局，首普通1HP）",ButtonPressed=TestEncounter.Armed==TestPreparation.DeathRecording};
         death.Toggled+=value=>{TestEncounter.Armed=value?TestPreparation.DeathRecording:TestPreparation.None;
             if(value){RecordedState.Armed=false;RunOpening.NewLeafArmed=false;}
@@ -107,6 +138,19 @@ internal static class Ui
         rats.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();TestEncounter.Armed=TestEncounter.Armed==TestPreparation.EnemySummon?TestPreparation.None:TestPreparation.EnemySummon;
             RecordedState.Armed=false;RatsText();Runtime.Status=TestEncounter.Armed==TestPreparation.EnemySummon?
                 "下一新铁甲A0：暗港首战三鼠；升级原三防御，增加两张全身撞击+，五牌先天保留。先防御等召援，再击杀新怪":"已取消三鼠准备";});RatsText();
+        var escape=new CheckBox{Text="COMBAT-PRESENTATION-001 胖地精逃跑短测（下一铁甲A0新局）",
+            ButtonPressed=TestEncounter.Armed==TestPreparation.EnemyEscape};
+        escape.Toggled+=value=>
+        {
+            if(value)
+            {
+                TestEncounter.Armed=TestPreparation.EnemyEscape;RecordedState.Armed=false;RunOpening.NewLeafArmed=false;
+                RunOpening.FullRunArmed=false;RunOpening.RewardsTestArmed=false;RunOpening.ChoicePathTest=null;
+                Runtime.Status="下一铁甲A0新局：首战地精佣兵，等它偷金币，再击杀并让胖地精逃跑";
+            }
+            else if(TestEncounter.Armed==TestPreparation.EnemyEscape)TestEncounter.Armed=TestPreparation.None;
+        };
+        box.AddChild(escape);
         var route=Button(box,"RUN-001 短路线准备：关闭",()=>{});
         route.Pressed+=()=>Runtime.Guard(()=>{Runtime.CheckEnvironment();
             TestEncounter.Armed=TestEncounter.Armed==TestPreparation.RunRoute?TestPreparation.None:TestPreparation.RunRoute;
@@ -212,7 +256,12 @@ internal static class Ui
         ClosePlayback();_playLayer=new CanvasLayer{Layer=100};
         var block=new Control{Name="ReplayModWatchInputBlock"};_inputBlock=block;block.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         block.MouseFilter=Control.MouseFilterEnum.Stop;_playLayer.AddChild(block);
-        var panel=new PanelContainer{AnchorLeft=.02f,AnchorRight=.98f,AnchorTop=.01f,AnchorBottom=.10f};
+        if(PlayerLoop.FromHistory||RunPlayback.Active)
+        {
+            _pauseAperture=Enumerable.Range(0,7).Select(_=>new Control()).ToArray();
+            foreach(var edge in _pauseAperture){edge.MouseFilter=Control.MouseFilterEnum.Stop;edge.Hide();block.AddChild(edge);}
+        }
+        var panel=_playPanel=new PanelContainer{AnchorLeft=.02f,AnchorRight=.98f,AnchorTop=.01f,AnchorBottom=.10f};
         var box=new VBoxContainer();panel.AddChild(box);_playStatus=Label(Runtime.Status);box.AddChild(_playStatus);
         _choiceStatus=Label("");box.AddChild(_choiceStatus);
         var controls=new HBoxContainer();box.AddChild(controls);
@@ -239,18 +288,65 @@ internal static class Ui
         _back.ButtonDown+=()=>Runtime.Log("playback-button-press",new{Control="back",Phase="down",Enabled=!_back.Disabled});
         _back.ButtonUp+=()=>Runtime.Log("playback-button-press",new{Control="back",Phase="up",Enabled=!_back.Disabled});
         _inject=Button(controls,"STATE扰动：关闭",()=>{if(PlayerLoop.CanInject)PlayerLoop.InjectOnContinue=!PlayerLoop.InjectOnContinue;});
-        _stop=Button(controls,"Stop · 返回主菜单",()=>PlayerLoop.Control("stop"));
+        _stop=PlayerLoop.FromHistory?Button(controls,"菜单",()=>Runtime.Guard(NativeHistoryUi.OpenPause)):
+            Button(controls,"Stop · 返回主菜单",()=>PlayerLoop.Control("stop"));
         if(_play is not null)_play.Disabled=true;_step.Disabled=true;_back.Disabled=true;
         block.AddChild(panel);Runtime.Game.AddChild(_playLayer);
+        if(native&&(_deskPetEnabled||PlayerLoop.FromHistory))
+        {
+            try{_deskPet=new ReplayDeskPet(_playLayer);}
+            catch(Exception ex){Runtime.Log("desk-pet-initialization-failed",new{Reason=ex.GetBaseException().Message});}
+        }
     }
-    internal static void ClosePlayback(){if(Valid(_playLayer))_playLayer!.QueueFree();_playLayer=null;_inputBlock=null;_playStatus=null;_choiceStatus=null;_play=null;_step=null;_back=null;_stop=null;_inject=null;_seekPoints=null;_seekGo=null;_seekCover=null;_auto=null;_fine=null;}
+    internal static void ClosePlayback(){if(Valid(_playLayer))_playLayer!.QueueFree();_playLayer=null;_inputBlock=null;_pauseAperture=null;_playPanel=null;_playStatus=null;_choiceStatus=null;_play=null;_step=null;_back=null;_stop=null;_inject=null;_seekPoints=null;_seekGo=null;_seekCover=null;_auto=null;_fine=null;_deskPet=null;}
+    private static void RefreshHistoryMenu()
+    {
+        if(_pauseAperture is not {} edges)return;
+        _playLayer!.Visible=!PlayerLoop.HistoryMenuOpen;
+        var top=NRun.Instance?.GlobalUi.TopBar;
+        var pause=PlayerLoop.FromHistory?top?.Pause:null;
+        if(PlayerLoop.FromHistory)_stop!.Disabled|=pause is null||PlayerLoop.TearingDown;
+        var size=_inputBlock!.Size;
+        var bounds=new Rect2(Vector2.Zero,size);
+        var map=RunPlayback.MapBrowsingAvailable?top?.Map:null;
+        var mapHole=map is not null&&map.IsVisibleInTree()?bounds.Intersection(map.GetGlobalRect()):default;
+        var pauseHole=pause is not null&&pause.IsVisibleInTree()?bounds.Intersection(pause.GetGlobalRect()):default;
+        var left=mapHole.HasArea()?mapHole:pauseHole;
+        _playPanel!.AnchorRight=left.HasArea()?Math.Clamp((left.Position.X-8)/size.X,.5f,.98f):.98f;
+        if(ReplayMap.IsOpen)_inputBlock.MouseFilter=Control.MouseFilterEnum.Ignore;
+        if(_inputBlock.MouseFilter!=Control.MouseFilterEnum.Stop||!left.HasArea())
+        {foreach(var edge in edges)edge.Hide();return;}
+        _inputBlock.MouseFilter=Control.MouseFilterEnum.Ignore;
+        var right=mapHole.HasArea()&&pauseHole.HasArea()?pauseHole:default;
+        Set(0,0,0,left.Position.X,size.Y);
+        Set(1,left.Position.X,0,left.Size.X,left.Position.Y);
+        Set(2,left.Position.X,left.End.Y,left.Size.X,size.Y-left.End.Y);
+        Set(3,left.End.X,0,(right.HasArea()?right.Position.X:size.X)-left.End.X,size.Y);
+        Set(4,right.Position.X,0,right.HasArea()?right.Size.X:0,right.Position.Y);
+        Set(5,right.Position.X,right.End.Y,right.HasArea()?right.Size.X:0,size.Y-right.End.Y);
+        Set(6,right.End.X,0,right.HasArea()?size.X-right.End.X:0,size.Y);
+        void Set(int index,float x,float y,float w,float h)
+        {
+            var edge=edges[index];edge.Position=new(x,y);edge.Size=new(w,h);edge.Visible=w>0&&h>0;
+        }
+    }
+    private static void RefreshDeskPet(bool combat,bool temporary)
+    {
+        if(_deskPet is null)return;
+        _fine!.Hide();_step!.Hide();_back!.Hide();
+        _deskPet.Visible=!ReplayMap.Observing;
+        _deskPet.Sync(combat,temporary,!_fine.Disabled,!_step.Disabled,!_back.Disabled);
+    }
     internal static void Refresh()
     {
         if(Valid(_menuStatus))_menuStatus!.Text=Runtime.Status;
         if(Valid(_playStatus))
         {
-            _playStatus!.Text=Runtime.Status+RunPlayback.Display+(EndingPlayback.Active?EndingPlayback.Display:NativeSeek.Enabled?NativeSeek.Pending:DecisionRoute.Enabled?DecisionRoute.PendingDisplay:"");
-            _choiceStatus!.Text=ChoiceTape.VisibleDisplay;_choiceStatus.Visible=_choiceStatus.Text.Length>0;
+            var seekStatus=RunPlayback.RoomJumping||PlayerLoop.RoomJumpInTransition?"正在定位录像房间…":NativeSeek.TurnJumpStatus;
+            _playStatus!.Text=seekStatus??(Runtime.Status+RunPlayback.Display+
+                (EndingPlayback.Active?EndingPlayback.Display:NativeSeek.Enabled?NativeSeek.Pending:DecisionRoute.Enabled?DecisionRoute.PendingDisplay:""));
+            _choiceStatus!.Text=seekStatus is null?ChoiceTape.VisibleDisplay:"";_choiceStatus.Visible=_choiceStatus.Text.Length>0;
+            if(_seekPoints?.GetParent() is Control navigation)navigation.Visible=seekStatus is null;
             var cursor=PlayerLoop.Cursor;
             var choosing=ChoiceTape.Controllable;
             _inputBlock!.MouseFilter=(DecisionRoute.Enabled?DecisionRoute.Ready:choosing)?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
@@ -262,18 +358,21 @@ internal static class Ui
                 _step!.Disabled=!EndingPlayback.CanStep;_fine!.Disabled=!EndingPlayback.CanStep;
                 _step.Text=RunEndings.SummaryComplete?">> 已到终点":">> 继续到结算";
                 _auto!.Disabled=!EndingPlayback.CanAuto;_auto.Text=EndingPlayback.Auto?"Auto：开启":"Auto：关闭";
-                _back!.Disabled=!EndingPlayback.CanBack;_back.Text="Back · 结局信息";
+                _back!.Disabled=true;_back.Hide();
                 _stop!.Disabled=PlayerLoop.TearingDown||RunPlayback.Stopping||NativeSeek.Stopping;
                 _seekCover!.Visible=false;_inject.Visible=false;
-                if(_seekPoints is not null)_seekPoints.Disabled=true;if(_seekGo is not null)_seekGo.Disabled=true;return;
+                if(_seekPoints is not null)_seekPoints.Disabled=true;if(_seekGo is not null)_seekGo.Disabled=true;
+                RefreshDeskPet(false,temporary:false);RefreshHistoryMenu();return;
             }
             if(RunPlayback.NonCombat)
             {
                 _inputBlock.MouseFilter=RunPlayback.Finished&&RunEndings.GameOverActive?Control.MouseFilterEnum.Ignore:Control.MouseFilterEnum.Stop;
-                _step!.Disabled=RunPlayback.Stopping||RunPlayback.Finished;_fine!.Disabled=RunPlayback.Stopping||RunPlayback.Finished;
-                _step.Text=RunPlayback.Finished?">> 已到终点":">> 完整操作";_auto!.Disabled=RunPlayback.Stopping||RunPlayback.Finished;_auto.Text=RunPlayback.Auto?"Auto：开启":"Auto：关闭";
-                _back!.Disabled=true;_back.Text="Back · 战外暂未开放";_stop!.Disabled=RunPlayback.Stopping;_seekCover!.Visible=false;_inject.Visible=false;
-                if(_seekPoints is not null)_seekPoints.Disabled=true;if(_seekGo is not null)_seekGo.Disabled=true;return;
+                _step!.Disabled=true;_fine!.Disabled=RunPlayback.Stopping||RunPlayback.Finished;
+                _step.Text=RunPlayback.Finished?">> 已到终点":">> 完整操作";_auto!.Disabled=RunPlayback.Stopping||RunPlayback.Finished;_auto.Text=seekStatus is null&&RunPlayback.Auto?"Auto：开启":"Auto：关闭";
+                _back!.Disabled=true;_back.Text="Back · 战外暂未开放";_stop!.Disabled=RunPlayback.Stopping;_seekCover!.Visible=RunPlayback.RoomCovered;_inject.Visible=false;
+                if(RunPlayback.RoomJumping||ReplayMap.Observing){_fine.Disabled=true;_step.Disabled=true;_auto.Disabled=true;}
+                if(_seekPoints is not null)_seekPoints.Disabled=true;if(_seekGo is not null)_seekGo.Disabled=true;
+                RefreshDeskPet(false,PlayerLoop.Loading);RefreshHistoryMenu();return;
             }
             if(NativeSeek.Enabled)
             {
@@ -281,11 +380,16 @@ internal static class Ui
                 // Compute the final state once. Disabling then enabling a Godot
                 // button each frame clears its held press before release.
                 var continueRoute=RunPlayback.Active&&NativeSeek.Finished&&RunPlayback.HasFollowing&&!NativeSeek.Stopping&&!NativeSeek.Restoring;
-                _step!.Disabled=!(continueRoute||NativeSeek.CanStep);_step.Text=continueRoute?">> 继续路线":NativeSeek.Opening?">> 完成开场":">> 完整操作";
+                _step!.Disabled=!NativeSeek.CanStep;_step.Text=NativeSeek.Opening?">> 完成开场":">> 完整操作";
                 _fine!.Disabled=!(continueRoute||NativeSeek.CanFine);
-                _auto!.Disabled=!continueRoute&&(PlayerLoop.Loading&&!NativeSeek.Opening||NativeSeek.Finished||NativeSeek.Stopping||NativeSeek.Restoring);_auto.Text=NativeSeek.Auto?"Auto：开启":"Auto：关闭";
-                _seekCover!.Visible=NativeSeek.Covered;
+                _auto!.Disabled=!continueRoute&&(PlayerLoop.Loading&&!NativeSeek.Opening||NativeSeek.Finished||NativeSeek.Stopping||NativeSeek.Restoring);_auto.Text=seekStatus is null&&NativeSeek.Auto?"Auto：开启":"Auto：关闭";
+                _seekCover!.Visible=NativeSeek.Covered||RunPlayback.RoomCovered;
                 _back!.Disabled=!NativeSeek.CanBack;_back.Text="Back · 撤回整项";
+                if(NativeSeek.JumpingTurn||ReplayMap.Observing||RunPlayback.RoomJumping&&!(NativeSeek.Opening&&NativeSeek.Ready&&!RunPlayback.RoomCovered))
+                {
+                    _inputBlock.MouseFilter=Control.MouseFilterEnum.Stop;
+                    _step.Disabled=true;_fine.Disabled=true;_auto.Disabled=true;_back.Disabled=true;
+                }
                 _stop!.Disabled=NativeSeek.Stopping||PlayerLoop.TearingDown;
                 _inject.Visible=false;
                 if(_seekPoints is not null)
@@ -297,9 +401,11 @@ internal static class Ui
                         foreach(var point in points)_seekPoints.AddItem(point.Value,point.Key+1);
                         var item=Array.FindIndex(points,p=>p.Key+1==selected);if(points.Length>0)_seekPoints.Select(Math.Max(0,item));
                     }
-                    _seekPoints.Disabled=NativeSeek.Restoring||NativeSeek.Stopping||NativeSeek.DeathTransition;
-                    _seekGo!.Disabled=points.Length==0||NativeSeek.Restoring||NativeSeek.Stopping||NativeSeek.DeathTransition;
+                    _seekPoints.Disabled=NativeSeek.Restoring||NativeSeek.Stopping||NativeSeek.DeathTransition||NativeSeek.JumpingTurn||ReplayMap.Observing||RunPlayback.RoomJumping;
+                    _seekGo!.Disabled=points.Length==0||_seekPoints.Disabled;
                 }
+                RefreshDeskPet(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom.Instance is not null,
+                    PlayerLoop.Loading||NativeSeek.InFlight||NativeSeek.ForwardWorkPending||NativeSeek.RetiringPresentation);
             }
             else if(DecisionRoute.Enabled)
             {
@@ -311,17 +417,25 @@ internal static class Ui
                 _back!.Disabled=!DecisionRoute.CanBack;_back.Text="Back · 上一节点";
                 _stop!.Disabled=PlayerLoop.TearingDown||cursor?.StopRequested!=false;
             }
-            else
+            else if(_play is {} legacyPlay)
             {
                 var unavailable=PlayerLoop.Loading&&!choosing||PlayerLoop.TearingDown;
                 _step!.Disabled=unavailable||cursor is null||cursor.Busy&&!choosing||cursor.Finished||cursor.StopRequested;
                 _step.Text=choosing?"Step · 下一选择动作":"Step · 下一操作";
-                _play!.Disabled=unavailable||cursor is null||cursor.Rebuilding||cursor.Finished||cursor.StopRequested;
+                legacyPlay.Disabled=unavailable||cursor is null||cursor.Rebuilding||cursor.Finished||cursor.StopRequested;
                 var backReason=PlayerLoop.BackDisabledReason;
                 _back!.Disabled=unavailable||cursor?.CanRewind!=true||backReason is not null;
                 _back.Text=backReason is null?"后退一步（暂停时）":"后退不可用："+backReason;
                 _stop!.Disabled=PlayerLoop.TearingDown||cursor is null||cursor.StopRequested;
             }
+            else
+            {
+                // A room jump can retire its native driver before the next one exists.
+                if(_seekCover is not null)_seekCover.Visible=RunPlayback.RoomCovered;
+                _step!.Disabled=true;_fine!.Disabled=true;_auto!.Disabled=true;_back!.Disabled=true;
+                _stop!.Disabled=PlayerLoop.TearingDown||cursor?.StopRequested!=false;
+            }
+            RefreshHistoryMenu();
         }
         var showRecord=!PlayerLoop.Active&&Runtime.Game.RootSceneContainer.CurrentScene is NRun&&Recorder.Attempted;
         if(showRecord&&!Valid(_recordLayer))

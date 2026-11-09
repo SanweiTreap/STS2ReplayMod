@@ -201,10 +201,10 @@ internal static class DecisionRoute
         }
         finally
         {
-            NativeDisplayTrace.Clear();
             try{await NativeDisplayTrace.RetireSourceVisuals();}
             finally
             {
+                NativeDisplayTrace.Clear();
                 if(_gate is {} gate){PlayerLoop.ChoiceAbort=true;gate.Decision.TrySetCanceled();}
                 Runtime.Log("route-stopped",new{Node=_cursor.Position,EngineHost=PlayerLoop.Cursor?.Position,PendingNativeChoiceCancelled=PlayerLoop.ChoiceAbort,NoDecisionSubmittedForStop=true});
             }

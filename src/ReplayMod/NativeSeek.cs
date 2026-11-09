@@ -7,7 +7,12 @@ using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Encounters;
+using MegaCrit.Sts2.Core.Nodes.Audio;
+using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
+using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Combat;
+using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
 using MegaCrit.Sts2.Core.Runs;
 
 namespace ReplayMod;
@@ -17,15 +22,26 @@ namespace ReplayMod;
 internal static class NativeSeek
 {
     private sealed record Navigation(int Host,PlaybackIntent Intent,bool Back);
+    private sealed record TurnJump(PlayerTurnPoint Target,int From,long Requested,bool Visited)
+    {
+        internal bool TriedAnchor;
+    }
+    private sealed record PotionArrival(int Host,NHandCardHolder Holder,long Since);
     private static readonly SortedDictionary<int,DirectCheckpoint> Points=[];
     private static readonly Dictionary<int,int> Attempts=[];
     private static readonly HashSet<int> CancelledAhead=[];
     private static Clip _clip=null!;
     private static OperationRequests _requests=null!;
     private static ChoiceScope? _choice;
+    private static long _choiceReadyAt;
+    private const double PileChoicePreviewSeconds=.4;
     private static bool _choiceReady,_choiceMoving,_retiring,_restoring,_coverRetirement,_applyingRestore,_stopping;
     private static int _completed,_generation,_choiceOwner;
     private static Navigation? _seek;
+    private static PlayerTurnPoint[] _turnPoints=[];
+    private static TurnJump? _turnJump;
+    private static TurnAnchor? _turnAnchor;
+    private static PotionArrival? _potionArrival;
     private static string _phase="";
     private static Func<Task> _loadRoom=null!,_resetRoom=null!;
     private static Navigation? _openingNavigation;
@@ -40,6 +56,7 @@ internal static class NativeSeek
     internal static bool HasView=>_choice is {Closed:false,Cancelled:false}&&_choiceReady&&!_choiceMoving;
     internal static bool Ready=>Enabled&&!_stopping&&!_restoring&&(Opening?HasView:!InFlight||HasView);
     internal static bool InFlight=>Host>_completed;
+    internal static bool ForwardWorkPending=>Enabled&&_requests.HasForwardWork;
     private static bool Quiescent=>!ActionMonitor.Outstanding&&(LiveState.Playable||PlayerLoop.VictoryReached&&BattleEnd.Ready||DefeatReached&&BattleEnd.DeathReady);
     internal static bool CanRestore=>Enabled&&_restoring&&Quiescent;
     internal static bool Finished=>Enabled&&_completed==_clip.Operations.Length;
@@ -48,17 +65,52 @@ internal static class NativeSeek
         p.PlaybackIndex<_clip.Operations.Length&&_clip.Operations[p.PlaybackIndex].Defeat?_clip.Operations[p.PlaybackIndex]:null;
     internal static bool DeathTransition=>ExpectedDeath is not null||RunEndings.DeathActive;
     internal static bool AllMatched=>Finished;
-    internal static bool CanStep=>Enabled&&(!PlayerLoop.Loading||Opening&&Ready)&&!_stopping&&!_restoring&&_seek is null&&!Finished&&_requests.Stage<_requests.Route[^1].Stage;
+    internal static bool CanStep=>Enabled&&(!PlayerLoop.Loading||Opening&&Ready)&&!_stopping&&!_restoring&&_seek is null&&!Finished&&
+        (Opening||!RunPlayback.Active||!BattleEnd.Ending&&!CombatManager.Instance.IsEnding)&&_requests.Stage<_requests.Route[^1].Stage;
     internal static bool CanFine=>CanStep&&Ready&&_requests.CanRequestFine;
     internal static bool CanBack=>Enabled&&!DeathTransition&&(!RunPlayback.Active||!Opening&&(InFlight||_completed>0))&&!_stopping&&!_restoring&&_seek is null&&_openingNavigation is null&&
         (Opening?HasView:InFlight||_completed>=0);
     internal static bool Stopping=>_stopping;
+    internal static bool StopDrainsCombat=>Enabled&&!Opening&&!DeathTransition;
     internal static bool Restoring=>_restoring;
+    internal static bool RetiringPresentation=>Enabled&&(_restoring||_seek is not null||_openingNavigation is not null||_stopping&&StopDrainsCombat);
     internal static bool Running=>Enabled&&_requests.Running;
     internal static bool Auto=>Enabled&&_requests.Auto;
-    internal static bool Covered=>Enabled&&(_coverRetirement||_applyingRestore||_rebuildingOpening);
+    internal static bool Covered=>Enabled&&(_coverRetirement||_applyingRestore||_rebuildingOpening||_turnJump is not null);
     internal static bool SilentRebuild=>Enabled&&(_restoring||_retiring||_rebuildingOpening);
     internal static int Position=>_completed;
+    internal static bool JumpingTurn=>_turnJump is not null;
+    internal static string? TurnJumpStatus=>_turnJump is {} jump?$"正在定位玩家第{jump.Target.Turn}回合…":null;
+    internal static bool RebuildingTurn=>_turnJump is {Visited:false};
+    internal static bool CanLeaveRoom=>Enabled&&!Opening&&!InFlight&&!_stopping&&!_restoring&&_seek is null&&_turnJump is null&&
+        !DeathTransition&&!ActionMonitor.Outstanding;
+    internal static bool CanJumpTurn(bool next)=>Enabled&&!Opening&&!_stopping&&!_restoring&&_seek is null&&_turnJump is null&&
+        !InFlight&&!ActionMonitor.Outstanding&&!PlayerLoop.Loading&&!DeathTransition&&!ReplayMap.IsOpen&&!RunPlayback.RoomJumping&&
+        PlayerTurnPoints.Target(_turnPoints,_completed,next) is not null;
+    internal static void JumpTurn(bool next)
+    {
+        if(!CanJumpTurn(next))return;
+        var target=PlayerTurnPoints.Target(_turnPoints,_completed,next)!;
+        var visited=Points.ContainsKey(target.Host);
+        _turnJump=new(target,_completed,Stopwatch.GetTimestamp(),visited);
+        if(visited)QueueSeek(new(target.Host,new(true,false),false));
+        else
+        {
+            Codec.Require(target.Host>_completed,"unvisited-turn-behind-live-boundary");
+            _requests.Restore(_completed,new(true,false));
+            SeekAudio.Begin(room:false);
+        }
+        Runtime.Log("player-turn-jump-requested",new{From=_completed,target.Host,target.Turn,Visited=visited});
+        Ui.Refresh();
+    }
+    internal static void PauseAuto()
+    {
+        if(Auto)_requests.ToggleAuto();
+    }
+    internal static void AutoForWarmup()
+    {
+        if(!Auto)_requests.ToggleAuto();
+    }
     internal static string Pending
     {
         get
@@ -74,16 +126,18 @@ internal static class NativeSeek
     }
     internal static KeyValuePair<int,string>[] Index=>(Points.Count>0||Ready?new[]{new KeyValuePair<int,string>(-1,"战斗开场 · 原生重入")}:[])
         .Concat(Points.Select(p=>new KeyValuePair<int,string>(p.Key,p.Key==0?"0 · 首次可出牌":$"操作{p.Key}后 · {_requests.Route.Single(n=>n.Complete&&n.Host==p.Key).Label}"))).ToArray();
-    internal static void Start(Clip clip)
+    internal static void Start(Clip clip,bool preserveAudio=false)
     {
-        Clear();Codec.Require(NativePlaybackSupport.Reason(clip) is null,NativePlaybackSupport.Reason(clip)??"native-playback-unsupported");
-        _clip=clip;_requests=new(clip,clip.Operations.Length,opening:true);Enabled=true;Opening=true;
+        Clear(preserveAudio);Codec.Require(NativePlaybackSupport.Reason(clip) is null,NativePlaybackSupport.Reason(clip)??"native-playback-unsupported");
+        _clip=clip;_requests=new(clip,clip.Operations.Length,opening:true);_turnPoints=PlayerTurnPoints.Read(clip);Enabled=true;Opening=true;
     }
-    internal static void Clear()
+    internal static void Clear(bool preserveAudio=false)
     {
-        Enabled=false;_generation++;Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;_deathAutoSummary=false;
+        Enabled=false;_generation++;Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;_deathAutoSummary=false;_potionArrival=null;
+        _turnPoints=[];_turnJump=null;_turnAnchor=null;
         _loadRoom=null!;_resetRoom=null!;
-        NativePhaseRetirement.Clear();CreaturePresentation.ClearMusic();_applyingRestore=false;_coverRetirement=false;
+        NativePhaseRetirement.Clear(preserveAudio);NativeSpawnPresentation.Clear();NativeDisplayTrace.ClearSourceVisuals("native-seek-clear");
+        CombatMusic.Clear();CombatLoops.Clear();EnemyScenePresentation.Clear();_applyingRestore=false;_coverRetirement=false;
         Opening=false;_openingNavigation=null;_rebuildingOpening=false;_openingReentryPending=false;_openingRequestedAt=0;
         _choiceReady=false;_choiceMoving=false;_retiring=false;_restoring=false;_stopping=false;_completed=0;Host=0;_seek=null;_phase="";_choiceOwner=0;
     }
@@ -91,6 +145,7 @@ internal static class NativeSeek
     {
         var accepted=false;ForwardRequest? added=null;var fineEligibleBefore=CanFine;
         if(command=="stop"&&!_stopping){_stopping=true;_requests.Stop();_seek=null;accepted=true;}
+        else if(_turnJump is not null||ReplayMap.Observing||RunPlayback.RoomJumping&&(!Opening||command=="auto"))return;
         else if(command=="step"&&CanStep||command=="fine"&&CanFine){added=_requests.Add(command=="fine"?ForwardKind.Fine:ForwardKind.Whole);accepted=added is not null;}
         else if(command=="auto"&&(!PlayerLoop.Loading||Opening)&&!Finished&&!_stopping&&!_restoring&&_seek is null){_requests.ToggleAuto();accepted=true;}
         else if(command=="back"&&CanBack){RequestSeek(Opening?-1:InFlight?Host-1:_completed-1,preserveIntent:false);accepted=true;}
@@ -102,13 +157,21 @@ internal static class NativeSeek
     {
         if(DeathTransition){Runtime.Log("operation-death-navigation-disabled",new{Target=host,NativeGameOverOwned=true,OnlyStopExits=true});return;}
         Codec.Require(!RunPlayback.Active||host>=0,"run-cross-room-opening-navigation-disabled");
-        Codec.Require(Enabled&&!_restoring&&!_stopping&&(host==-1||Points.ContainsKey(host)),"operation-seek-only-complete-indexed-boundaries");
+        Codec.Require(Enabled&&!_restoring&&!_stopping&&_turnJump is null&&(host==-1||Points.ContainsKey(host)),"operation-seek-only-complete-indexed-boundaries");
         var priorIntent=_seek?.Intent??_requests.Intent;
         var intent=PlaybackIntent.ForNavigation(priorIntent.Auto,back:!preserveIntent);
+        QueueSeek(new(host,intent,Back:!preserveIntent));
+    }
+    private static void QueueSeek(Navigation navigation)
+    {
+        var host=navigation.Host;var intent=navigation.Intent;
         _requests.Seek(_completed);
+        _potionArrival=null;
         if(host==-1)_openingRequestedAt=Stopwatch.GetTimestamp();
-        if(Opening&&host==-1)_openingNavigation=new(host,intent,Back:!preserveIntent);else _seek=new(host,intent,Back:!preserveIntent);
-        Runtime.Log("operation-seek-request",new{From=_completed,Target=host,ChoicesAddressable=false,IntendedRunning=intent.Running,IntendedAuto=intent.Auto,Back=!preserveIntent});
+        if(Opening&&host==-1)_openingNavigation=navigation;else _seek=navigation;
+        NativeDisplayTrace.RetireVisibleRelicFlashes();
+        NativeDisplayTrace.HideRetiringCardVisuals();
+        Runtime.Log("operation-seek-request",new{From=_completed,Target=host,ChoicesAddressable=false,IntendedRunning=intent.Running,IntendedAuto=intent.Auto,navigation.Back});
     }
     private static void OpeningReentryReady(string landing)
     {
@@ -139,12 +202,12 @@ internal static class NativeSeek
             Opening=true;var load=loadRoom();
             while(!load.IsCompleted&&_openingNavigation is null)
             {
-                PlayerLoop.RequireHealthy();
-                if(_choice?.Driver is {IsFaulted:true} failed)await failed;
                 // Asset/scene loading is not cancellable. Let it reach a native wait
                 // before dismantling the room; never let a late loader enter a new run.
-                if(_stopping&&(HasView||ChoiceTape.Scope is {Ui:not null,Closed:false,Cancelled:false}))break;
-                if(_requests.Acquire()&&HasView)await AdvanceChoice();
+                if(_stopping&&(PlayerLoop.ChoiceAbort||HasView||ChoiceTape.Scope is {Ui:not null,Closed:false,Cancelled:false}))break;
+                PlayerLoop.RequireHealthy();
+                if(_choice?.Driver is {IsFaulted:true} failed)await failed;
+                if(_requests.Acquire()&&HasView&&ChoicePreviewElapsed())await AdvanceChoice();
                 await Runtime.NextFrame();
             }
             if(_stopping||_openingNavigation is not null)
@@ -169,7 +232,7 @@ internal static class NativeSeek
     }
     private static void ResetOpeningState(PlaybackIntent intent)
     {
-        Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;_choiceReady=false;_choiceMoving=false;_choiceOwner=0;
+        Points.Clear();Attempts.Clear();CancelledAhead.Clear();_choice=null;_choiceReady=false;_choiceMoving=false;_choiceOwner=0;_turnAnchor=null;
         _completed=0;Host=0;_generation++;PlayerLoop.VictoryReached=false;Opening=true;_rebuildingOpening=true;_openingReentryPending=true;_coverRetirement=false;
         _requests.Restore(-1,intent);ChoiceTape.Play(_clip);
         Runtime.Log("native-opening-reenter",new{Generation=_generation,Source="recorded-pre-room-checkpoint",Auto=intent.Auto,
@@ -184,6 +247,9 @@ internal static class NativeSeek
         {
             while(!_stopping)
             {
+                if(RunPlayback.RoomJumpPending)break;
+                if(RunPlayback.RoomJumpSelecting)RunPlayback.CheckStop();
+                if(PlayerLoop.HistoryMenuOpen||ReplayMap.Observing||RunPlayback.RoomJumpSelecting){await Runtime.NextFrame();continue;}
                 if(DefeatReached)
                 {
                     if(RunPlayback.Active)break;
@@ -191,7 +257,7 @@ internal static class NativeSeek
                     catch(OperationCanceledException) when(_stopping){}
                     break;
                 }
-                if(Finished&&RunPlayback.WantsNext)break;
+                if(Finished&&RunPlayback.WantsNext&&_seek is null)break;
                 PlayerLoop.RequireHealthy();
                 if(_choice?.Driver is {IsFaulted:true} failed)await failed;
                 if(_seek is {} target)
@@ -207,9 +273,29 @@ internal static class NativeSeek
                     continue;
                 }
                 ActionMonitor.Tick();
+                if(_turnJump is {} jump)
+                {
+                    if(!jump.Visited&&!jump.TriedAnchor)
+                    {
+                        jump.TriedAnchor=true;
+                        if(_turnAnchor?.Prepare(_completed,jump.Target.Host) is {} apply&&
+                            await Restore(new(jump.Target.Host,new(true,false),false),turnAnchor:apply))
+                        {FinishTurnJump(jump,fromFile:true);continue;}
+                    }
+                    if(_completed==jump.Target.Host&&!InFlight&&!ActionMonitor.Outstanding&&LiveState.Playable)
+                    {
+                        if(!jump.Visited)await Restore(new(jump.Target.Host,new(true,false),false),computedTurn:true);
+                        FinishTurnJump(jump);
+                    }
+                    else if(!_requests.HasForwardWork&&_completed<jump.Target.Host)
+                        _requests.Add(ForwardKind.Whole);
+                }
                 if(_requests.Acquire())
                 {
-                    if(HasView)await AdvanceChoice();
+                    if(HasView)
+                    {
+                        if(ChoicePreviewElapsed())await AdvanceChoice();
+                    }
                     else if(!InFlight&&ActionMonitor.Submitted(_completed) is null&&LiveState.Playable)Submit(_completed+1,false);
                 }
                 FillNativeQueue();WakeExecutor();await Runtime.NextFrame();
@@ -218,20 +304,44 @@ internal static class NativeSeek
         finally
         {
             _requests.Stop();
-            if(!Opening&&PlayerLoop.Error is null&&ActionMonitor.Error is null)await Drain();
+            if(!Opening&&PlayerLoop.Error is null&&ActionMonitor.Error is null)
+            {
+                var fastStop=_stopping&&StopDrainsCombat&&!Quiescent;
+                var at=Stopwatch.GetTimestamp();
+                await Drain(fastPhase:fastStop,target:-1);
+                if(_stopping)Runtime.Log("operation-stop-drained",new{Host,Completed=_completed,FastPresentationRetirement=fastStop,
+                    NativeBoundaryReached=Quiescent,Milliseconds=Stopwatch.GetElapsedTime(at).TotalMilliseconds});
+            }
             else if(!Opening&&_choice is {} choice)NativeChoice.Cancel(choice);
             Runtime.Log("operation-driver-closed",new{Completed=_completed,Host,Generation=_generation,Indexed=Points.Keys.ToArray(),
                 Outstanding=ActionMonitor.Outstanding,Running,Auto,Pending=_requests.Pending.Length,DisplayTracePlayed=false,
                 TotalOperations=_clip.Operations.Length,AllOperationsMatched=AllMatched,PlayerLoop.VictoryReached});
         }
     }
-    private static void Status()=>Runtime.Status=Opening?
+    private static void FinishTurnJump(TurnJump jump,bool fromFile=false)
+    {
+        Codec.Require(Points.ContainsKey(jump.Target.Host)&&LiveState.Turn==jump.Target.Turn&&
+            LiveState.Capture()==(jump.Target.Host==0?_clip.Initial:_clip.Operations[jump.Target.Host-1].After),
+            "player-turn-jump-boundary-mismatch");
+        _turnJump=null;
+        if(!jump.Visited)SeekAudio.End();
+        Status();Ui.Refresh();
+        Runtime.Log("player-turn-jump-arrived",new{jump.From,jump.Target.Host,jump.Target.Turn,
+            Source=fromFile?"verified-turn-file":jump.Visited?"visited-memory":"verified-native-prefix",
+            RebuiltNativeHosts=jump.Visited||fromFile?0:jump.Target.Host-jump.From,
+            StateAndRngMatched=true,Auto,PrefixPresentationRetired=!jump.Visited&&!fromFile,
+            Milliseconds=Stopwatch.GetElapsedTime(jump.Requested).TotalMilliseconds});
+        if(!jump.Visited&&!fromFile)_turnAnchor?.Capture(jump.Target.Host,Points[jump.Target.Host]);
+    }
+    private static void Status()=>Runtime.Status=_turnJump is {} jump?$"正在定位玩家第{jump.Target.Turn}回合":Opening?
         (HasView?"开场选择 · >细进／>>完成开场":"正在原生初始化开场"):
         $"原生回放 · 已完成 {_completed}/{_clip.Operations.Length} · "+
         (DefeatReached?"原生死亡；可查看结算详情，点Stop退出":PlayerLoop.VictoryReached?"战斗胜利；可Back再播或Stop":InFlight?$"正在操作{Host}":Finished?"片段结束":"完整操作边界");
     private static void Capture(int host)
     {
-        Points[host]=new(host,PlayerLoop.EnsureRoster(),route:true,extraRoots:[LiveState.Run.CurrentRoom!]);
+        var roster=PlayerLoop.EnsureRoster();
+        Points[host]=new(host,roster,route:true,extraRoots:[LiveState.Run.CurrentRoom!]);
+        if(host==0)_turnAnchor=TurnAnchor.Bind(_clip,roster);
         Runtime.Log("operation-boundary-captured",new{Host=host,ChoicePosition=ChoiceTape.Position,ChoiceSnapshot=false,Projection=Points[host].Projection});
     }
     private static void Arrive(ForwardPoint point)
@@ -250,7 +360,12 @@ internal static class NativeSeek
         if(host==_clip.Operations.Length){RunPlayback.AtBattleBoundary(Auto);_deathAutoSummary=actual.Defeat&&Auto;}
         // The terminal result is the frozen native pre-reward victory projection. Restore
         // targets remain playable boundaries; the win is reached again through native business.
-        if(!_retiring&&!_restoring){if(!actual.Victory&&!actual.Defeat)Capture(host);Arrive(_requests.Route.Single(p=>p.Complete&&p.Host==host));}
+        if(!_retiring&&!_restoring)
+        {
+            if(!actual.Victory&&!actual.Defeat)Capture(host);
+            Arrive(_requests.Route.Single(p=>p.Complete&&p.Host==host));
+            if(!RebuildingTurn&&!actual.Victory&&!actual.Defeat)_turnAnchor?.Capture(host,Points[host]);
+        }
         if(actual.Defeat)Runtime.Log("native-battle-death-verified",new{_clip.Id,Host,TotalOperations=_clip.Operations.Length,
             AllOperationsMatched=AllMatched,ActualDeathProjectionMatched=true,NativeGameOverShown=RunEndings.GameOverActive,BackEnabled=false});
         if(actual.Victory)Runtime.Log("native-battle-victory-verified",new{_clip.Id,Host,TotalOperations=_clip.Operations.Length,
@@ -273,9 +388,43 @@ internal static class NativeSeek
         Runtime.Log("operation-native-started",new{Host,NativeActionId=pending.Action.Id,Generation=_generation,Attempt=Attempts.GetValueOrDefault(host),
             Request=_requests.Active,ReenteredAfterNativeCancellation=CancelledAhead.Remove(host)});
     }
+    internal static void HandCardAdded(NHandCardHolder holder)
+    {
+        if(!Enabled||RetiringPresentation||ActionMonitor.Pending is not {Template.Kind:OperationKind.Potion,PlaybackIndex:>=0} pending||
+            holder.CardModel is not {} card)return;
+        var next=pending.PlaybackIndex+1;
+        if(next>=_clip.Operations.Length||_clip.Operations[next] is not {Kind:OperationKind.Card,CardState:{} key} op||
+            card.Id.ToString()!=op.Card||!NetCombatCardDb.Instance.TryGetCardId(card,out var index)||index!=key.CombatIndex)return;
+        _potionArrival=new(next+1,holder,Stopwatch.GetTimestamp());
+    }
+
+    private static bool PotionCardReady(int host)
+    {
+        if(_potionArrival is not {} arrival||arrival.Host!=host)return true;
+        if(RebuildingTurn)
+        {
+            // Submit still checks the actual native card, identity and legality.
+            _potionArrival=null;
+            Runtime.Log("cold-turn-potion-hand-layout-skipped",new{Host=host,NativePlayabilityChecked=true});
+            return true;
+        }
+        var holder=arrival.Holder;
+        var elapsed=Stopwatch.GetElapsedTime(arrival.Since);
+        if(GodotObject.IsInstanceValid(holder)&&!holder.IsQueuedForDeletion()&&holder.IsInsideTree())
+        {
+            // Logical arrival precedes the native hand motion. Keep this play
+            // pending until the actual card is selectable and near its slot.
+            var ready=holder.Hitbox.IsEnabled&&holder.Position.DistanceSquaredTo(holder.TargetPosition)<=18f*18f;
+            if(!ready&&elapsed.TotalSeconds<1.5)return false;
+            Runtime.Log("native-potion-card-arrival-boundary",new{Host=host,elapsed.TotalMilliseconds,LayoutReady=ready});
+        }
+        _potionArrival=null;return true;
+    }
+
     private static bool Submit(int host,bool ahead)
     {
         if(host>_clip.Operations.Length||PlayerLoop.VictoryReached||_stopping||_restoring||_retiring)return false;
+        if(!PotionCardReady(host))return false;
         var op=_clip.Operations[host-1];
         if(ahead&&(op.Kind!=OperationKind.Card||!LiveState.InputPhase||ChoiceTape.Waiting))return false;
         Creature? target;
@@ -363,10 +512,11 @@ internal static class NativeSeek
     }
     private static async Task PrepareChoiceCore(ChoiceScope scope)
     {
-        await NativeChoice.WaitReady(scope);if(scope.Cancelled||PlayerLoop.ChoiceAbort)return;
+        await NativeChoice.WaitReady(scope,()=>RetiringPresentation||RebuildingTurn&&scope.Ui is NChooseACardSelectionScreen);
+        if(scope.Cancelled||PlayerLoop.ChoiceAbort)return;
         Codec.Require(ReferenceEquals(_choice,scope),"operation-choice-generation-changed");
-        _choiceReady=true;
-        if(!_retiring&&!_restoring)Arrive(_requests.Route.Single(p=>p.Choice==scope.Frame.Sequence&&p.Prefix==0));
+        _choiceReady=true;_choiceReadyAt=Stopwatch.GetTimestamp();
+        if(!_retiring&&!RetiringPresentation)Arrive(_requests.Route.Single(p=>p.Choice==scope.Frame.Sequence&&p.Prefix==0));
         if(Opening&&scope.Frame.Boundary==0)OpeningReentryReady("native-opening-choice");
         Runtime.Log("operation-native-choice-opened",new{scope.Frame.Sequence,scope.Frame.Boundary,NativeId=scope.Id,NativeUi=scope.Ui!.GetType().Name,
             IndependentSeekPoint=false,ProxyUi=false});
@@ -381,19 +531,32 @@ internal static class NativeSeek
         }
         if(settled)scope.UiClosed.TrySetResult(true);
     }
+    private static bool ChoicePreviewElapsed()=>RebuildingTurn||RunPlayback.RebuildingRoom||_choice is not {Ui:NCombatPileCardSelectScreen,EventPosition:1}||
+        _requests.Active?.Kind!=ForwardKind.Whole||Stopwatch.GetElapsedTime(_choiceReadyAt).TotalSeconds>=PileChoicePreviewSeconds;
     private static async Task AdvanceChoice()
     {
         var scope=_choice!;_choiceMoving=true;
         try
         {
+            if(!RetiringPresentation&&scope.Ui is NCombatPileCardSelectScreen&&scope.EventPosition==1)
+                Runtime.Log("native-pile-choice-preview",new{scope.Frame.Sequence,scope.Frame.Boundary,
+                    Mode=_requests.Active?.Kind.ToString(),VisibleMilliseconds=Stopwatch.GetElapsedTime(_choiceReadyAt).TotalMilliseconds});
             var next=scope.PlaybackEvents[scope.EventPosition++];NativeChoice.Apply(scope,next);
             if(!scope.Closed&&scope.EventPosition<scope.PlaybackEvents.Length-1)
             {
                 var at=Stopwatch.GetTimestamp();
                 while(scope.Ui is NPlayerHand hand&&AccessTools.Field(typeof(NPlayerHand),"_selectedCardScaleTween").GetValue(hand) is Tween tween&&GodotObject.IsInstanceValid(tween)&&tween.IsRunning())
-                {Codec.Require(Stopwatch.GetElapsedTime(at).TotalSeconds<3,"operation-selection-motion-timeout");await Runtime.NextFrame();}
+                {
+                    if(RetiringPresentation)
+                    {
+                        tween.CustomStep(1); // The native tween only positions and scales the selected-card container.
+                        Runtime.Log("native-choice-selection-motion-retired",new{scope.Frame.Sequence,scope.Frame.Boundary});
+                        break;
+                    }
+                    Codec.Require(Stopwatch.GetElapsedTime(at).TotalSeconds<3,"operation-selection-motion-timeout");await Runtime.NextFrame();
+                }
                 NativeChoice.AssertPrefix(scope,scope.EventPosition);
-                if(!_retiring&&!_restoring)Arrive(_requests.Route.Single(p=>p.Choice==scope.Frame.Sequence&&p.Prefix==scope.EventPosition-1));
+                if(!_retiring&&!RetiringPresentation)Arrive(_requests.Route.Single(p=>p.Choice==scope.Frame.Sequence&&p.Prefix==scope.EventPosition-1));
             }
             else
             {
@@ -403,36 +566,68 @@ internal static class NativeSeek
         }
         finally{_choiceMoving=false;}
     }
-    private static async Task Drain(bool fastPhase=false)
+    private static async Task Drain(bool fastPhase=false,int target=0)
     {
-        _retiring=true;_coverRetirement=!Quiescent;_phase=fastPhase?"正在快速收束已撤销操作":"正在结束当前整项操作";Ui.Refresh();var at=Stopwatch.GetTimestamp();
+        _retiring=true;_coverRetirement=fastPhase||!Quiescent;
+        _phase=_stopping?"正在停止回放":fastPhase?"正在快速收束已撤销操作":"正在结束当前整项操作";
+        Ui.Refresh();var at=Stopwatch.GetTimestamp();
         try
         {
             RunManager.Instance.ActionQueueSet.CancelNonExecutingActionsForPlayer(LiveState.Player.NetId);
-            if(fastPhase)NativePhaseRetirement.Begin();
+            if(fastPhase)
+            {
+                var room=NCombatRoom.Instance;
+                if(room is not null)NativeCombatCamera.SettleOffsets(room,"covered-before-drain");
+                NativePhaseRetirement.Begin(target);
+                if(room is not null)
+                {
+                    CreatureHudTrace.RetireIntentBursts(room);
+                    await NativeCombatCamera.RetireForNavigation(room);
+                }
+            }
             while(!Quiescent)
             {
                 PlayerLoop.RequireHealthy();Codec.Require(Stopwatch.GetElapsedTime(at).TotalSeconds<60,"operation-retirement-timeout");
-                if(HasView)await AdvanceChoice();ActionMonitor.Tick();await Runtime.NextFrame();
+                if(HasView)await AdvanceChoice();
+                ActionMonitor.Tick();
+                if(!Quiescent)await Runtime.NextFrame();
             }
         }
         finally{if(fastPhase&&NativePhaseRetirement.Active)NativePhaseRetirement.End();_retiring=false;_phase="";Ui.Refresh();}
     }
-    private static async Task Restore(Navigation navigation)
+    private static async Task<bool> Restore(Navigation navigation,bool computedTurn=false,Func<bool>? turnAnchor=null)
     {
         var target=navigation.Host;
-        var at=Stopwatch.GetTimestamp();var point=Points[target];_restoring=true;var fromVictory=false;
+        var at=Stopwatch.GetTimestamp();var point=Points[turnAnchor is null?target:_completed];_restoring=true;var fromVictory=false;
         try
         {
-            await Drain(fastPhase:true);var drained=Stopwatch.GetTimestamp();_generation++;fromVictory=PlayerLoop.VictoryReached;
+            await Drain(fastPhase:true,target:target);var drained=Stopwatch.GetTimestamp();var sourceGeneration=_generation++;fromVictory=PlayerLoop.VictoryReached;
             _phase="正在恢复操作边界";Ui.Refresh();
             var continueTurnLoop=false;
             if(fromVictory)
             {
-                await BattleEnd.WaitForUiCleanup();continueTurnLoop=await NativeTurnContinuation.PrepareVictoryRestore();
+                BattleEnd.RetireUiCleanup();continueTurnLoop=await NativeTurnContinuation.PrepareVictoryRestore();
                 BattleEnd.RestoreVictoryProgress();
             }
-            _applyingRestore=true;Ui.Refresh();await point.Restore();
+            _applyingRestore=true;Ui.Refresh();
+            var pictureOnly=computedTurn&&point.CanSettleComputedTurn;
+            var fileApplied=false;
+            if(turnAnchor is not null)
+            {
+                fileApplied=await point.RestoreTurnAnchor(turnAnchor,sourceGeneration);
+                if(!fileApplied)target=point.Position;
+            }
+            else if(pictureOnly)
+            {
+                pictureOnly=await point.SettleComputedTurn(sourceGeneration);
+                if(!pictureOnly)await point.Restore(sourcePicture:_generation++);
+            }
+            else await point.Restore(sourcePicture:sourceGeneration);
+            if(point.Music is {} music)
+            {
+                if(computedTurn)CombatMusic.AlignComputedTurn(music);
+                else CombatMusic.Restore(music,fromVictory);
+            }
             if(fromVictory)
             {
                 RunManager.Instance.ActionQueueSynchronizer.SetCombatState(ActionSynchronizerCombatState.PlayPhase);
@@ -442,12 +637,16 @@ internal static class NativeSeek
             PlayerLoop.VictoryReached=false;ActionMonitor.RebaseNativeSeek();
             _completed=target;Host=target;_requests.Restore(target,navigation.Intent);Attempts.Clear();CancelledAhead.Clear();_choice=null;_choiceReady=false;_choiceOwner=0;
             HandPresentation.FinishHighlights(NPlayerHand.Instance!);Status();
+            NativeCombatCamera.SettleOffsets(NCombatRoom.Instance!,"before-reveal");
+            if(fileApplied){Capture(target);point=Points[target];}
             Codec.Require(LiveState.ChoiceProjection()==point.Projection,"operation-seek-result-or-rng-mismatch");
             Runtime.Log("operation-seek-arrived",new{Target=target,StateAndRngMatched=true,Running,Auto,Pending=_requests.Pending.Length,
                 IntendedRunning=navigation.Intent.Running,IntendedAuto=navigation.Intent.Auto,Back=navigation.Back,
                 FromVictory=fromVictory,NativeCombatReactivated=fromVictory,
-                ChoiceSnapshotRestored=false,RebuiltNativeHosts=0,RetirementMilliseconds=Stopwatch.GetElapsedTime(at,drained).TotalMilliseconds,
+                ChoiceSnapshotRestored=false,RebuiltNativeHosts=0,PictureOnly=pictureOnly,FileAnchorApplied=fileApplied,
+                RetirementMilliseconds=Stopwatch.GetElapsedTime(at,drained).TotalMilliseconds,
                 TotalMilliseconds=Stopwatch.GetElapsedTime(at).TotalMilliseconds});
+            return turnAnchor is null||fileApplied;
         }
         finally{_coverRetirement=false;_applyingRestore=false;_restoring=false;_phase="";Ui.Refresh();}
     }

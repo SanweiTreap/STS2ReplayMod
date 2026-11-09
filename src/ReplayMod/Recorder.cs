@@ -225,7 +225,7 @@ internal static class Recorder
     internal static void EndRun()
     {
         try{try{Interrupt();}finally{RunRecording.Exit();}}
-        finally{_enabled=false;_continueSave=null;}
+        finally{_enabled=false;_continueSave=null;RunPotionUses.Clear();}
     }
     private static void Publish(bool interrupted)
     {

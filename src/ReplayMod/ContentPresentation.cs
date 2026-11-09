@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Nodes;
@@ -11,6 +13,59 @@ namespace ReplayMod;
 
 internal static class ContentPresentation
 {
+    private sealed record RelicActivation(RelicModel Relic,int Epoch);
+    private static readonly AsyncLocal<RelicActivation?> ActivationOrigin=new();
+    private static readonly Dictionary<Type,(FieldInfo Flag,MethodInfo Setter)> Activations=[];
+    private static int _activationEpoch;
+    internal static void Install(Harmony harmony)
+    {
+        HarmonyMethod Hook(string name)=>new(typeof(ContentPresentation),name);
+        foreach(var type in typeof(RelicModel).Assembly.GetTypes().Where(type=>type.IsSubclassOf(typeof(RelicModel))))
+        {
+            const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.DeclaredOnly;
+            var activation=type.GetMethod("DoActivateVisuals",flags,null,Type.EmptyTypes,null);
+            var active=type.GetField("_isActivating",flags);
+            var setter=type.GetProperty("IsActivating",flags)?.GetSetMethod(true);
+            // Fixed native build: these tasks own a transient display flag and
+            // a flash, while the calling hook owns the actual counter/effect.
+            if(activation?.GetCustomAttribute<AsyncStateMachineAttribute>() is not {} machine||active?.FieldType!=typeof(bool)||setter is null)continue;
+            Activations.Add(type,(active,setter));
+            harmony.Patch(activation,prefix:Hook(nameof(BeginRelicActivation)),finalizer:Hook(nameof(EndRelicActivation)));
+            harmony.Patch(AccessTools.DeclaredMethod(machine.StateMachineType,"MoveNext"),transpiler:Hook(nameof(BindRelicActivationWrites)));
+        }
+    }
+    private static void BeginRelicActivation(RelicModel __instance,out (bool Entered,RelicActivation? Previous) __state)
+    {
+        __state=(true,ActivationOrigin.Value);
+        if(NativeSeek.Enabled)ActivationOrigin.Value=new(__instance,_activationEpoch);
+    }
+    private static void EndRelicActivation((bool Entered,RelicActivation? Previous) __state)
+    {if(__state.Entered)ActivationOrigin.Value=__state.Previous;}
+    private static bool AllowRelicActivationWrite(RelicModel __instance)=>ActivationOrigin.Value is not {} origin||
+        !ReferenceEquals(origin.Relic,__instance)||origin.Epoch==_activationEpoch;
+    private static void WriteRelicActivation(RelicModel relic,bool active)
+    {if(AllowRelicActivationWrite(relic))Activations[relic.GetType()].Setter.Invoke(relic,[active]);}
+    private static IEnumerable<CodeInstruction> BindRelicActivationWrites(IEnumerable<CodeInstruction> source,MethodBase __originalMethod)
+    {
+        var setter=Activations[__originalMethod.DeclaringType!.DeclaringType!].Setter;
+        var instructions=source.ToArray();
+        Codec.Require(instructions.Count(i=>i.Calls(setter))==2,"relic-activation-display-write-sites");
+        return instructions.MethodReplacer(setter,AccessTools.DeclaredMethod(typeof(ContentPresentation),nameof(WriteRelicActivation)));
+    }
+    internal static void SettleRestoredRelicActivations(IEnumerable<RelicModel> relics)
+    {
+        // A normal transition to the next room must still let its timers end.
+        _activationEpoch++;
+        var settled=new List<string>();
+        foreach(var relic in relics)
+        {
+            if(!Activations.TryGetValue(relic.GetType(),out var activation)||activation.Flag.GetValue(relic) is not true)continue;
+            // The memento restored the logical count and status. Only the
+            // old one-second display override has no task in the new picture.
+            activation.Flag.SetValue(relic,false);settled.Add(relic.Id.ToString());
+        }
+        if(settled.Count>0)Runtime.Log("native-restored-relic-counter-overrides-settled",new{NativeSeek.Generation,Relics=settled});
+    }
     private static object? Get(object value,string field)=>AccessTools.Field(value.GetType(),field).GetValue(value);
     private static void Invoke(object value,string method,params object?[] args)=>AccessTools.Method(value.GetType(),method).Invoke(value,args);
     private static IEnumerable<Node> Nodes(Node root)
@@ -37,6 +92,16 @@ internal static class ContentPresentation
             h.Potion?.Model.HasBeenRemovedFromState!=true&&h.Modulate.IsEqualApprox(Colors.White)&&
             Mathf.IsEqualApprox(((CanvasItem)Get(h,"_emptyIcon")!).Modulate.A,h.HasPotion?0:1)&&
             !h.GetChildren().OfType<NPotion>().Any(p=>!ReferenceEquals(p,h.Potion))).All(v=>v);
+    }
+    internal static bool SettleComputedPotions(IReadOnlyList<PotionModel?> expected)
+    {
+        if(CanKeepPotions(expected))return false;
+        // The native slot is already empty logically, but may still own the
+        // outgoing bottle and empty-slot fade. Retire that picture under cover.
+        RetirePotions();
+        Restore(refreshRelics:false);
+        Codec.Require(CanKeepPotions(expected),"computed-turn-potion-display-mismatch");
+        return true;
     }
     internal static void Restore(bool keptPotions=false,bool refreshRelics=true)
     {

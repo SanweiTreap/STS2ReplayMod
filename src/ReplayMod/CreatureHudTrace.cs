@@ -11,6 +11,7 @@ namespace ReplayMod;
 internal static class CreatureHudTrace
 {
     private static readonly Dictionary<NIntent,Node[]> IntentControls=[];
+    private static readonly StringName RetiredIntentBurst=new("replay_retired_intent_burst");
     internal static void ClearControls()=>IntentControls.Clear();
     internal sealed record State(Creature Creature,Vector2 Position,Vector2 Scale,Color Color,Color SelfColor,bool Visible);
     internal sealed record Glyph(Creature Creature,string Path,Texture2D? Texture,Vector2 Position,Vector2 Scale,float Rotation,Color Color,bool Centered,Vector2 Offset);
@@ -19,6 +20,27 @@ internal static class CreatureHudTrace
     internal sealed record Clock(Creature Creature,int Slot,string? Animation,float Time,float BobPhase,bool Frozen,Vector2 Position,Color Color,Color HolderColor,Color ContainerColor,bool Visible);
     internal sealed record Sample(State[] States,Glyph[] Glyphs,Text[] Texts,Clock[] Clocks);
     private static object Get(object owner,string name)=>NativeDisplayTrace.ReadField(owner,name)!;
+    internal static void SettleRestoredEnemyPowers(NCombatRoom room,IEnumerable<Creature> enemies)
+    {
+        var settled=0;
+        foreach(var creature in enemies)
+        {
+            if(room.GetCreatureNode(creature) is not {} node)continue;
+            var container=(NPowerContainer)Get(Get(node,"_stateDisplay"),"_powerContainer");
+            foreach(var power in container.GetChildren().OfType<NPower>())
+            {
+                if(Get(power,"_animInTween") is not Tween entrance||!GodotObject.IsInstanceValid(entrance)||!entrance.IsRunning())continue;
+                // Native Ready initialized the icon and its subscriptions. Only
+                // finish the visual entrance, preserving icon layout and tint.
+                entrance.Kill();
+                var icon=(Control)Get(power,"_icon");
+                icon.Position=icon.Position with{Y=0};
+                power.Modulate=power.Modulate with{A=1};
+                settled++;
+            }
+        }
+        Runtime.Log("native-restored-enemy-power-entrances-settled",new{NativeSeek.Generation,Icons=settled});
+    }
     private static Color ColorOf(CanvasItem node)
     {
         var value=node.Modulate*node.SelfModulate;
@@ -68,9 +90,49 @@ internal static class CreatureHudTrace
         return new(states.ToArray(),glyphs.ToArray(),texts.ToArray(),clocks.ToArray());
     }
     private static readonly HashSet<NIntent> Owned=[];
-    internal static void Install(Harmony harmony)=>harmony.Patch(AccessTools.DeclaredMethod(typeof(NIntent),"UpdateVisuals"),
-        prefix:new HarmonyMethod(typeof(CreatureHudTrace),nameof(AllowRefresh)));
+    internal static void Install(Harmony harmony)
+    {
+        harmony.Patch(AccessTools.DeclaredMethod(typeof(NIntent),"UpdateVisuals"),
+            prefix:new HarmonyMethod(typeof(CreatureHudTrace),nameof(AllowRefresh)));
+        harmony.Patch(AccessTools.DeclaredMethod(typeof(NCreature),nameof(NCreature.PerformIntent),[]),
+            prefix:new HarmonyMethod(typeof(CreatureHudTrace),nameof(BeforePerformIntent)));
+    }
     private static bool AllowRefresh(NIntent __instance)=>!Owned.Contains(__instance);
+    private static IEnumerable<CpuParticles2D> IntentBursts(NCreature creature)=>creature.IntentContainer.GetChildren()
+        .OfType<NIntent>().Select(intent=>(CpuParticles2D)Get(intent,"_intentParticle"));
+    private static bool RetireIntentBurst(CpuParticles2D particles)
+    {
+        particles.Emitting=false;
+        if(!particles.Visible)return false;
+        particles.Hide();
+        particles.SetMeta(RetiredIntentBurst,true);
+        return true;
+    }
+    internal static void RetireIntentBursts(NCombatRoom room)
+    {
+        var hidden=0;
+        foreach(var particles in room.CreatureNodes.SelectMany(IntentBursts))
+            if(RetireIntentBurst(particles))hidden++;
+        if(hidden>0)Runtime.Log("native-intent-bursts-retired",new{EmittersHidden=hidden,NativeSeek.Generation});
+    }
+    private static void BeforePerformIntent(NCreature __instance)
+    {
+        if(!NativeSeek.Enabled)return;
+        var retired=NativeSeek.RetiringPresentation;
+        var restarted=0;
+        foreach(var particles in IntentBursts(__instance))
+        {
+            if(retired){RetireIntentBurst(particles);continue;}
+            if(!particles.HasMeta(RetiredIntentBurst))continue;
+            // The same control may now represent a different intent. Clear its
+            // old burst before showing it again for the next native execution.
+            particles.Restart();
+            particles.RemoveMeta(RetiredIntentBurst);
+            particles.Show();
+            restarted++;
+        }
+        if(restarted>0)Runtime.Log("native-intent-bursts-rearmed",new{EmittersReused=restarted,NativeSeek.Generation});
+    }
     internal sealed class View(IEnumerable<Creature> creatures) : IDisposable
     {
         private readonly Dictionary<NIntent,bool> _processing=[];

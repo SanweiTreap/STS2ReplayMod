@@ -62,6 +62,20 @@ internal static class PresentationContracts
             Need(rejected,"invalid-choice-clock-accepted");
         }
         checks.Add("Step queues without truncating history; choice-open fires once on source clock before readiness/tail, with invalid markers rejected");
+        var firstCue=default(CombatMusicCue).Written("test_subject_progress",1);
+        var sameValueLater=firstCue.Written("test_subject_progress",2).Written("test_subject_progress",1);
+        Need(firstCue.Value==sameValueLater.Value&&firstCue!=sameValueLater,"test-subject-same-value-lost-phase-revision");
+        Need(firstCue.Written("test_subject_progress",1)!=firstCue,"test-subject-repeated-write-lost-phase-revision");
+        var beckon=default(CombatMusicCue).Written("beckon",1);
+        Need(beckon.Written("beckon",1)==beckon,"repeated-beckon-value-restarts-music");
+        checks.Add("Test Subject can restart a consumed timeline at an equal numeric phase while repeated Beckon writes stay stable");
+        var subjectSections=new[]{BossScoreSection.Subject(0,false),BossScoreSection.Subject(0,true),BossScoreSection.Subject(1,false),
+            BossScoreSection.Subject(1,true),BossScoreSection.Subject(2,false)};
+        Need(subjectSections.Select(section=>section.Cue).SequenceEqual(new[]{0,1,2,1,2})&&
+            subjectSections.All(section=>subjectSections.Count(candidate=>candidate.Contains(section.Entry))==1),
+            "subject-score-revival-lost-separate-native-sections");
+        Need(!BossScoreSection.Beast(false).Contains(BossScoreSection.Beast(true).Entry),"beast-second-section-overlaps-opening");
+        checks.Add("Both Test Subject revivals keep distinct bank sections with the same native parameter, and the beast phase has its own entry");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
         File.WriteAllBytes(output,Codec.Bytes(new{Result="DISPLAY_CLOCK_CONTRACTS_PASSED_NOT_NATIVE_RENDER_VERIFICATION",Checks=checks,NativeUiConstructed=false}));
         Console.WriteLine("DISPLAY_CLOCK_CONTRACTS_PASSED");

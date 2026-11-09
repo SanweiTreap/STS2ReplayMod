@@ -4,6 +4,8 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Merchant;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Events;
+using MegaCrit.Sts2.Core.Nodes.Events.Custom;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
@@ -18,7 +20,16 @@ internal static class RunMerchants
     private static Task<bool>? _purchase;
     private static Task? _slotTask,_opening;
     private static NMerchantRoom Room=>NMerchantRoom.Instance??throw new InvalidDataException("merchant-room-missing");
-    private static MerchantInventory Inventory=>((MerchantRoom)LiveState.Run.CurrentRoom!).GetLocalInventory();
+    private static NFakeMerchant? FakeRoom=>LiveState.Run.CurrentRoom is EventRoom {CanonicalEvent:FakeMerchant}?
+        NEventRoom.Instance?.CustomEventNode as NFakeMerchant:null;
+    private static NMerchantInventory InventoryUi=>FakeRoom?.Inventory??Room.Inventory;
+    private static bool IsMerchant=>LiveState.Run.CurrentRoom is MerchantRoom or EventRoom {CanonicalEvent:FakeMerchant};
+    private static MerchantInventory Inventory=>LiveState.Run.CurrentRoom switch
+    {
+        MerchantRoom room=>room.GetLocalInventory(),
+        EventRoom {LocalMutableEvent:FakeMerchant fake}=>fake.Inventory,
+        _=>throw new InvalidDataException("merchant-inventory-owner-missing")
+    };
     private static bool Input()=>!RunPlayback.Active||RunPlayback.Driving;
     internal static void Install(Harmony h)
     {
@@ -26,6 +37,8 @@ internal static class RunMerchants
             before is null?null:new HarmonyMethod(typeof(RunMerchants),before),after is null?null:new HarmonyMethod(typeof(RunMerchants),after));
         Patch(typeof(NMerchantRoom),"OpenInventory",nameof(OpenBefore),nameof(UiAfter));
         Patch(typeof(NMerchantRoom),"HideScreen",nameof(ProceedBefore),nameof(ProceedAfter));
+        Patch(typeof(NFakeMerchant),"OpenInventory",nameof(FakeOpenBefore),nameof(UiAfter));
+        Patch(typeof(NFakeMerchant),"HideScreen",nameof(ProceedBefore),nameof(ProceedAfter));
         Patch(typeof(NMerchantInventory),"Open",nameof(Input));
         Patch(typeof(NMerchantInventory),"Close",nameof(CloseBefore),nameof(UiAfter));
         Patch(typeof(NMerchantInventory),"DoOpenAnimation",after:nameof(Opening));
@@ -45,9 +58,13 @@ internal static class RunMerchants
     private static RunOperation? Begin(string kind,RunArgument? argument=null)=>RunPatches.Record(kind,()=>
         RunRecording.Begin(kind,argument??new(RewardKey:Offer())));
     private static bool OpenBefore(NMerchantRoom __instance,out RunOperation? __state)
-    {__state=null;if(!Input())return false;if(RunRecording.Enabled&&!__instance.Inventory.IsOpen)__state=Begin("merchant-open");return true;}
+        =>RecordOpen(__instance.Inventory,out __state);
+    private static bool FakeOpenBefore(NFakeMerchant __instance,out RunOperation? __state)
+        =>RecordOpen(__instance.Inventory,out __state);
+    private static bool RecordOpen(NMerchantInventory inventory,out RunOperation? operation)
+    {operation=null;if(!Input())return false;if(RunRecording.Enabled&&!inventory.IsOpen)operation=Begin("merchant-open");return true;}
     private static bool CloseBefore(NMerchantInventory __instance,out RunOperation? __state)
-    {__state=null;if(!Input())return false;if(RunRecording.Enabled&&__instance.IsOpen)__state=Begin("merchant-close");return true;}
+    {__state=null;if(!Input())return false;if(RunRecording.Enabled&&__instance.IsOpen&&IsMerchant&&ReferenceEquals(__instance,InventoryUi))__state=Begin("merchant-close");return true;}
     private static void UiAfter(RunOperation? __state){if(__state is not null)Runtime.Guard(()=>RunRecording.Complete(__state));}
     private static bool ProceedBefore(out RunOperation? __state)
     {__state=null;if(!Input())return false;if(RunRecording.Enabled)__state=Begin("merchant-proceed");return true;}
@@ -76,7 +93,7 @@ internal static class RunMerchants
             });
             if(!owned)__result=Task.FromResult(false);return owned;
         }
-        if(!RunRecording.Enabled||LiveState.Run.CurrentRoom is not MerchantRoom)return true;
+        if(!RunRecording.Enabled||!IsMerchant)return true;
         if(RunRecording.Pending is {Kind:"merchant-buy" or "merchant-remove"})
         {Runtime.Guard(()=>RunRecording.Unsupported("merchant-derived-purchase","嵌套自动购买尚未支持"));return true;}
         RunOperation? operation=null;Runtime.Guard(()=>
@@ -105,11 +122,12 @@ internal static class RunMerchants
         ReferenceEquals(entry.Model,relic)&&ReferenceEquals(Inventory.Player,player)&&ReferenceEquals(player,LiveState.Player);
     private static async Task Ready()
     {
-        await RunPlayback.Wait(()=>NMerchantRoom.Instance is {} room&&GodotObject.IsInstanceValid(room)&&room.IsNodeReady()&&
+        await RunPlayback.Wait(()=>FakeRoom is {} fake&&GodotObject.IsInstanceValid(fake)&&fake.IsNodeReady()||
+            NMerchantRoom.Instance is {} room&&GodotObject.IsInstanceValid(room)&&room.IsNodeReady()&&
             ReferenceEquals(room.Room,LiveState.Run.CurrentRoom),"merchant-room-not-ready");
-        await RunPlayback.Wait(()=>RunPatches.Field(Room.Inventory,"_inventoryTween") is not Tween tween||
+        await RunPlayback.Wait(()=>RunPatches.Field(InventoryUi,"_inventoryTween") is not Tween tween||
             !GodotObject.IsInstanceValid(tween)||!tween.IsRunning(),"merchant-inventory-animation-not-complete");
-        await RunPlayback.Wait(()=>!Room.Inventory.IsOpen||RunPatches.Field(Room.Inventory,"_isInputBlocked") is not true,
+        await RunPlayback.Wait(()=>!InventoryUi.IsOpen||RunPatches.Field(InventoryUi,"_isInputBlocked") is not true,
             "merchant-input-still-blocked");
     }
     internal static async Task Play(RunOperation operation)
@@ -118,24 +136,30 @@ internal static class RunMerchants
         switch(operation.Kind)
         {
             case "merchant-open":
-                Codec.Require(!Room.Inventory.IsOpen,"merchant-already-open");_opening=null;
-                RunPlayback.Native(()=>Room.OpenInventory());
+                Codec.Require(!InventoryUi.IsOpen,"merchant-already-open");_opening=null;
+                RunPlayback.Native(()=>
+                {
+                    if(FakeRoom is {} fake)AccessTools.DeclaredMethod(typeof(NFakeMerchant),"OpenInventory",[]).Invoke(fake,null);
+                    else Room.OpenInventory();
+                });
                 if(_opening is not null)await RunPlayback.Await(_opening);
-                Codec.Require(Room.Inventory.IsOpen,"merchant-open-failed");break;
+                Codec.Require(InventoryUi.IsOpen,"merchant-open-failed");break;
             case "merchant-close":
-                Codec.Require(Room.Inventory.IsOpen,"merchant-close-while-closed");
-                RunPlayback.Native(()=>AccessTools.Method(typeof(NMerchantInventory),"Close").Invoke(Room.Inventory,[]));
-                await Ready();Codec.Require(!Room.Inventory.IsOpen,"merchant-close-failed");break;
+                Codec.Require(InventoryUi.IsOpen,"merchant-close-while-closed");
+                RunPlayback.Native(()=>AccessTools.Method(typeof(NMerchantInventory),"Close").Invoke(InventoryUi,[]));
+                await Ready();Codec.Require(!InventoryUi.IsOpen,"merchant-close-failed");break;
             case "merchant-proceed":
-                Codec.Require(!Room.Inventory.IsOpen&&Room.ProceedButton.IsEnabled,"merchant-proceed-while-open");
-                RunPlayback.Native(()=>AccessTools.Method(typeof(NMerchantRoom),"HideScreen").Invoke(Room,[null]));
+                var owner=(Node?)FakeRoom??Room;
+                var proceed=owner is NFakeMerchant?RunPatches.Field(owner,"_proceedButton") as MegaCrit.Sts2.Core.Nodes.CommonUi.NProceedButton:Room.ProceedButton;
+                Codec.Require(!InventoryUi.IsOpen&&proceed is {IsEnabled:true},"merchant-proceed-while-open");
+                RunPlayback.Native(()=>AccessTools.DeclaredMethod(owner.GetType(),"HideScreen").Invoke(owner,[null]));
                 Codec.Require(NMapScreen.Instance is {IsOpen:true},"merchant-proceed-did-not-open-map");break;
             case "merchant-buy":case "merchant-remove":
-                Codec.Require(Room.Inventory.IsOpen,"merchant-purchase-while-closed");
+                Codec.Require(InventoryUi.IsOpen,"merchant-purchase-while-closed");
                 var entries=Inventory.AllEntries.ToArray();var index=operation.Argument.RewardIndex??-1;
                 Codec.Require(index>=0&&index<entries.Length,"merchant-entry-index");
                 var entry=entries[index];Codec.Require((entry is MerchantCardRemovalEntry)==(operation.Kind=="merchant-remove"),"merchant-entry-kind-mismatch");
-                var slot=Room.Inventory.GetAllSlots().Single(s=>ReferenceEquals(s.Entry,entry));
+                var slot=InventoryUi.GetAllSlots().Single(s=>ReferenceEquals(s.Entry,entry));
                 _entry=entry;_purchaseStarted=false;_purchase=null;_slotTask=null;
                 try
                 {

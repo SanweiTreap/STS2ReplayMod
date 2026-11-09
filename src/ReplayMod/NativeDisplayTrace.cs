@@ -4,6 +4,7 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Audio.Debug;
 using MegaCrit.Sts2.Core.Animation;
+using MegaCrit.Sts2.Core.Bindings.MegaSpine;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
@@ -18,8 +19,10 @@ using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 using MegaCrit.Sts2.Core.Nodes.Audio;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
+using MegaCrit.Sts2.Core.Commands.Builders;
 using MegaCrit.Sts2.Core.Nodes.Vfx.Cards;
 using MegaCrit.Sts2.Core.Nodes.Vfx.Ui;
+using MegaCrit.Sts2.Core.Nodes.Vfx.Utilities;
 using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Helpers;
 
@@ -94,8 +97,26 @@ internal sealed class NativeDisplayTrace
     private double? _choiceEntryAt,_choiceReadyAt;
     private string? _copyProjection;
     private static NativeDisplayTrace? _capture;
-    private static readonly HashSet<Node> SourceVisuals=[];
-    private static readonly HashSet<Node> ContinuedSmiths=[];
+    private enum SourceKind { Transient, AttackCallback, NativeOwnedAttack, ReusableBeam, SculptorParticles, ContinuedSmith, CardFlight }
+    private static readonly StringName SculptorParticlesHidden=new("replay_sculptor_particles_hidden");
+    private sealed record PreviewCapture(NCombatRoom Room,HashSet<ulong> Tweens,HashSet<NCard> Cards);
+    private static CanvasItem? _flyTrailParent;
+    private const string RelicFlashScene="res://scenes/vfx/relic_inventory_flash_vfx.tscn";
+    private sealed class SourceScope(NCombatRoom room)
+    {
+        internal NCombatRoom Room {get;}=room;
+        internal ulong RoomId {get;}=room.GetInstanceId();
+        internal Dictionary<Node,SourceKind> Nodes {get;}=[];
+        internal Dictionary<Tween,NCard> Previews {get;}=[];
+        internal void Add(Node node,SourceKind kind)
+        {
+            // Native completion must retain ownership when an outer factory also observes this root.
+            if(Nodes.TryGetValue(node,out var existing)&&existing==SourceKind.NativeOwnedAttack)return;
+            // The typed factory knows more about disposal than an attack callback.
+            if(kind is SourceKind.Transient or SourceKind.ReusableBeam or SourceKind.NativeOwnedAttack)Nodes[node]=kind;else Nodes.TryAdd(node,kind);
+        }
+    }
+    private static SourceScope? _sources;
     private static readonly HashSet<Node> OwnedTails=[];
     private static readonly Dictionary<Creature,NCreature> DeathDisplays=[];
     internal static bool OwnsDeathDisplay(Creature creature)=>DeathDisplays.ContainsKey(creature);
@@ -187,7 +208,39 @@ internal sealed class NativeDisplayTrace
         Codec.Require(before==LiveState.ChoiceProjection(),"choice-entry-visual-wait-changed-business-or-rng");
         Runtime.Log("native-choice-entry-presentation",new{Source=source?.Id.ToString(),Frames=frames,Milliseconds=Stopwatch.GetElapsedTime(started).TotalMilliseconds,NativeBusinessNotAdvanced=true});
     }
-    internal static void Clear(){_capture=null;TailRecorders.Clear();_requested=null;_pointerDown=null;Settling=false;RetireOwnedTails();HealthDisplayTail.Clear();Paths.Clear();KnownCards.Clear();SourceExhaustOwners.Clear();HealthControls.Clear();CombatHudTrace.ClearControls();CreatureHudTrace.ClearControls();}
+    internal static void Clear(){_capture=null;TailRecorders.Clear();_requested=null;_pointerDown=null;Settling=false;RetireOwnedTails();ClearSourceVisuals("display-trace-clear");HealthDisplayTail.Clear();Paths.Clear();KnownCards.Clear();SourceExhaustOwners.Clear();HealthControls.Clear();CombatHudTrace.ClearControls();CreatureHudTrace.ClearControls();}
+    internal static void ClearSourceVisuals(string reason)
+    {
+        if(_sources is not {} source)return;
+        _sources=null;
+        Runtime.Log("native-display-source-scope-closed",new{Reason=reason,source.RoomId,Tracked=source.Nodes.Count,
+            Live=source.Nodes.Keys.Count(n=>GodotObject.IsInstanceValid(n)&&!n.IsQueuedForDeletion())});
+    }
+    private static void RoomExiting(NCombatRoom __instance)
+    {
+        if(ReferenceEquals(_sources?.Room,__instance))ClearSourceVisuals("native-room-exit");
+        NativeCombatCamera.RoomExiting(__instance);
+    }
+    private static void TrackSource(Node node,SourceKind kind=SourceKind.Transient)
+    {
+        if(CombatVisualLayers.IsRetiredSource(node))return;
+        if(NCombatRoom.Instance is not {} room||!GodotObject.IsInstanceValid(room)||!room.IsInsideTree())return;
+        Sources(room).Add(node,kind);
+    }
+    internal static void TrackNativeAttackEffect(NCombatRoom room,CanvasItem node)
+    {
+        if(GodotObject.IsInstanceValid(room)&&room.IsInsideTree()&&!CombatVisualLayers.IsRetiredSource(node))
+            Sources(room).Add(node,SourceKind.NativeOwnedAttack);
+    }
+    private static SourceScope Sources(NCombatRoom room)
+    {
+        if(!ReferenceEquals(_sources?.Room,room))
+        {
+            ClearSourceVisuals("native-room-changed");
+            _sources=new(room);
+        }
+        return _sources!;
+    }
     internal static async Task WaitForOpeningPresentation()
     {
         var started=Stopwatch.GetTimestamp();var frames=0;
@@ -224,15 +277,34 @@ internal sealed class NativeDisplayTrace
         var capture=_capture??throw new InvalidDataException("choice-ready-without-display-capture");
         Codec.Require(capture._choiceEntryAt is not null,"display-choice-ready-before-entry");capture._choiceReadyAt=capture.Elapsed;
     }
-    internal static async Task RetireSourceVisuals()
+    internal static async Task RetireSourceVisuals(bool replaceRoomLayers=false)
     {
-        if(NCombatRoom.Instance is not {} room){SourceVisuals.Clear();return;}
+        if(NCombatRoom.Instance is not {} room){ClearSourceVisuals("no-combat-room");return;}
+        if(NativeSeek.Restoring)CreatureHudTrace.RetireIntentBursts(room);
         await PotionVisuals.RetireNative();
+        if(NativeSeek.Enabled)CombatHudTrace.RetireEnergyEffects();
+        var source=ReferenceEquals(_sources?.Room,room)?_sources:null;
+        var scopedNodes=source?.Nodes;
+        RetireAttackVisuals(scopedNodes);
+        RetireSculptorParticles();
+        var previews=0;
+        if(source is not null&&NativeSeek.RetiringPresentation)
+            foreach(var (tween,card) in source.Previews.ToArray())
+            {
+                if(!HidePreview(tween,card))continue;
+                // Let the native delayed callback create its flight in-tree, including its completion signal.
+                tween.CustomStep(64);previews++;
+            }
         // Native fly completion is display bookkeeping. Retire it before replacing data so that its
         // delayed CardAddFinished cannot update the counters of an earlier history node.
         var flights=Descendants(room.Ui).Concat(Descendants(room.CombatVfxContainer))
-            .Concat(Descendants(NRun.Instance!.GlobalUi.TopBar.TrailContainer)).OfType<NCardFlyVfx>().Distinct().ToArray();
-        foreach(var flight in flights)((CancellationTokenSource)Get(flight,"_cancelToken")!).Cancel();
+            .Concat(Descendants(NRun.Instance!.GlobalUi.TopBar.TrailContainer)).OfType<NCardFlyVfx>()
+            .Concat(scopedNodes?.Keys.OfType<NCardFlyVfx>()??[]).Where(LiveFlight).Distinct().ToArray();
+        foreach(var flight in flights)
+        {
+            HideCardFlight(flight);
+            ((CancellationTokenSource)Get(flight,"_cancelToken")!).Cancel();
+        }
         // Cancel while still in-tree: its current visual coroutine completes its existing signal once.
         // Removing the card first would let TreeExited complete it before the cancellation SetResult.
         for(var i=0;i<3&&flights.Any(f=>f.SwooshAwayCompletion is {Task.IsCompleted:false});i++)await Runtime.NextFrame();
@@ -243,10 +315,29 @@ internal sealed class NativeDisplayTrace
             {card.PlayPileTween?.Kill();card.QueueFreeSafely();}
             if(GodotObject.IsInstanceValid(flight)&&!flight.IsQueuedForDeletion()){flight.GetParent()?.RemoveChild(flight);flight.QueueFree();}
         }
-        var sources=SourceVisuals.Concat(ContinuedSmiths).Distinct().Where(n=>GodotObject.IsInstanceValid(n)&&!n.IsQueuedForDeletion()).ToArray();
+        var sources=scopedNodes?.Where(entry=>entry.Value is SourceKind.Transient or SourceKind.ContinuedSmith)
+            .Select(entry=>entry.Key).Where(n=>GodotObject.IsInstanceValid(n)&&!n.IsQueuedForDeletion()).ToArray()??[];
         var sourceTypes=sources.GroupBy(n=>n.GetType().Name).Select(g=>new{Type=g.Key,Count=g.Count()}).ToArray();
         foreach(var node in sources)
         {
+            if(node is NItemThrowVfx item)
+            {
+                // The native frame loop still owns this sprite and frees it on completion.
+                item.Hide();continue;
+            }
+            if(node is NCardFlyPowerVfx powerFlight)
+            {
+                // Its coroutine owns the source card and trail. Cancel motion in-tree
+                // so that the native finalizer can dispose both exactly once.
+                powerFlight.Hide();
+                if(powerFlight.CardNode is {} card&&GodotObject.IsInstanceValid(card)&&!card.IsQueuedForDeletion())
+                {
+                    card.Hide();
+                    if(card.GetParent() is {} parent&&!ReferenceEquals(parent,powerFlight))card.Reparent(powerFlight);
+                }
+                ((CancellationTokenSource)Get(powerFlight,"_cancelToken")!).Cancel();
+                continue;
+            }
             if(node is NCardSmithVfx)
             {
                 // Exit completes its new visual await before releasing preview cards. Return real
@@ -271,14 +362,73 @@ internal sealed class NativeDisplayTrace
                 }
                 continue;
             }
+            // The outgoing layer can conceal these effects while their native
+            // callbacks finish. Explicit cleanup above still owns cards/signals.
+            if(replaceRoomLayers&&CombatVisualLayers.OwnsRoomEffect(room,node))continue;
             node.GetParent()?.RemoveChild(node);node.QueueFree();
         }
-        SourceVisuals.Clear();ContinuedSmiths.Clear();
-        Runtime.Log("native-display-retired",new{CardFlights=flights.Length,SourceEffects=sourceTypes,DelayedNativePileCallbacksRetired=true});
+        scopedNodes?.Clear();
+        source?.Previews.Clear();
+        Runtime.Log("native-display-retired",new{RoomId=source?.RoomId,CardFlights=flights.Length,CardPreviewsSettled=previews,SourceEffects=sourceTypes,
+            DelayedNativePileCallbacksRetired=true});
+    }
+    private static void RetireAttackVisuals(Dictionary<Node,SourceKind>? scopedNodes)
+    {
+        if(scopedNodes is null)return;
+        RetireNativeOwnedAttacks(scopedNodes);
+        var retired=scopedNodes.Where(entry=>entry.Value==SourceKind.AttackCallback).Select(entry=>(Node2D)entry.Key)
+            .Where(n=>GodotObject.IsInstanceValid(n)&&!n.IsQueuedForDeletion()).ToArray();
+        foreach(var node in retired)
+        {
+            // Unknown callback effects can have a native async owner. Hide the
+            // abandoned effect and let that owner finish with its own node.
+            node.Hide();
+            if(node is NKinPriestGrenadeVfx)
+            {
+                ((CancellationTokenSource)Get(node,"_cancelToken")!).Cancel();
+                node.QueueFreeSafely();
+            }
+        }
+        var beams=0;
+        foreach(var beam in scopedNodes.Where(entry=>entry.Value==SourceKind.ReusableBeam).Select(entry=>(NKinPriestBeamVfx)entry.Key))
+            if(GodotObject.IsInstanceValid(beam)&&!beam.IsQueuedForDeletion()&&Get(beam,"_beamHolder") is Node2D {Visible:true})
+            {
+                AccessTools.DeclaredMethod(typeof(NKinPriestBeamVfx),"OnTweenComplete",[]).Invoke(beam,[]);
+                beams++;
+            }
+        if(retired.Length>0||beams>0)Runtime.Log("native-attack-visuals-retired",new{
+            Transient=retired.GroupBy(n=>n.GetType().Name).Select(g=>new{Type=g.Key,Count=g.Count()}).ToArray(),PriestBeams=beams});
+    }
+    internal static void RetireNativeOwnedAttacks()
+    {
+        if(_sources is {} scope&&ReferenceEquals(scope.Room,NCombatRoom.Instance))RetireNativeOwnedAttacks(scope.Nodes);
+    }
+    private static void RetireNativeOwnedAttacks(Dictionary<Node,SourceKind> nodes)
+    {
+        var retired=nodes.Where(pair=>pair.Value==SourceKind.NativeOwnedAttack).Select(pair=>(CanvasItem)pair.Key)
+            .Where(node=>GodotObject.IsInstanceValid(node)&&NativeAttackEffects.Retire(node))
+            .GroupBy(node=>node.GetType().Name).Select(group=>new{Type=group.Key,Count=group.Count()}).ToArray();
+        if(retired.Length>0)Runtime.Log("native-split-attack-retired",new{Nodes=retired,NativeSeek.Generation,NativeReleaseRetained=true});
+    }
+    internal static void RetireSculptorParticles()
+    {
+        if(_sources is not {} scope||!ReferenceEquals(scope.Room,NCombatRoom.Instance))return;
+        var retired=0;
+        foreach(var (node,kind) in scope.Nodes)
+        {
+            if(kind!=SourceKind.SculptorParticles||node is not GpuParticles2D particles||!GodotObject.IsInstanceValid(particles)||!particles.Visible)continue;
+            // These emitters belong to the creature's Spine scene. Preserve them
+            // for its next native cue, and hide the already emitted GPU particles.
+            particles.Emitting=false;
+            particles.Hide();
+            particles.SetMeta(SculptorParticlesHidden,true);
+            retired++;
+        }
+        if(retired>0)Runtime.Log("native-sculptor-particles-retired",new{Count=retired,NativeEmittersPreserved=true});
     }
     internal static void Tick()
     {
-        PotionVisuals.Tick();_capture?.Sample();
+        PotionVisuals.Tick();NativePhaseRetirement.PruneFinishedSounds();_capture?.Sample();
         if(_capture is {} current)
             foreach(var tail in TailRecorders.ToArray())
             {
@@ -415,8 +565,8 @@ internal sealed class NativeDisplayTrace
                     .All(h=>h.Position.DistanceTo(h.TargetPosition)<2&&Math.Abs(h.RotationDegrees-h.TargetAngle)<.5);
                 var exhaust=trace._cues.LastOrDefault(c=>c.Kind.StartsWith("exhaust",StringComparison.Ordinal));
                 var coreForge=ActionMonitor.Completed?.Kind==OperationKind.Potion&&(RegentPresentation.CoreForgeAnimating||
-                    SourceVisuals.OfType<NCardSmithVfx>().Any(n=>GodotObject.IsInstanceValid(n)&&!n.IsQueuedForDeletion()&&n.IsInsideTree()&&
-                        Get(n,"_tween") is Tween tween&&GodotObject.IsInstanceValid(tween)&&tween.IsRunning()));
+                    (_sources?.Nodes.Any(entry=>entry.Value==SourceKind.Transient&&entry.Key is NCardSmithVfx n&&GodotObject.IsInstanceValid(n)&&
+                        !n.IsQueuedForDeletion()&&n.IsInsideTree()&&Get(n,"_tween") is Tween tween&&GodotObject.IsInstanceValid(tween)&&tween.IsRunning())??false));
                 var exit=terminal&&CombatHudTrace.ExitAnimating();
                 if(coreForge)forgeFrames++;if(exit)exitFrames++;
                 quiet=!flying&&near&&!coreForge&&!exit&&(exhaust is null||trace.Elapsed-exhaust.At>.8)?quiet+1:0;
@@ -1116,7 +1266,7 @@ internal sealed class NativeDisplayTrace
         internal void ContinueTails()
         {
             foreach(var effect in _powerEffects)if(GodotObject.IsInstanceValid(effect)&&!effect.IsQueuedForDeletion())
-            {if(effect is NCardSmithVfx)ContinuedSmiths.Add(effect);else TrackTail(effect);_continuedEffects.Add(effect);}
+            {if(effect is NCardSmithVfx)TrackSource(effect,SourceKind.ContinuedSmith);else TrackTail(effect);_continuedEffects.Add(effect);}
             foreach(var (effect,id) in _exhaustEffects)
             {
                 if(!GodotObject.IsInstanceValid(effect)||effect.IsQueuedForDeletion())continue;
@@ -1205,11 +1355,15 @@ internal sealed class NativeDisplayTrace
     {
         CreatureHudTrace.Install(harmony);
         HealthDisplayTail.Install(harmony);
+        NativeCombatCamera.Install(harmony);
+        CombatVisualLayers.Install(harmony);
+        NativeAttackEffects.Install(harmony);
         void Hook(Type type,string method,string handler,Type[]? parameters=null,bool postfix=false)
         {
             var target=AccessTools.DeclaredMethod(type,method,parameters)??throw new MissingMethodException(type.FullName,method);
             var patch=new HarmonyMethod(typeof(NativeDisplayTrace),handler);harmony.Patch(target,postfix?null:patch,postfix?patch:null);
         }
+        Hook(typeof(NCombatRoom),"_ExitTree",nameof(RoomExiting),[]);
         harmony.Patch(AccessTools.DeclaredMethod(typeof(NCreature),"SetAnimationTrigger"),
             prefix:new HarmonyMethod(typeof(NativeDisplayTrace),nameof(TriggerBefore)),postfix:new HarmonyMethod(typeof(NativeDisplayTrace),nameof(Trigger)));
         Hook(typeof(CreatureAnimator),"SetNextState",nameof(TriggerResolved));
@@ -1222,12 +1376,35 @@ internal sealed class NativeDisplayTrace
         Hook(typeof(VfxCmd),"PlayVfx",nameof(Vfx));Hook(typeof(VfxCmd),"PlayVfx",nameof(VfxCreated),postfix:true);
         Hook(typeof(NDamageNumVfx),"Create",nameof(Damage),[typeof(Vector2),typeof(int)]);
         Hook(typeof(NDamageNumVfx),"Create",nameof(VisualCreated),[typeof(Vector2),typeof(int)],postfix:true);
+        Hook(typeof(NHealNumVfx),"Create",nameof(HealNumberBefore),[typeof(Creature),typeof(decimal)]);
+        Hook(typeof(NHealNumVfx),"Create",nameof(VisualCreated),[typeof(Creature),typeof(decimal)],postfix:true);
+        Hook(typeof(NDamageBlockedVfx),"Create",nameof(VisualCreated),[typeof(Creature)],postfix:true);
+        Hook(typeof(NBlockSparkVfx),"Create",nameof(VisualCreated),[typeof(Creature)],postfix:true);
+        Hook(typeof(NPowerRemovedVfx),"Create",nameof(VisualCreated),[typeof(PowerModel)],postfix:true);
+        Hook(typeof(NCardFlyPowerVfx),"Create",nameof(VisualCreated),[typeof(NCard)],postfix:true);
+        Hook(typeof(NSpeechBubbleVfx),"Create",nameof(VisualCreated),[typeof(string),typeof(Creature),typeof(double),typeof(VfxColor)],postfix:true);
+        Hook(typeof(NThoughtBubbleVfx),"Create",nameof(VisualCreated),[typeof(string),typeof(Creature),typeof(double?)],postfix:true);
+        Hook(typeof(NGroundFireVfx),"Create",nameof(VisualCreated),[typeof(Creature),typeof(VfxColor)],postfix:true);
+        Hook(typeof(NWormyImpactVfx),"Create",nameof(VisualCreated),[typeof(Creature)],postfix:true);
+        Hook(typeof(NDecimillipedeRocksVfx),"_Ready",nameof(EnemyRoomEffectReady),[],postfix:true);
+        Hook(typeof(NTestSubjectBurnVfx),"_Ready",nameof(EnemyRoomEffectReady),[],postfix:true);
+        Hook(typeof(NHorizontalLinesVfx),"Create",nameof(VisualCreated),[typeof(Color),typeof(double),typeof(bool)],postfix:true);
+        Hook(typeof(NLineBurstVfx),"Create",nameof(VisualCreated),[typeof(Creature)],postfix:true);
+        Hook(typeof(NDevotedSculptorVfx),"OnAnimationEvent",nameof(SculptorParticlesAllowed));
+        Hook(typeof(NDevotedSculptorVfx),"OnAnimationEvent",nameof(SculptorParticlesAfter),postfix:true);
+        Hook(typeof(AttackCommand),nameof(AttackCommand.WithHitVfxNode),nameof(AttackHitFactory),[typeof(Func<Creature,Node2D>)]);
+        Hook(typeof(AttackCommand),nameof(AttackCommand.WithAttackerFx),nameof(AttackSourceFactory),[typeof(Func<Node2D>)]);
+        Hook(typeof(NKinPriestBeamVfx),nameof(NKinPriestBeamVfx.Fire),nameof(PriestBeamStarted),[],postfix:true);
+        Hook(typeof(NVfxParticleSystem),"_Ready",nameof(RelicFlashReady),[]);
+        Hook(typeof(NRelicFlashVfx),"Create",nameof(TargetedRelicFlashBefore),[typeof(RelicModel),typeof(Creature)]);
+        Hook(typeof(NRelicFlashVfx),"Create",nameof(VisualCreated),[typeof(RelicModel),typeof(Creature)],postfix:true);
         Hook(typeof(NHitSparkVfx),"Create",nameof(Spark),postfix:true);
         Hook(typeof(NBigSlashVfx),"Create",nameof(BigSlash),[typeof(Vector2),typeof(bool),typeof(Color)],postfix:true);
         Hook(typeof(NBigSlashImpactVfx),"Create",nameof(BigSlashImpact),[typeof(Vector2),typeof(float),typeof(Color)],postfix:true);
         harmony.Patch(AccessTools.DeclaredMethod(typeof(NHealthBar),"RefreshBlockUi"),
             prefix:new HarmonyMethod(typeof(NativeDisplayTrace),nameof(BlockUiBefore)),postfix:new HarmonyMethod(typeof(NativeDisplayTrace),nameof(BlockUiAfter)));
         Hook(typeof(NBlockBrokenVfx),"Create",nameof(BlockBreakFactory),[]);
+        Hook(typeof(NBlockBrokenVfx),"Create",nameof(VisualCreated),[],postfix:true);
         // This coordinate factory only creates a native display node; it does not execute an attack.
         Hook(typeof(NShivThrowVfx),"Create",nameof(ShivThrow),[typeof(Vector2),typeof(Vector2),typeof(Color)],postfix:true);
         Hook(typeof(NSovereignBladeVfx),"Forge",nameof(ForgeBlade));
@@ -1240,6 +1417,13 @@ internal sealed class NativeDisplayTrace
         Hook(typeof(NGame),"ScreenShake",nameof(Shake));
         Hook(typeof(NCardTrailVfx),"Create",nameof(Trail),postfix:true);
         Hook(typeof(NCardTrailVfx),"FadeOut",nameof(TrailFade));
+        harmony.Patch(AccessTools.DeclaredMethod(typeof(NCardFlyVfx),"_Ready",[]),
+            prefix:new HarmonyMethod(typeof(NativeDisplayTrace),nameof(CardFlightBefore)),
+            postfix:new HarmonyMethod(typeof(NativeDisplayTrace),nameof(CardFlightReady)),
+            finalizer:new HarmonyMethod(typeof(NativeDisplayTrace),nameof(CardFlightReturned)));
+        Hook(typeof(CardCmd),"PreviewInternal",nameof(PreviewBefore));
+        Hook(typeof(CardCmd),"PreviewInternal",nameof(PreviewAfter),postfix:true);
+        Hook(typeof(NCardFlyShuffleVfx),"_Ready",nameof(ShuffleBefore));
         Hook(typeof(NCardFlyShuffleVfx),"_Ready",nameof(ShuffleReady),postfix:true);
         Hook(typeof(NCardExhaustVfx),"Create",nameof(Exhaust));Hook(typeof(NCardExhaustQuickVfx),"Create",nameof(QuickExhaust));
         Hook(typeof(NCardExhaustVfx),"Create",nameof(VisualCreated),postfix:true);Hook(typeof(NCardExhaustQuickVfx),"Create",nameof(VisualCreated),postfix:true);
@@ -1282,7 +1466,7 @@ internal sealed class NativeDisplayTrace
     private static void StarsAfter(NStarCounter __instance,int __0,int __1,Node[]? __state)
     {
         if(_capture is null||__state is null)return;
-        foreach(var node in __instance.GetChildren().Except(__state))SourceVisuals.Add(node);
+        foreach(var node in __instance.GetChildren().Except(__state))TrackSource(node);
         if(__0<__1)Record("star-increase",r=>r.StarIncrease(__0,__1));
     }
     private static void ForgeBlade(NSovereignBladeVfx __instance,float __0,bool __1)
@@ -1358,6 +1542,7 @@ internal sealed class NativeDisplayTrace
     }
     private static void HandMoveAfter(HandStart? __state,NHandCardHolder __result)
     {
+        NativeSeek.HandCardAdded(__result);
         if(__state is null||_capture is not {} trace)return;
         // Add/RefreshLayout advance native motion synchronously. Its pre-call pile position is
         // not necessarily a rendered arrival frame (large grids can already place it near the hand).
@@ -1373,8 +1558,58 @@ internal sealed class NativeDisplayTrace
     }
     private static void ItemCreated(NItemThrowVfx? __result)
     {
-        if(_capture is not {} capture||__result is null)return;
-        capture._items.TryAdd(__result,capture._items.Count);SourceVisuals.Add(__result);
+        VisualCreated(__result);
+        if(_capture is {} capture&&__result is not null)capture._items.TryAdd(__result,capture._items.Count);
+    }
+    private static void AttackHitFactory(ref Func<Creature,Node2D?> __0)
+    {
+        if(!NativeSeek.Enabled||NCombatRoom.Instance is not {} room)return;
+        var native=__0;
+        __0=target=>TrackAttackVisual(room,native(target));
+    }
+    private static void AttackSourceFactory(ref Func<Node2D?> __0)
+    {
+        if(!NativeSeek.Enabled||NCombatRoom.Instance is not {} room)return;
+        var native=__0;
+        __0=()=>TrackAttackVisual(room,native());
+    }
+    private static Node2D? TrackAttackVisual(NCombatRoom room,Node2D? node)
+    {
+        if(NativeSeek.Enabled&&node is not null&&node.GetParent() is null&&ReferenceEquals(room,NCombatRoom.Instance))
+            TrackSource(node,SourceKind.AttackCallback);
+        return node;
+    }
+    private static void PriestBeamStarted(NKinPriestBeamVfx __instance)
+    {if(NativeSeek.Enabled)TrackSource(__instance,SourceKind.ReusableBeam);}
+    private static bool RelicFlashReady(NVfxParticleSystem __instance)
+    {
+        if(!NativeSeek.Enabled||__instance.SceneFilePath!=RelicFlashScene||NCombatRoom.Instance is null)return true;
+        var suppressed=NativeSeek.RetiringPresentation;
+        Runtime.Log("native-relic-flash-emitter",new{Suppressed=suppressed,NativeSeek.Generation});
+        if(!suppressed){TrackSource(__instance);return true;}
+        __instance.Hide();__instance.QueueFreeSafely();
+        return false;
+    }
+    private static bool TargetedRelicFlashBefore(RelicModel __0,Creature __1)
+    {
+        if(!NativeSeek.Enabled)return true;
+        var suppressed=NativeSeek.RetiringPresentation;
+        Runtime.Log("native-relic-target-flash",new{Relic=__0.Id.ToString(),Target=__1.ModelId.ToString(),Suppressed=suppressed,NativeSeek.Generation});
+        return !suppressed;
+    }
+    internal static void RetireVisibleRelicFlashes()
+    {
+        if(NRun.Instance?.GlobalUi.AboveTopBarVfxContainer is not {} root)return;
+        var inventoryFlashes=root.GetChildren().OfType<NVfxParticleSystem>().Where(node=>node.SceneFilePath==RelicFlashScene);
+        var targetFlashes=ReferenceEquals(_sources?.Room,NCombatRoom.Instance)?_sources?.Nodes.Keys.OfType<NRelicFlashVfx>():null;
+        int retired=0,targeted=0;
+        foreach(var node in inventoryFlashes.Cast<CanvasItem>().Concat(targetFlashes??[]))
+        {
+            if(!GodotObject.IsInstanceValid(node)||node.IsQueuedForDeletion())continue;
+            node.Hide();node.QueueFreeSafely();retired++;
+            if(node is NRelicFlashVfx)targeted++;
+        }
+        Runtime.Log("native-relic-flash-navigation",new{Retired=retired,Targeted=targeted,NativeSeek.Generation});
     }
     private static void TriggerBefore(NCreature __instance,string __0,out TriggerCapture? __state)
     {
@@ -1440,16 +1675,61 @@ internal sealed class NativeDisplayTrace
     {
         VisualCreated(__result);if(_capture is null||__result is null)return;Record("power-debuff",r=>r.PowerEffect(NPowerAppliedDebuffVfx.Create(__0)));
     }
-    private static void Vfx(Vector2 __0,string __1,Control? __2,out Node[]? __state)
+    private static bool Vfx(Vector2 __0,string __1,Control? __2,out Node[]? __state)
     {
+        __state=null;
+        if(NativeSeek.RetiringPresentation&&__1 is VfxCmd.healPath or "vfx/vfx_heal_osty")
+        {
+            Runtime.Log("native-heal-cue-suppressed",new{Effect=__1,NativeSeek.Generation});
+            return false;
+        }
         __state=_capture is not null||NativeSeek.Enabled?__2?.GetChildren().ToArray():null;
         Record("scene:"+__1,r=>VfxCmd.PlayVfx(__0,__1,r.Root));
+        return true;
+    }
+    private static bool HealNumberBefore()
+    {
+        if(!NativeSeek.RetiringPresentation)return true;
+        Runtime.Log("native-heal-cue-suppressed",new{Effect="heal-number",NativeSeek.Generation});
+        return false;
     }
     private static void VfxCreated(Control? __2,Node[]? __state)
     {
-        if((_capture is not null||NativeSeek.Enabled)&&__state is not null&&__2 is not null)foreach(var child in __2.GetChildren().Except(__state))SourceVisuals.Add(child);
+        if((_capture is not null||NativeSeek.Enabled)&&__state is not null&&__2 is not null)foreach(var child in __2.GetChildren().Except(__state))TrackSource(child);
     }
-    private static void VisualCreated(Node? __result){if((_capture is not null||NativeSeek.Enabled)&&__result is not null)SourceVisuals.Add(__result);}
+    private static void VisualCreated(Node? __result){if((_capture is not null||NativeSeek.Enabled)&&__result is not null)TrackSource(__result);}
+    private static void EnemyRoomEffectReady(CanvasItem __instance)
+    {
+        if(!NativeSeek.Enabled)return;
+        TrackSource(__instance);
+        if(NativeSeek.RetiringPresentation)__instance.Hide();
+    }
+    internal static void RetireEnemyRoomEffects()
+    {
+        if(_sources is not {} scope||!ReferenceEquals(scope.Room,NCombatRoom.Instance))return;
+        foreach(var node in scope.Nodes.Keys.Where(node=>node is NDecimillipedeRocksVfx or NTestSubjectBurnVfx).ToArray())
+        {
+            scope.Nodes.Remove(node);
+            if(!GodotObject.IsInstanceValid(node)||node.IsQueuedForDeletion())continue;
+            node.GetParent()?.RemoveChild(node);node.QueueFree();
+        }
+    }
+    private static bool SculptorParticlesAllowed()=>!NativeSeek.RetiringPresentation;
+    private static void SculptorParticlesAfter(NDevotedSculptorVfx __instance,GodotObject spineEvent,bool __runOriginal)
+    {
+        if(!__runOriginal||!NativeSeek.Enabled)return;
+        // The signal owns spineEvent. Disposing a MegaEvent wrapper disposes the
+        // borrowed GodotObject too, including for other listeners to this signal.
+        var cue=new MegaEvent(spineEvent);
+        using var data=cue.GetData();
+        var eventName=data.GetEventName();
+        var field=eventName switch {"caw"=>"_voiceParticles","attack"=>"_attackParticles",_=>null};
+        if(field is null||Get(__instance,field) is not GpuParticles2D particles)return;
+        var wasHidden=particles.HasMeta(SculptorParticlesHidden);
+        if(wasHidden){particles.RemoveMeta(SculptorParticlesHidden);particles.Show();}
+        TrackSource(particles,SourceKind.SculptorParticles);
+        Runtime.Log("native-sculptor-particles-restarted",new{Cue=eventName,RestoredVisibility=wasHidden,particles.Visible,particles.Emitting,NativeSeek.Generation});
+    }
     private static void Damage(Vector2 __0,int __1)=>Record("damage-number",r=>{var fx=NDamageNumVfx.Create(__0,__1);if(fx is not null)r.Root.AddChild(fx);});
     private static void Splash(Vector2 __0,Color __1)=>Record("potion-splash",r=>{var fx=NSplashVfx.Create(__0,__1);if(fx is not null)r.Root.AddChild(fx);});
     private static void Spark(Creature __0,NHitSparkVfx? __result)
@@ -1473,13 +1753,13 @@ internal sealed class NativeDisplayTrace
             // RefreshBlockUi assigns the native position AFTER Create/_Ready. Capture here rather
             // than guessing the block transition or recording the factory's unpositioned node.
             var creature=(Creature)Get(__instance,"_creature")!;var transform=effect.Transform;var color=effect.Modulate;
-            VisualCreated(effect);Record("native-block-break",r=>r.BlockBreak(creature,transform,color));
+            Record("native-block-break",r=>r.BlockBreak(creature,transform,color));
         }
     }
     private static bool BlockBreakFactory(ref NBlockBrokenVfx? __result)
     {
         // Restoring data/UI is not a new block loss. The source-clock cue owns history effects.
-        if(_creatingBlockBreakDisplay||!Replaying&&!DecisionRoute.CanRestore&&!NativeSeek.CanRestore)return true;
+        if(_creatingBlockBreakDisplay||!Replaying&&!DecisionRoute.CanRestore&&!NativeSeek.RetiringPresentation)return true;
         __result=null;return false;
     }
     private static bool OneShot(string __0,Dictionary<string,float> __1,float __2)
@@ -1502,7 +1782,7 @@ internal sealed class NativeDisplayTrace
     }
     private static bool Shake(MethodBase __originalMethod,object[] __args)
     {
-        if(NativeSeek.SilentRebuild)return false;
+        if(NativeSeek.SilentRebuild||NativeSeek.Restoring)return false;
         // Native display coroutines can emit their own shake (e.g. projectile impact). During a
         // sampled history segment the source clock already owns it. Keep exactly that recorded cue.
         if(Replaying&&!_recordedShake)return false;
@@ -1517,23 +1797,96 @@ internal sealed class NativeDisplayTrace
     }
     private static void Trail(Control __0,string __1,NCardTrailVfx? __result)
     {
-        // Native shuffle adds the trail during _Ready. Seed it before AddChild so particles
-        // cannot emit at (0,0) for a frame before following the flight's first position.
-        if(Replaying&&__0 is NCardFlyShuffleVfx&&__result is not null)
+        if(__result is null)return;
+        var parent=_flyTrailParent;
+        if((Replaying||NativeSeek.Enabled)&&__0 is NCardFlyShuffleVfx)parent=NCombatRoom.Instance?.CombatVfxContainer;
+        // The native trail starts processing after it enters the tree. Seed its transform
+        // in the actual trail parent's coordinates before its particles can emit.
+        if(parent is not null)
         {
-            var parent=NCombatRoom.Instance!.CombatVfxContainer;
             __result.Position=parent.GetGlobalTransform().AffineInverse()*__0.GlobalPosition;
             __result.Rotation=__0.Rotation;
         }
-        if(_capture is not {} capture||__0 is not NCard card||__result is null)return;var id=capture.Card(card);capture._trails[__result]=id;
-        SourceVisuals.Add(__result);
+        if(_capture is not {} capture||__0 is not NCard card)return;var id=capture.Card(card);capture._trails[__result]=id;
+        TrackSource(__result);
         Record("card-trail",r=>r.CardTrail(id,__1));
+    }
+    private static void CardFlightBefore(NCardFlyVfx __instance,out CanvasItem? __state)
+    {
+        __state=_flyTrailParent;
+        if(NativeSeek.Enabled)_flyTrailParent=__instance.GetParent() as CanvasItem;
+    }
+    private static void CardFlightReturned(CanvasItem? __state)=>_flyTrailParent=__state;
+    private static void CardFlightReady(NCardFlyVfx __instance)
+    {
+        if(!NativeSeek.Enabled)return;
+        TrackSource(__instance,SourceKind.CardFlight);
+        if(NativeSeek.RetiringPresentation||NativePhaseRetirement.RetiredPresentationOrigin)HideCardFlight(__instance);
+    }
+    private static bool LiveFlight(NCardFlyVfx flight)=>GodotObject.IsInstanceValid(flight)&&!flight.IsQueuedForDeletion()&&flight.IsInsideTree();
+    private static void HideCardFlight(NCardFlyVfx flight)
+    {
+        flight.Hide();
+        if(Get(flight,"_card") is NCard card&&GodotObject.IsInstanceValid(card))card.Hide();
+        if(Get(flight,"_vfx") is NCardTrailVfx trail&&GodotObject.IsInstanceValid(trail))trail.Hide();
+    }
+    private static IEnumerable<NCard> CombatPreviewCards(NCombatRoom room)=>
+        room.Ui.CardPreviewContainer.GetChildren().Concat(room.Ui.MessyCardPreviewContainer.GetChildren()).OfType<NCard>();
+    private static void PreviewBefore(CardModel __0,out PreviewCapture? __state)
+    {
+        __state=null;
+        if(!NativeSeek.Enabled||__0.Pile?.Type.IsCombatPile()!=true||NCombatRoom.Instance is not {} room)return;
+        __state=new(room,room.GetTree().GetProcessedTweens().Select(t=>t.GetInstanceId()).ToHashSet(),CombatPreviewCards(room).ToHashSet());
+    }
+    private static void PreviewAfter(CardModel __0,PreviewCapture? __state,TaskCompletionSource? __result)
+    {
+        if(__state is not {} capture||__result is null)return;
+        var card=CombatPreviewCards(capture.Room).SingleOrDefault(c=>ReferenceEquals(c.Model,__0)&&!capture.Cards.Contains(c));
+        // PreviewInternal builds this tween last, after the new card has updated its visuals.
+        var tween=capture.Room.GetTree().GetProcessedTweens().LastOrDefault(t=>!capture.Tweens.Contains(t.GetInstanceId()));
+        if(card is null||tween is null)return;
+        if(CombatVisualLayers.IsRetiredSource(card)){HidePreview(tween,card);return;}
+        var previews=Sources(capture.Room).Previews;
+        foreach(var old in previews.Keys.Where(t=>!GodotObject.IsInstanceValid(t)||!t.IsRunning()).ToArray())previews.Remove(old);
+        previews[tween]=card;
+        if(NativeSeek.RetiringPresentation)HidePreview(tween,card);
+    }
+    private static bool HidePreview(Tween tween,NCard card)
+    {
+        if(!GodotObject.IsInstanceValid(tween)||!tween.IsRunning()||!GodotObject.IsInstanceValid(card))return false;
+        card.Hide();tween.SetSpeedScale(32);return true;
+    }
+    internal static void HideRetiringCardVisuals()
+    {
+        if(_sources is not {} source||!ReferenceEquals(source.Room,NCombatRoom.Instance))return;
+        var flights=source.Nodes.Keys.OfType<NCardFlyVfx>().Where(LiveFlight).ToArray();
+        foreach(var flight in flights)HideCardFlight(flight);
+        var previews=0;
+        foreach(var (tween,card) in source.Previews)if(HidePreview(tween,card))previews++;
+        if(flights.Length>0||previews>0)Runtime.Log("native-card-visuals-hidden-for-navigation",new{Flights=flights.Length,Previews=previews});
+    }
+    private static void ShuffleBefore(NCardFlyShuffleVfx __instance)
+    {
+        if(!NativeSeek.Enabled)return;
+        // Pile-to-pile flights create a trail following this node before the first
+        // motion frame. Seed the follower as well as the trail to avoid a point at the scene origin.
+        var start=(Vector2)Get(__instance,"_startPos")!;
+        var previous=__instance.GlobalPosition;
+        __instance.GlobalPosition=start;
+        if(ActionMonitor.Pending is {Template.Kind:OperationKind.Card} pending&&!previous.IsEqualApprox(start))
+            Runtime.Log("native-pile-flight-start-seeded",new{pending.Template.Card,StartX=start.X,StartY=start.Y,
+                PreviousX=previous.X,PreviousY=previous.Y,NativeCurvePreserved=true});
     }
     private static void ShuffleReady(NCardFlyShuffleVfx __instance)
     {
         if(_capture is null&&!NativeSeek.Enabled)return;
-        SourceVisuals.Add(__instance);
-        if(Get(__instance,"_vfx") is Node trail)SourceVisuals.Add(trail);
+        TrackSource(__instance);
+        if(Get(__instance,"_vfx") is CanvasItem trail)
+        {
+            TrackSource(trail);
+            if(NativePhaseRetirement.RetiredPresentationOrigin)trail.Hide();
+        }
+        if(NativePhaseRetirement.RetiredPresentationOrigin)__instance.Hide();
         if(_capture is null)return;
         var pose=new ShufflePose((Vector2)Get(__instance,"_startPos")!,(Vector2)Get(__instance,"_endPos")!,
             (string)Get(__instance,"_trailPath")!,((CardPile)Get(__instance,"_targetPile")!).Type,

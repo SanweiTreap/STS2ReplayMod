@@ -11,5 +11,6 @@
     <Reference Include="0Harmony"><HintPath>$(Managed)/0Harmony.dll</HintPath><Private>false</Private></Reference>
     <Compile Remove="tests/**/*.cs;direct-tests/**/*.cs"/><None Remove="tests/**;direct-tests/**"/>
     <None Update="ReplayMod.json" CopyToOutputDirectory="PreserveNewest"/>
+    <EmbeddedResource Include="Art/UI001/*.png" LogicalName="ReplayMod.UI001.%(Filename)%(Extension)"/>
   </ItemGroup>
 </Project>

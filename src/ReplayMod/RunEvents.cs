@@ -168,7 +168,7 @@ internal static class RunEvents
         Codec.Require(button!.Option.TextKey==operation.Argument.Option&&!button.Option.IsLocked&&
             button.Option.IsProceed==(operation.Kind=="event-proceed"),"event-option-identity-or-availability-mismatch");
         _option=button.Option;_model=Model;_recorded=null;_task=null;
-        RunPlayback.Native(()=>AccessTools.Method(typeof(NEventOptionButton),"OnRelease").Invoke(button,[]));
+        RunPlayback.ClickNative(button);
         Codec.Require(_task is not null,"event-native-option-task-not-started");
         // WinRun force-kills the player after recording the native victory, then
         // opens game over. Finish this submitted business before Stop tears down.

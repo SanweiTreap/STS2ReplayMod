@@ -2,6 +2,7 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Creatures;
+using MegaCrit.Sts2.Core.Models.Encounters;
 using MegaCrit.Sts2.Core.Models.Monsters;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
@@ -50,10 +51,22 @@ internal sealed class CombatRoster
             Codec.Require(!GodotObject.IsInstanceValid(previous)||previous.IsQueuedForDeletion()||!previous.IsInsideTree(),"duplicate-live-unit-scene");
         _knownNodes[creature]=node;_knownBodies[creature]=(node.Visuals,node.Body);
     }
-    internal string? Reason(CombatState state)
+    internal bool MatchesNativeIdentities(CombatState state)
+    {
+        var escaped=state.EscapedCreatures;
+        return escaped.All(c=>c.IsEnemy&&c.CombatState is null&&_models.TryGetValue(c,out var model)&&model==c.ModelId.ToString())&&
+            Identities.Matches((uint)AccessTools.Field(typeof(CombatState),"_nextCreatureId").GetValue(state)!,
+                state.Creatures,c=>c.CombatId,c=>c.IsAlive,escaped);
+    }
+    internal string? Reason(CombatState state,bool fromVictory=false)
     {
         var current=state.Creatures.ToArray();
         var added=current.Except(Initial).ToArray();
+        // The last kill retires the shared scene but the native victory state
+        // retains all three dead segments. Only the restore source can be terminal.
+        var defeatedSegments=fromVictory&&state.Encounter is DecimillipedeElite&&state.Enemies.Count>0&&
+            state.Enemies.All(c=>c.IsDead&&CombatUnits.IsRetainedSegment(c));
+        bool IsDefeatedSegment(Creature creature)=>defeatedSegments&&creature.IsEnemy;
         if(LiveState.Format<10)
         {
             if(added.Any(c=>!CombatUnits.IsOsty(c))||added.Length>1||current.Count(CombatUnits.IsOsty)>1||
@@ -62,18 +75,20 @@ internal sealed class CombatRoster
                 added.Any(c=>c.CombatId!=_nextId))return "单位分配计数与身份不一致";
             if(!current.Where(c=>c.IsEnemy).SequenceEqual(Initial.Where(c=>c.IsEnemy&&current.Contains(c))))return "生成或成员重排暂不能后退";
         }
-        else if(!Identities.Matches((uint)AccessTools.Field(typeof(CombatState),"_nextCreatureId").GetValue(state)!,current,c=>c.CombatId,c=>c.IsAlive))return "单位登记、成员或未来分配计数不一致";
+        else if(!MatchesNativeIdentities(state))return "单位登记、成员、原生逃跑名单或未来分配计数不一致";
         if(!state.Allies.Where(c=>c.IsPlayer).SequenceEqual(Initial.Where(c=>c.IsPlayer)))return "玩家成员变化暂不能后退";
-        if(current.Any(c=>c.PetOwner is not null&&!CombatUnits.IsOsty(c))||current.Any(c=>!CombatUnits.Restorable(c))||
+        if(current.Any(c=>c.PetOwner is not null&&!CombatUnits.IsOsty(c))||current.Any(c=>!CombatUnits.Restorable(c)&&!IsDefeatedSegment(c))||
             Initial.Where(c=>c.IsPlayer).Any(c=>!current.Contains(c)))return "玩家死亡、其他宠物或未完成死亡边界暂不能后退";
         foreach(var creature in added.Where(c=>!_knownNodes.ContainsKey(c)))
         {
             var node=NCombatRoom.Instance?.GetCreatureNode(creature);if(node is null)return "新单位场景尚未就绪";
             _ids.TryAdd(creature,creature.CombatId);_models.TryAdd(creature,creature.ModelId.ToString());_knownNodes.Add(creature,node);_knownBodies.Add(creature,(node.Visuals,node.Body));
         }
-        if(current.Any(c=>c.CombatId!=_ids[c]||c.ModelId.ToString()!=_models[c])||Initial.Except(current).Any(c=>c.IsAlive))return "敌人身份或成员关系变化暂不能后退";
+        if(current.Any(c=>c.CombatId!=_ids[c]||c.ModelId.ToString()!=_models[c])||
+            LiveState.Format<10&&Initial.Except(current).Any(c=>c.IsAlive))return "敌人身份或成员关系变化暂不能后退";
         foreach(var creature in current)
         {
+            if(IsDefeatedSegment(creature))continue;
             // History can show the native death tail while its real data still describes the
             // source checkpoint. Only explicitly owned display deaths may leave the UI roster.
             if(NativeDisplayTrace.Replaying&&NativeDisplayTrace.OwnsDeathDisplay(creature))continue;
@@ -109,9 +124,19 @@ internal sealed class CombatRoster
             var owners=(List<NCreature>)AccessTools.Field(typeof(NMonsterDeathVfx),"_creatureNodes").GetValue(fade)!;
             if(NativeDisplayTrace.Replaying&&owners.All(n=>NativeDisplayTrace.OwnsDeathDisplay(n.Entity)))continue;
             if(owners.Any(n=>retired.Contains(n.Entity)))
-            {fade.Visible=false;fade.GetParent()?.RemoveChild(fade);fade.QueueFree();fadeCount++;}
+            {
+                // ReattachPower can still be awaiting its pre-fade delay. Its
+                // group effect checks this token before touching the old nodes.
+                if(owners.Count>1&&owners.All(n=>n.Entity.Monster is DecimillipedeSegment))
+                    AccessTools.Field(typeof(NMonsterDeathVfx),"_cancelToken").SetValue(fade,new CancellationToken(true));
+                fade.Visible=false;fade.GetParent()?.RemoveChild(fade);fade.QueueFree();fadeCount++;
+            }
         }
-        foreach(var node in active.Concat(removing).Distinct().Where(n=>retired.Contains(n.Entity)).ToArray())
+        // Escape leaves a hidden node in-tree after the native removing list
+        // drops it. Include known scene anchors when retiring that old display.
+        var attachedAnchors=_knownNodes.Where(pair=>retired.Contains(pair.Key)).Select(pair=>pair.Value)
+            .Where(n=>GodotObject.IsInstanceValid(n)&&room.IsAncestorOf(n));
+        foreach(var node in active.Concat(removing).Concat(attachedAnchors).Distinct().Where(n=>retired.Contains(n.Entity)).ToArray())
         {
             // _ExitTree unsubscribes current powers BEFORE the logical graph is restored. Cancellation and
             // native removal continuations refer to this old node only; they cannot remove its replacement.

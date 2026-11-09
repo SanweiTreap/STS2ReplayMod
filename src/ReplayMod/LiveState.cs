@@ -167,6 +167,8 @@ internal static class LiveState
     // Initial choice UI may precede monster intent assignment. Browsing checks must not require a playable room.
     internal static string ChoiceProjection()=>Fingerprint(new{RunRng=Run.Rng.ToSerializable(),PlayerRng=Player.PlayerRng.ToSerializable(),
         Mechanics=Mechanics(),Deck=Player.Deck.Cards.Select(CardDetails).ToArray(),RoomPreFinished=Run.CurrentRoom!.IsPreFinished,
+        Afflictions=Player.PlayerCombatState!.AllCards.Where(card=>card.Affliction is not null).Select(card=>new{
+            Index=NetCombatCard.FromModel(card).CombatCardIndex,Id=card.Affliction!.Id.ToString(),card.Affliction.Amount}).ToArray(),
         Phase=Player.PlayerCombatState!.Phase.ToString(),CombatManager.Instance.IsPaused,CombatManager.Instance.IsInProgress,
         Creatures=Player.Creature.CombatState!.Creatures.Select(c=>new{c.CombatId,c.CurrentHp,c.Block,
             Powers=c.Powers.Select(p=>new{Id=p.Id.ToString(),p.Amount}).ToArray(),Rng=c.Monster?.Rng.ToSerializable()}).ToArray()});

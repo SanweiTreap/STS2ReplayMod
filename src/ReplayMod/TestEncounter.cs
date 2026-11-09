@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace ReplayMod;
 
-internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent, NecrobinderContent, EnemySummon, RunRoute, RunRooms, RunShops, RunEvents, RunEventCombat, RunActs, DeathRecording, AbandonRecording, RunEventRewards }
+internal enum TestPreparation { None, DualEnemies, Content, Choices, ChoiceProcess, SilentContent, RegentContent, QueuedCards, SharedContent, DefectContent, NecrobinderContent, EnemySummon, RunRoute, RunRooms, RunShops, RunEvents, RunEventCombat, RunActs, DeathRecording, AbandonRecording, RunEventRewards, EnemyEscape }
 // Explicit opt-in, consumed by ONE new supported run. Never applied to Continue or playback.
 internal static class TestEncounter
 {
@@ -32,6 +32,7 @@ internal static class TestEncounter
          _mode==TestPreparation.RunRooms?"RUN002-Ironclad-Underdocks-two-CorpseSlugsWeak-40HP-3-starter-DefendPlus-2-added-BodySlamPlus-5-innate-retain-connected-Monster-Treasure-Monster":
          _mode==TestPreparation.RunRoute?"RUN001-Ironclad-Underdocks-two-CorpseSlugsWeak-40HP-3-starter-DefendPlus-2-added-BodySlamPlus-5-innate-retain-connected-Monster-RestSite-Monster":
          _mode==TestPreparation.EnemySummon?"CONTENT006-D-Ironclad-Underdocks-TwoTailedRatsNormal-3-starter-DefendPlus-2-added-BodySlamPlus-5-innate-retain":
+         _mode==TestPreparation.EnemyEscape?"COMBATPRESENTATION001-Ironclad-Underdocks-GremlinMercNormal-block-deck-100Gold-BagOfPreparation":
          _mode==TestPreparation.NecrobinderContent?(_firstOstySummon?
             "CONTENT005-C-Necrobinder-first-Osty-summon-no-BoundPhylactery-3-Bodyguard-BoneShards-DeathbringerPlus-6-innate-retain-BagOfPreparation-EnergyPotion":
             "CONTENT005-C-Necrobinder-starter10-BoundPhylactery-Bodyguard-BoneShards-DeathbringerPlus-5-innate-retain-BagOfPreparation-EnergyPotion"):
@@ -57,7 +58,20 @@ internal static class TestEncounter
         if(Preparation is null)return;
         var rooms=(RoomSet)AccessTools.Field(typeof(ActModel),"_rooms").GetValue(_run!.Act)!;
         Codec.Require(rooms.normalEncountersVisited==0&&rooms.normalEncounters.Count>0,"test-entry-room-list-not-ready");
-        var previous=rooms.normalEncounters[0].Id.ToString();rooms.normalEncounters[0]=_mode==TestPreparation.EnemySummon?ModelDb.Encounter<TwoTailedRatsNormal>():ModelDb.Encounter<CorpseSlugsWeak>();
+        var previous=rooms.normalEncounters[0].Id.ToString();
+        rooms.normalEncounters[0]=_mode switch
+        {
+            TestPreparation.EnemySummon=>ModelDb.Encounter<TwoTailedRatsNormal>(),
+            TestPreparation.EnemyEscape=>ModelDb.Encounter<GremlinMercNormal>(),
+            _=>ModelDb.Encounter<CorpseSlugsWeak>()
+        };
+        if(_mode==TestPreparation.EnemyEscape)
+        {
+            var player=_run.Players.Single();
+            RunBossPreparation.InstallBlockDeck(_run,player);
+            player.Gold=100;
+            player.AddRelicInternal(ModelDb.Relic<BagOfPreparation>().ToMutable(),silent:true);
+        }
         if(_mode==TestPreparation.RunEventRewards)
         {
             var player=_run.Players.Single();
@@ -246,6 +260,7 @@ internal static class TestEncounter
             _mode==TestPreparation.RunRooms?"宝箱SL短路线已准备：首普通→宝箱→普通；保留每次尝试":
             _mode==TestPreparation.RunRoute?"短路线已准备：首普通→营火→普通；正常领奖，沿指定连接节点前进":
             _mode==TestPreparation.EnemySummon?"三鼠召援测试已准备：原牌组中三防御升级，添加两张全身撞击+，五牌先天保留；先防御等原生召援，再攻击新怪":
+            _mode==TestPreparation.EnemyEscape?"活体逃跑短测已准备：等佣兵偷金币再击杀，等胖地精逃走，最后击杀剩下的地精":
             _mode==TestPreparation.NecrobinderContent?"亡灵契约师已准备：保留原10张／原遗物；两张保镖／释放／碎骨／死亡使者+先天保留；能量药水，首战双蛞蝓":
             _mode==TestPreparation.DefectContent?"故障机器人已准备：保留原10张／破损核心；六张先天保留；暗球／冰球／扩槽／随机球／集中药水，首战双蛞蝓":
             _mode==TestPreparation.SharedContent?"共用测试已准备：储君／工具箱初始选择／星星与锻造／第3槽能量药水供丢弃；首战双蛞蝓":

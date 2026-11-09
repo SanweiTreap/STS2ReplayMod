@@ -1,7 +1,10 @@
 using System.Reflection;
+using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.ControllerInput;
 using MegaCrit.Sts2.Core.Entities.Cards;
+using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Map;
@@ -14,6 +17,7 @@ using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Audio;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Combat;
+using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Screens.MainMenu;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
@@ -32,6 +36,9 @@ internal static class Patches
             h.Patch(target,Handler(prefix),Handler(postfix));
         }
         Patch(typeof(NMainMenu),"_Ready",postfix:nameof(Menu),parameters:[]);
+        NativeHistoryUi.Install(h);
+        ReplayMap.Install(h);
+        SeekAudio.Install(h);
         Patch(typeof(RunManager),"SetUpNewSingleplayer",prefix:nameof(FreshBefore),postfix:nameof(Fresh));
         Patch(typeof(RunManager),"SetUpSavedSingleplayer",prefix:nameof(Saved));
         Patch(typeof(RunManager),"ToSave",postfix:nameof(Checkpoint));
@@ -41,7 +48,7 @@ internal static class Patches
         Patch(typeof(ActionQueueSynchronizer),"RequestEnqueue",prefix:nameof(Queue));
         Patch(typeof(PlayCardAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
         Patch(typeof(EndPlayerTurnAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
-        Patch(typeof(UsePotionAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
+        Patch(typeof(UsePotionAction),"ExecuteAction",postfix:nameof(UsePotionTask),parameters:[]);
         Patch(typeof(DiscardPotionGameAction),"ExecuteAction",postfix:nameof(ActionTask),parameters:[]);
         Patch(typeof(MoveToMapCoordAction),"ExecuteAction",postfix:nameof(MapTask),parameters:[]);
         Patch(typeof(CardModel),"OnPlayWrapper",prefix:nameof(CardBefore),postfix:nameof(CardTask));
@@ -56,10 +63,18 @@ internal static class Patches
         Patch(typeof(ForgeCmd),"Forge",postfix:nameof(ForgedAfter));
         Patch(typeof(DivineRight),"AfterRoomEntered",postfix:nameof(DivineAfter));
         Patch(typeof(NCombatCardPile),"OnRelease",postfix:nameof(PileBrowsed));
+        Patch(typeof(NClickableControl),"OnPressHandler",prefix:nameof(EndTurnPointerInput),parameters:[]);
+        Patch(typeof(NClickableControl),"OnReleaseHandler",prefix:nameof(EndTurnPointerInput),parameters:[]);
+        Patch(typeof(NEndTurnButton),nameof(NEndTurnButton.CallReleaseLogic),prefix:nameof(EndTurnInput),parameters:[]);
+        Patch(typeof(NEndTurnButton),nameof(NEndTurnButton.SecretEndTurnLogicViaFtue),prefix:nameof(EndTurnInput),parameters:[]);
         NativeDisplayTrace.Install(h);
         NativePhaseRetirement.Install(h);
-        h.Patch(AccessTools.DeclaredMethod(typeof(NRunMusicController),nameof(NRunMusicController.UpdateMusicParameter)),
-            postfix:new HarmonyMethod(typeof(CreaturePresentation),nameof(CreaturePresentation.MusicUpdated)));
+        ContentPresentation.Install(h);
+        NativeSpawnPresentation.Install(h);
+        BattleEnd.Install(h);
+        CombatMusic.Install(h);
+        CombatLoops.Install(h);
+        EnemyScenePresentation.Install(h);
         DisplayAssets.Install(h);
         var transform=typeof(CardCmd).GetMethods().Single(m=>m.Name=="Transform"&&m.ReturnType==typeof(Task<IEnumerable<CardPileAddResult>>));
         h.Patch(transform,postfix:new HarmonyMethod(typeof(Patches),nameof(TransformedAfter)));
@@ -76,7 +91,7 @@ internal static class Patches
         Patch(typeof(NPlayerTurnBanner),"Create",prefix:nameof(TurnBanner),parameters:[typeof(int)]);
         Patch(typeof(NEnemyTurnBanner),"Create",prefix:nameof(EnemyBanner),parameters:[]);
         Patch(typeof(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom),"OnCombatSetUp",postfix:nameof(OpeningRoomVisible),parameters:[typeof(CombatState)]);
-        Patch(typeof(NCreature),"StartReviveAnim",prefix:nameof(TestSubjectRevive),postfix:nameof(OstyReviveHud),parameters:[]);
+        Patch(typeof(NCreature),"StartReviveAnim",prefix:nameof(RetainedEnemyRevive),postfix:nameof(OstyReviveHud),parameters:[]);
         h.Patch(AccessTools.DeclaredMethod(typeof(SfxCmd),nameof(SfxCmd.PlayDeath),[typeof(MonsterModel)]),
             postfix:new HarmonyMethod(typeof(CreaturePresentation),nameof(CreaturePresentation.TestSubjectDeathSound)));
         var turnState=AccessTools.TypeByName("MegaCrit.Sts2.Core.Combat.CombatTurnState")??throw new MissingMemberException("CombatTurnState");
@@ -94,6 +109,8 @@ internal static class Patches
         CombatManager.Instance.CombatWon+=room=>Runtime.Guard(()=>BattleEnd.Won(room));
     }
     private static void Menu(NMainMenu __instance)=>Runtime.Menu(__instance);
+    private static bool EndTurnPointerInput(NClickableControl __instance)=>__instance is not NEndTurnButton||EndTurnInput();
+    private static bool EndTurnInput()=>!PlayerLoop.Active;
     private static void FreshBefore(RunState __0)=>Runtime.Guard(()=>TestEncounter.BeforeNew(__0));
     private static void Fresh(RunState __0)
     {
@@ -111,8 +128,14 @@ internal static class Patches
     {if(!PlayerLoop.Active&&!__1)__result=Recorder.NativeSaved(__instance,__0,__result);}
     private static void EntryBefore(MapCoord __0,object? __1,bool __2){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.BeginEntry(__0,__1 is not null,__2));}
     private static void Entry(Task __result){if(!PlayerLoop.Active)Runtime.Guard(()=>Recorder.Entry(__result));}
-    private static bool Queue(GameAction __0)
+    private static bool Queue(ActionQueueSynchronizer __instance,GameAction __0)
     {
+        if(__0 is UsePotionAction {WasEnqueuedInCombat:false} use&&(RunPlayback.Active||RunRecording.Enabled))
+        {
+            var allowed=!RunPlayback.Active;
+            Runtime.Guard(()=>allowed=RunPotionUses.Queue(use));
+            return allowed;
+        }
         if(__0 is DiscardPotionGameAction {WasEnqueuedInCombat:false} discard&&(RunPlayback.Active||RunRecording.Enabled))
             return RunRewardPotions.Queue(discard);
         if(RunPlayback.Active&&__0 is VoteToMoveToNextActAction actVote)
@@ -138,6 +161,14 @@ internal static class Patches
             if(__0 is not (GenericHookGameAction or ReadyToBeginEnemyTurnAction))Runtime.Guard(()=>throw new InvalidDataException("unsupported-action-"+__0.GetType().Name));
             return true;
         }
+        if(Recorder.Active&&__0.ActionType==GameActionType.CombatPlayPhaseOnly&&
+            __instance.CombatState is ActionSynchronizerCombatState.NotPlayPhase or ActionSynchronizerCombatState.EndTurnPhaseOne)
+        {
+            // The synchronizer resubmits deferred requests in PlayPhase. Requests
+            // during EndTurnPhaseOne are cancelled by the native player queue.
+            Runtime.Log("recording-native-input-outside-play-phase",new{Action=__0.GetType().Name,Phase=__instance.CombatState.ToString()});
+            return true;
+        }
         Runtime.Guard(()=>ActionMonitor.Queue(__0));return true;
     }
     private static void ActionTask(GameAction __instance,ref Task __result)
@@ -145,6 +176,11 @@ internal static class Patches
         if(__instance is DiscardPotionGameAction {WasEnqueuedInCombat:false} discard)
         {__result=RunRewardPotions.Observe(discard,__result);return;}
         var task=__result;Runtime.Guard(()=>ActionMonitor.ActionTask(__instance,task));
+    }
+    private static void UsePotionTask(UsePotionAction __instance,ref Task __result)
+    {
+        if(!__instance.WasEnqueuedInCombat){__result=RunPotionUses.Observe(__instance,__result);return;}
+        ActionTask(__instance,ref __result);
     }
     private static void MapTask(MoveToMapCoordAction __instance,Task __result)=>Runtime.Guard(()=>RunPlayback.MapTask(__instance,__result));
     private static void ActionStarted(GameAction __instance)=>Runtime.Guard(()=>ActionMonitor.Started(__instance));
@@ -155,8 +191,9 @@ internal static class Patches
         if(Observing&&LiveState.Format<4)Runtime.Guard(()=>Codec.Require(!isAutoPlay&&ReferenceEquals(__instance,ActionMonitor.Pending?.Card),"incomplete-unsupported-autoplay-chain"));
         else if(Observing&&isAutoPlay)Runtime.Log("derived-auto-card",new{Model=__instance.Id.ToString(),OwnerOperation=ActionMonitor.Pending?.Template.Kind.ToString(),RecordedAsManualInput=false});
     }
-    private static void PotionTask(PotionModel __instance,Task __result){if(Observing)Runtime.Guard(()=>ActionMonitor.PotionTask(__instance,__result));}
-    private static bool ManualPotion()=>!PlayerLoop.Active||PlayerLoop.Dispatching;
+    private static void PotionTask(PotionModel __instance,Task __result)
+    {if(Observing&&!RunPotionUses.OwnsEffect(__instance))Runtime.Guard(()=>ActionMonitor.PotionTask(__instance,__result));}
+    private static bool ManualPotion(PotionModel __instance)=>!PlayerLoop.Active||PlayerLoop.Dispatching||RunPotionUses.CanDrive(__instance);
     private static void Choice(){if(Observing&&LiveState.Format<4)Runtime.Guard(()=>throw new InvalidDataException("incomplete-unsupported-player-choice"));}
     private static void Spawn(CombatState __instance,MonsterModel __0,CombatSide __1)
     {
@@ -242,7 +279,7 @@ internal static class Patches
     private static void OpeningRoomVisible(MegaCrit.Sts2.Core.Nodes.Rooms.NCombatRoom __instance,CombatState __0)=>Runtime.Guard(()=>
     {NativeSeek.OpeningRoomVisible(__instance,__0);RunOpening.TestCombatEntryStop(__instance,__0);});
     private static void OstyReviveHud(NCreature __instance)=>Runtime.Guard(()=>CreaturePresentation.VerifyNativeOstyRevive(__instance));
-    private static void TestSubjectRevive(NCreature __instance)=>Runtime.Guard(()=>CreaturePresentation.TestSubjectReviveStarted(__instance));
+    private static void RetainedEnemyRevive(NCreature __instance)=>Runtime.Guard(()=>CreaturePresentation.RetainedEnemyReviveStarted(__instance));
     private static void EndBefore(){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(BattleEnd.EndStarted);}
     private static void EndTask(Task __result){if(Recorder.Active||PlayerLoop.Active)Runtime.Guard(()=>BattleEnd.Track(__result));}
     private static bool RewardUi(MegaCrit.Sts2.Core.Rooms.CombatRoom __0)
@@ -267,6 +304,7 @@ internal static class Patches
     }
     private static void Cancel(GameAction __instance)
     {
+        if(__instance is UsePotionAction {WasEnqueuedInCombat:false} use){Runtime.Guard(()=>RunPotionUses.Cancelled(use));return;}
         if(NativeSeek.Enabled){Runtime.Guard(()=>ActionMonitor.Cancelled(__instance));return;}
         if(!PlayerLoop.ChoiceAbort&&ReferenceEquals(__instance,ActionMonitor.Pending?.Action))Runtime.Guard(()=>throw new InvalidDataException("normal-operation-cancelled"));
     }
@@ -290,6 +328,7 @@ internal static class Patches
     }
     private static bool PauseMenuExit(ref Task __result)
     {if(!PlayerLoop.Active){Runtime.Guard(RunRecording.SaveExitIntent);return true;}
-        if(PlayerLoop.TearingDown)return true;__result=PlayerLoop.ExitFromMenu("pause-save-and-quit",callerWaitsForTeardown:true);return false;}
-    private static bool Hotkey()=>!PlayerLoop.Active||(DecisionRoute.Enabled?DecisionRoute.Ready:ChoiceTape.Controllable);
+        __result=PlayerLoop.TearingDown?Task.CompletedTask:PlayerLoop.ExitFromMenu("pause-exit-replay",callerWaitsForTeardown:true);return false;}
+    private static bool Hotkey(InputEvent __0)=>!PlayerLoop.Active||
+        PlayerLoop.FromHistory&&__0.IsAction(MegaInput.pauseAndBack)||(DecisionRoute.Enabled?DecisionRoute.Ready:ChoiceTape.Controllable);
 }

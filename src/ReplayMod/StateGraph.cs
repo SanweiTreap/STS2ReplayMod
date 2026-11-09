@@ -16,6 +16,7 @@ internal sealed class StateGraph
     private readonly Func<object,bool> _data;
     private readonly Func<FieldInfo,bool> _field;
     private readonly Func<Type,bool> _newData;
+    private readonly Func<Type,object?>? _createData;
     private readonly Func<object,string?> _special;
     private readonly Func<object,string,Action> _prepareSpecial;
     private readonly List<object> _bindings=[];
@@ -42,8 +43,10 @@ internal sealed class StateGraph
         throw new InvalidDataException("state-unknown-type:"+key);
     }
     internal StateGraph(IEnumerable<object> roots,Func<object,bool> data,Func<FieldInfo,bool> field,Func<Type,bool> newData,
-        Func<object,string?>? special=null,Func<object,string,Action>? prepareSpecial=null,IEnumerable<Type>? extraTypes=null)
+        Func<object,string?>? special=null,Func<object,string,Action>? prepareSpecial=null,IEnumerable<Type>? extraTypes=null,
+        Func<Type,object?>? createData=null)
     {
+        _createData=createData;
         _data=data;_field=field;_newData=newData;_special=special??(_=>null);_prepareSpecial=prepareSpecial??((_,_)=>throw new InvalidDataException("state-special-not-supported"));
         if(extraTypes is not null)foreach(var t in extraTypes)Register(t);
         var initial=Capture(roots.ToList());Shape=initial.BindingShape;
@@ -177,13 +180,16 @@ internal sealed class StateGraph
         Codec.Require(unresolved.Count==0,"state-logical-binding-unresolved:"+unresolved.Count+":"+string.Join("|",unresolved.Take(8)));
         return map;
     }
-    private static object Create(Type t,StateNode node)=>node.Kind switch
+    private object Create(Type t,StateNode node)=>node.Kind switch
     {
-        "object"=>RuntimeHelpers.GetUninitializedObject(t),
+        "object"=>_createData?.Invoke(t)??RuntimeHelpers.GetUninitializedObject(t),
         "array"=>Array.CreateInstance(t.GetElementType()!,node.Items.Length),
         _=>Activator.CreateInstance(t)??throw new InvalidDataException("state-container-construction")
     };
-    internal Action Apply(StateGraphData saved,IReadOnlyDictionary<int,object>? logicalBindings=null)
+    internal Action Apply(StateGraphData saved,IReadOnlyDictionary<int,object>? logicalBindings=null)=>
+        PrepareApply(saved,logicalBindings)();
+
+    internal Func<Action> PrepareApply(StateGraphData saved,IReadOnlyDictionary<int,object>? logicalBindings=null,bool keepBoundReadonly=false)
     {
         Codec.Require(logicalBindings is not null||saved.BindingShape==Shape&&saved.Bindings==_bindings.Count,"state-initial-binding-shape-mismatch");
         Codec.Require(saved.Nodes.Length>=saved.Bindings&&saved.Nodes.Length<=12000,"state-graph-node-limit");
@@ -240,7 +246,9 @@ internal sealed class StateGraph
                 {
                     var f=fields[j];var value=Value(n.Fields[j].Value,f.FieldType);
                     // Instance readonly data fields are supported by reflection, including newly allocated history entries.
-                    writes.Add(()=>{if(!Equals(f.GetValue(obj),value))f.SetValue(obj,value);});
+                    if(keepBoundReadonly&&i<saved.Bindings&&f.IsInitOnly)
+                        Codec.Require(Equals(f.GetValue(obj),value),"state-bound-readonly-changed:"+FieldKey(f));
+                    else writes.Add(()=>{if(!Equals(f.GetValue(obj),value))f.SetValue(obj,value);});
                     checks.Add(()=>Codec.Require(Equals(f.GetValue(obj),value),"state-readback-field:"+FieldKey(f)));
                 }
             }
@@ -271,8 +279,11 @@ internal sealed class StateGraph
             }
             else Codec.Require(n.Kind=="binding","state-invalid-node-kind");
         }
-        // Validate the entire graph before touching any live data. A later application error exits playback.
-        foreach(var write in writes)write();
-        return ()=>{foreach(var check in checks)check();};
+        // Planning never writes into live game objects.
+        return ()=>
+        {
+            foreach(var write in writes)write();
+            return ()=>{foreach(var check in checks)check();};
+        };
     }
 }

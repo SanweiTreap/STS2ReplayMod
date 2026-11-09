@@ -1,10 +1,13 @@
 using System.Text.Json;
 using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.CardSelection;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
+using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Saves.Runs;
@@ -19,12 +22,19 @@ internal static class RunChoices
         h.Patch(AccessTools.Method(typeof(NCardGridSelectionScreen),"CardsSelected"),postfix:new HarmonyMethod(typeof(RunChoices),nameof(Deck)));
         h.Patch(AccessTools.DeclaredMethod(typeof(NChooseACardSelectionScreen),"CardsSelected",[]),
             postfix:new HarmonyMethod(typeof(RunChoices),nameof(ChooseOne)));
+        h.Patch(AccessTools.DeclaredMethod(typeof(NChooseABundleSelectionScreen),"CardsSelected",[]),
+            postfix:new HarmonyMethod(typeof(RunChoices),nameof(ChooseBundle)));
         foreach(var (type,methods) in new[]{(typeof(NCardRewardSelectionScreen),new[]{"SelectCard","OnAlternateRewardSelected"}),
             (typeof(NChooseACardSelectionScreen),new[]{"SelectHolder","OnSkipButtonReleased"}),
+            (typeof(NChooseABundleSelectionScreen),new[]{"OnBundleClicked","CancelSelection","ConfirmSelection"}),
+            (typeof(NSimpleCardSelectScreen),new[]{"OnCardClicked","CompleteSelection"}),
+            (typeof(NDeckEnchantSelectScreen),new[]{"OnCardClicked","ConfirmSelection","CancelSelection","CloseSelection"}),
             (typeof(NDeckUpgradeSelectScreen),new[]{"OnCardClicked","ConfirmSelection","CancelSelection","CloseSelection"}),
             (typeof(NDeckCardSelectScreen),new[]{"OnCardClicked","ConfirmSelection","CancelSelection","CloseSelection"}),
             (typeof(NDeckTransformSelectScreen),new[]{"OnCardClicked","ConfirmSelection","CancelSelection","CloseSelection","CompleteSelection"})})
             foreach(var method in methods)h.Patch(AccessTools.DeclaredMethod(type,method),prefix:new HarmonyMethod(typeof(RunChoices),nameof(Input)));
+        h.Patch(AccessTools.DeclaredMethod(typeof(NDeckEnchantSelectScreen),"PreviewSelection",[typeof(NButton)]),
+            prefix:new HarmonyMethod(typeof(RunChoices),nameof(Input)));
     }
     private static bool Input()=>!RunPlayback.Active||!RunPlayback.NonCombat||RunPlayback.Driving;
     internal static string CardKey(CardModel card)=>card.Id+":"+card.CurrentUpgradeLevel+":"+
@@ -52,6 +62,10 @@ internal static class RunChoices
     private static void Deck(NCardGridSelectionScreen __instance,ref Task<IEnumerable<CardModel>> __result)
     {
         if(!RunRecording.Choosing&&!RunPlayback.NonCombat)return;
+        if(__instance is NSimpleCardSelectScreen or NDeckEnchantSelectScreen)
+        {
+            __result=Grid(__instance,__result);return;
+        }
         if(__instance is not (NDeckUpgradeSelectScreen or NDeckCardSelectScreen or NDeckTransformSelectScreen))
         {
             if(RunPlayback.NonCombat)throw new InvalidDataException("run-unsupported-deck-choice-"+__instance.GetType().Name);
@@ -87,6 +101,56 @@ internal static class RunChoices
             }
         });
     }
+    private static Task<IEnumerable<CardModel>> Grid(NCardGridSelectionScreen screen,Task<IEnumerable<CardModel>> native)
+    {
+        var cards=((IEnumerable<CardModel>)RunPatches.Field(screen,"_cards")!).ToArray();
+        var prefs=(CardSelectorPrefs)RunPatches.Field(screen,"_prefs")!;
+        var enchant=screen as NDeckEnchantSelectScreen;
+        var options=cards.Select(CardKey).Append(JsonSerializer.Serialize(new{
+            prefs.MinSelect,prefs.MaxSelect,prefs.Cancelable,prefs.RequireManualConfirmation,
+            Enchantment=enchant is null?null:((EnchantmentModel)RunPatches.Field(enchant,"_enchantment")!).Id.ToString(),
+            Amount=enchant is null?null:RunPatches.Field(enchant,"_enchantmentAmount")},Codec.Json)).ToArray();
+        return Watch(native,enchant is null?"simple-card-grid":"deck-enchant",options,
+            selected=>selected.Select(c=>Array.FindIndex(cards,v=>ReferenceEquals(v,c))).ToArray(),async decision=>
+        {
+            var chosen=decision.Selected;
+            var closesEnchant=enchant is not null&&chosen.Length==0;
+            Codec.Require(chosen.Distinct().Count()==chosen.Length&&chosen.All(i=>i>=0&&i<cards.Length)&&
+                (closesEnchant?prefs.Cancelable:chosen.Length>=prefs.MinSelect&&chosen.Length<=prefs.MaxSelect)&&
+                (enchant is not null||prefs.RequireManualConfirmation||chosen.Length==prefs.MaxSelect),"run-grid-selection-invalid");
+            await Ready(screen);
+            foreach(var index in chosen)
+            {
+                await RunPlayback.TakePhase("选中卡牌");
+                RunPlayback.Native(()=>AccessTools.DeclaredMethod(screen.GetType(),"OnCardClicked",[typeof(CardModel)]).Invoke(screen,[cards[index]]));
+            }
+            if(enchant is null)
+            {
+                if(prefs.RequireManualConfirmation)
+                {
+                    await RunPlayback.TakePhase(chosen.Length==0?"确认不选牌":"确认选牌");
+                    RunPlayback.Native(()=>AccessTools.DeclaredMethod(typeof(NSimpleCardSelectScreen),"CompleteSelection",[]).Invoke(screen,[]));
+                }
+                return;
+            }
+            if(closesEnchant)
+            {
+                await RunPlayback.TakePhase("取消附魔");
+                RunPlayback.Native(()=>AccessTools.DeclaredMethod(typeof(NDeckEnchantSelectScreen),"CloseSelection",[typeof(NButton)]).Invoke(screen,[null]));
+                return;
+            }
+            var preview=(Control)RunPatches.Field(enchant,prefs.MaxSelect==1?"_enchantSinglePreviewContainer":"_enchantMultiPreviewContainer")!;
+            if(!preview.Visible)
+            {
+                await RunPlayback.TakePhase("预览附魔");
+                RunPlayback.Native(()=>AccessTools.DeclaredMethod(typeof(NDeckEnchantSelectScreen),"PreviewSelection",[typeof(NButton)]).Invoke(screen,[null]));
+            }
+            Codec.Require(preview.Visible,"run-enchant-preview-not-presented");
+            await Runtime.NextFrame();
+            await RunPlayback.TakePhase("确认附魔");
+            RunPlayback.Native(()=>AccessTools.DeclaredMethod(typeof(NDeckEnchantSelectScreen),"ConfirmSelection",[typeof(NButton)]).Invoke(screen,[null]));
+        });
+    }
     private static void ChooseOne(NChooseACardSelectionScreen __instance,ref Task<IEnumerable<CardModel>> __result)
     {
         if(!RunRecording.Choosing&&!RunPlayback.NonCombat)return;
@@ -109,6 +173,28 @@ internal static class RunChoices
                 var holder=row.GetChildren().OfType<NCardHolder>().Single(h=>ReferenceEquals(h.CardModel,card));
                 RunPlayback.Native(()=>AccessTools.DeclaredMethod(typeof(NChooseACardSelectionScreen),"SelectHolder").Invoke(__instance,[holder]));
             }
+        });
+    }
+    private static void ChooseBundle(NChooseABundleSelectionScreen __instance,ref Task<IEnumerable<IReadOnlyList<CardModel>>> __result)
+    {
+        if(!RunRecording.Choosing&&!RunPlayback.NonCombat)return;
+        var bundles=((IReadOnlyList<IReadOnlyList<CardModel>>)RunPatches.Field(__instance,"_bundles")!).ToArray();
+        var options=bundles.Select(b=>JsonSerializer.Serialize(b.Select(CardKey),Codec.Json)).ToArray();
+        __result=Watch(__result,"choose-card-bundle",options,
+            selected=>selected.Select(b=>Array.FindIndex(bundles,v=>ReferenceEquals(v,b))).ToArray(),async decision=>
+        {
+            Codec.Require(decision.Selected is [var index]&&index>=0&&index<bundles.Length,"run-card-bundle-selection-invalid");
+            await Ready(__instance);
+            var row=(Control)RunPatches.Field(__instance,"_bundleRow")!;
+            var bundle=row.GetChildren().OfType<NCardBundle>().Single(b=>ReferenceEquals(b.Bundle,bundles[decision.Selected[0]]));
+            await RunPlayback.TakePhase("预览卡包");
+            RunPlayback.Native(()=>AccessTools.DeclaredMethod(typeof(NChooseABundleSelectionScreen),"OnBundleClicked",[typeof(NCardBundle)]).Invoke(__instance,[bundle]));
+            var preview=(Control)RunPatches.Field(__instance,"_bundlePreviewContainer")!;
+            Codec.Require(preview.Visible,"run-card-bundle-preview-not-presented");
+            await RunPlayback.Wait(()=>!RunPlayback.TweenRunning(__instance,"_cardTween"),"run-card-bundle-preview-animation-pending");
+            await Runtime.NextFrame();
+            await RunPlayback.TakePhase("确认卡包");
+            RunPlayback.Native(()=>AccessTools.DeclaredMethod(typeof(NChooseABundleSelectionScreen),"ConfirmSelection",[typeof(NButton)]).Invoke(__instance,[null]));
         });
     }
     private static async Task<T> Watch<T>(Task<T> native,string kind,string[] options,Func<T,int[]> selected,Func<RunDecision,Task> drive)

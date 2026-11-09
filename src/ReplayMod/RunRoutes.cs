@@ -62,7 +62,7 @@ internal static class RunRoutes
     // evidenced by an actual save path, not inferred from its following text.
     internal static RunOperation? CompletedEventBattle(RunDocument run,RunContinuation point)
     {
-        if(!point.PreFinished||run.Visits.Single(v=>v.Id==point.Visit).RoomType!="Event")return null;
+        if(!point.PreFinished||run.Visits.Single(v=>v.Id==point.Visit) is not {RoomType:"Event",MapType:not "Ancient"})return null;
         var attempt=run.Branches?.Attempts.SingleOrDefault(a=>a.Id==point.Attempt&&a.Visit==point.Visit);
         var save=attempt?.RestoredSave is {} id?run.Branches!.Saves.SingleOrDefault(s=>s.Id==id&&s.Visit==point.Visit&&s.PreFinished):null;
         var source=save?.Path.LastOrDefault();
@@ -74,6 +74,19 @@ internal static class RunRoutes
             next is {Kind:"event-return"}&&next.Visit==point.Visit&&next.Attempt==point.Attempt,
             "run-event-completed-load-anchor-missing");
         return battle;
+    }
+    internal static RunOperation? CompletedAncientChoice(RunDocument run,RunContinuation point)
+    {
+        if(point is not {PreFinished:true,Status:"native-continue",BeforeOperation:>1}||
+            run.Visits.Single(v=>v.Id==point.Visit) is not {RoomType:"Event",MapType:"Ancient",Model:not null})return null;
+        var attempt=run.Branches?.Attempts.SingleOrDefault(a=>a.Id==point.Attempt&&a.Visit==point.Visit);
+        var save=attempt?.RestoredSave is {} id?run.Branches!.Saves.SingleOrDefault(s=>s.Id==id&&s.Visit==point.Visit&&
+            s.Attempt==attempt.Parent&&s.PreFinished&&s.SaveKey==point.SaveKey):null;
+        var choice=run.Operations.SingleOrDefault(o=>o.Sequence==point.BeforeOperation-1);
+        var next=run.Operations.SingleOrDefault(o=>o.Sequence==point.BeforeOperation);
+        return save is not null&&choice is {Kind:"event-choice",Status:"complete",After:not null}&&choice.Visit==point.Visit&&
+            choice.Attempt==save.Attempt&&save.Path.LastOrDefault()==(choice.SourceSequence??choice.Sequence)&&
+            next is {Kind:"event-proceed",Status:"complete",Before:not null}&&next.Visit==point.Visit&&next.Attempt==point.Attempt?choice:null;
     }
     internal static RunOperation? CompletedMapBattle(RunDocument run,RunContinuation point)
     {
@@ -89,7 +102,8 @@ internal static class RunRoutes
         var next=run.Operations.SingleOrDefault(o=>o.Sequence==point.BeforeOperation);
         Codec.Require(battle is {Status:"complete",Clip:not null,Battle.Completion:"victory"}&&battle.Battle.Entry!="event"&&
             save!.Attempt==attempt!.Parent&&battle.Visit==point.Visit&&battle.Battle.Act==visit.Act&&
-            next is {Kind:"reward" or "proceed" or "act-proceed" or "reward-discard-potion"}&&next.Visit==point.Visit&&next.Attempt==point.Attempt,
+            (next is {Kind:"reward" or "proceed" or "act-proceed" or "reward-discard-potion"} or
+                {Kind:"use-potion",Argument.PotionUse.Context:"rewards"})&&next.Visit==point.Visit&&next.Attempt==point.Attempt,
             "run-completed-map-load-anchor-missing");
         return battle;
     }

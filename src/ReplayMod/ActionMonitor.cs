@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Runs;
 
 namespace ReplayMod;
 
@@ -110,9 +112,14 @@ internal static class ActionMonitor
         // resources or changed piles. This is the real boundary even when the executor stays busy.
         if(Pending is {} previous&&!ReferenceEquals(previous,operation))
         {
-            Codec.Require(previous.Template.Kind!=OperationKind.EndTurn&&LiveState.InputPhase&&!BattleEnd.Ending&&
+            var crossedTurn=previous.Template.Kind==OperationKind.EndTurn;
+            // Releasing the native player queue can run this input synchronously
+            // before StartTurn returns, after all gameplay turn-start hooks.
+            var readyForNextTurn=crossedTurn&&Recorder.Active&&RunManager.Instance.ActionQueueSynchronizer.CombatState==ActionSynchronizerCombatState.PlayPhase&&
+                Generation>previous.Generation&&LiveState.Turn==previous.Template.Turn+1&&!ChoiceTape.Waiting;
+            Codec.Require((!crossedTurn||readyForNextTurn)&&LiveState.InputPhase&&!BattleEnd.Ending&&
                 Success(previous.ActionTask)&&EffectSucceeded(previous)&&previous.DerivedTasks.All(Success),"queued-action-before-prior-semantic-boundary");
-            Complete(previous,false,"before-next-action");
+            Complete(previous,false,crossedTurn?"before-next-turn-action":"before-next-action");
         }
         Pending=operation;operation.Executing=true;operation.Generation=Generation;
         operation.Started=Stopwatch.GetTimestamp();operation.ChoiceWaitAtStart=ChoiceTape.WaitingSeconds;

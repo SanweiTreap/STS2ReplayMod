@@ -19,11 +19,18 @@ internal sealed class CombatIdentityRegistry<T> where T:class
         _ids.Add(unit,identity);NextIdentity++;
     }
     internal bool Contains(T unit,uint? id)=>id.HasValue&&_ids.TryGetValue(unit,out var known)&&known==id.Value;
-    internal bool Matches(uint nativeNext,IEnumerable<T> current,Func<T,uint?> identity,Func<T,bool> alive)
+    internal bool Matches(uint nativeNext,IEnumerable<T> current,Func<T,uint?> identity,Func<T,bool> alive,
+        IEnumerable<T>? escaped=null)
     {
-        var units=current.ToArray();var present=new HashSet<T>(units,ReferenceEqualityComparer.Instance);
-        return units.Length<=128&&nativeNext==NextIdentity&&units.All(c=>Contains(c,identity(c)))&&
-            units.Select(identity).Distinct().Count()==units.Length&&!Known.Any(c=>!present.Contains(c)&&alive(c));
+        var units=current.ToArray();
+        var accountedFor=new HashSet<T>(units,ReferenceEqualityComparer.Instance);
+        if(units.Length>128||nativeNext!=NextIdentity||accountedFor.Count!=units.Length||
+            units.Select(identity).Distinct().Count()!=units.Length||!units.All(c=>Contains(c,identity(c))))return false;
+        // A missing living unit must be accounted for by the native escape list.
+        // Its ID stays reserved, but it can no longer be resolved as a target.
+        foreach(var unit in escaped??[])
+            if(!alive(unit)||!Contains(unit,identity(unit))||!accountedFor.Add(unit))return false;
+        return !Known.Any(c=>!accountedFor.Contains(c)&&alive(c));
     }
     internal T Resolve(IEnumerable<T> current,uint identity,Func<T,string> model,string expectedModel)
     {

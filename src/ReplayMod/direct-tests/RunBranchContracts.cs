@@ -56,6 +56,25 @@ internal static class RunBranchContracts
                 Need(RunRoutes.CompletedMapBattle(view,view.Continuations.Single() with{PreFinished=false}) is null,"unfinished-load-guessed-as-completed");
             }
         });
+        Test("completed-ancient-load-binds-state-change-to-exact-observed-save-and-proceed",()=>
+        {
+            var sample=Fresh();
+            sample.Visits[1]=sample.Visits[1] with{Act=1,MapType="Ancient",RoomType="Event",Model="EVENT.DARV"};
+            RunRoutes.StartAttempt(sample,2,null,null,"entry");
+            var choice=Add(sample,2,"event-choice","DARV.pages.INITIAL.options.BLACK_STAR");sample.Operations[0]=choice with{After="before-load"};
+            RunRoutes.Observe(sample,2,1,[1],"disk","native","key",true);
+            Add(sample,2,"event-proceed","discarded-before-load");
+            Need(RunRoutes.Restore(sample,"native") is not null,"ancient-native-save-not-matched");
+            sample.Continuations.Add(new(DateTimeOffset.UtcNow,2,true,"key","native-continue",3,sample.Branches!.ActiveAttempt));
+            var proceed=Add(sample,2,"event-proceed","PROCEED");sample.Operations[2]=proceed with{Before="after-load"};
+            var view=RunRoutes.Playback(sample);
+            Need(RunRoutes.CompletedAncientChoice(view,view.Continuations.Single())?.SourceSequence==1&&
+                RunRoutes.CompletedEventBattle(view,view.Continuations.Single()) is null&&RunStore.ResourceDiscontinuities(view).Length==0&&
+                RunStore.ContinueBefore(view,view.Continuations.Single())==2,
+                "native-ancient-load-not-recognized");
+            var unrelated=view with{Continuations=[view.Continuations.Single() with{SaveKey="different-save"}]};
+            Need(RunStore.ResourceDiscontinuities(unrelated).SequenceEqual(new[]{2}),"unproven-ancient-transition-accepted");
+        });
         RunRoutes.StartAttempt(run,2,1,null,"entry");var point=RunRoutes.Observe(run,2,2,[1,2],"disk","load","semantic",false);
         Add(run,2,"treasure-open","offer");Add(run,2,"treasure-pick","A");
         var original=Codec.Bytes(run.Operations);

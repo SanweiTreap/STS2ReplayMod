@@ -156,7 +156,7 @@ internal static class RunEventCombat
         _restoredBefore=()=>RunPlayback.CompareBefore(operation);
         try
         {
-            await PlayerLoop.LoadComputedContinuation(json);
+            await PlayerLoop.LoadComputedContinuation(json,PlayerLoop.ComputedLoadKind.EventBattle);
             Codec.Require(_restoredBefore is null,"computed-event-load-did-not-reach-return");
             Runtime.Log("run-computed-event-continuation",new{point.Visit,point.Attempt,RecordedLoadSaveKey=point.SaveKey,SourceSequence=source,
                 SnapshotSHA256=Codec.Hash(System.Text.Encoding.UTF8.GetBytes(json)),Source="native-ToSave-at-this-playback-save-boundary",

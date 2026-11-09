@@ -5,7 +5,9 @@ using System.Text.RegularExpressions;
 namespace ReplayMod;
 
 public sealed record RunDecision(string Kind,string[] Options,int[] Selected);
-public sealed record RunArgument(int? Row=null,int? Col=null,int? RewardIndex=null,string? RewardKey=null,string? Option=null);
+public sealed record RunPotionUse(int Slot,string Model,int PlayerIndex,string Context);
+public sealed record RunArgument(int? Row=null,int? Col=null,int? RewardIndex=null,string? RewardKey=null,string? Option=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] RunPotionUse? PotionUse=null);
 public sealed record RunOperation(int Sequence,int Visit,string Kind,RunArgument Argument,string? Before,string? After,
     string Status,RunDecision[] Decisions,string? Clip=null,BattleRecording? Battle=null,bool? Success=null,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? Progress=null,
@@ -40,6 +42,9 @@ public sealed record RunStartInput(string Character,string Seed,string[] Acts,st
 {
     internal const string IroncladBlockDeck="ironclad-block-deck-v1";
     internal const string IroncladRewardsTest="ironclad-rewards-test-v1";
+    internal const string IroncladBundleEnchantTest="ironclad-bundle-enchant-test-v1";
+    internal const string IroncladSeaGlassTest="ironclad-sea-glass-test-v1";
+    internal const string IroncladAncientEnchantTest="ironclad-ancient-enchant-test-v1";
 }
 public sealed record RunLifecycleEvent(string Kind,DateTimeOffset At,string Source,int Visit,int Act,int BeforeOperation,int? Attempt,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] string? State=null);
@@ -72,12 +77,25 @@ public sealed record RunEnvelope(string SHA256,RunDocument Data);
 
 internal sealed class RunStore(string root)
 {
-    internal const int Cap=64*1024*1024;
+    internal static int FirstBattleIndex(RunDocument run)=>run.Operations.FindIndex(o=>o is {Kind:"battle",Status:"complete",Clip:not null}&&o.Battle?.Entry!="event");
+    internal static bool HasNativeOpening(RunDocument run)=>run.Opening is not null&&run.Operations.FirstOrDefault() is
+        {Kind:"event-choice",Status:"complete"} op&&run.Visits.Any(v=>v.Id==op.Visit&&v.Model=="EVENT.NEOW"&&v.MapType=="Ancient")&&FirstBattleIndex(run)>=0;
+
+    internal const string NonCombatPotionDiscard="run-discard-potion";
+    internal const string FinalEventPotionContext="final-event";
+    internal static bool IsNativeFinalEventEntry(RoomVisit visit,RunOperation operation)=>
+        visit is {Act:2,MapType:"Victory",RoomType:"Event",Model:"EVENT.THE_ARCHITECT"}&&operation.Visit==visit.Id&&
+        operation.Status=="complete"&&(operation.Kind=="event-choice"||
+            operation is {Kind:NonCombatPotionDiscard,Argument.Option:FinalEventPotionContext});
+
+    // Keep the observed three-act branch when a real Continue starts a new attempt.
+    internal const int Cap=96*1024*1024;
     internal static int ContinueBefore(RunDocument run,RunContinuation point)
     {
         Codec.Require(point.PreFinished&&point.Status=="native-continue"&&run.Visits.Any(v=>v.Id==point.Visit),"run-unsupported-continue-boundary");
         var eventBattle=RunRoutes.CompletedEventBattle(run,point);
-        Codec.Require(eventBattle is not null||run.Visits.Single(v=>v.Id==point.Visit).RoomType is "Monster" or "Elite" or "Boss","run-unsupported-continue-boundary");
+        Codec.Require(eventBattle is not null||RunRoutes.CompletedAncientChoice(run,point) is not null||
+            run.Visits.Single(v=>v.Id==point.Visit).RoomType is "Monster" or "Elite" or "Boss","run-unsupported-continue-boundary");
         if(point.BeforeOperation is {} recorded)
         {
             Codec.Require(recorded>=1&&recorded<=run.Operations.Count+1&&
@@ -100,7 +118,7 @@ internal sealed class RunStore(string root)
         if(first is not {Kind:"act-proceed",Status:"complete",After:not null}||
             next is not {Kind:"event-choice",Status:"complete",Before:not null}||next.Argument.Option!="THE_ARCHITECT.dialogue.0"||
             !run.Visits.Any(v=>v.Id==first.Visit&&v is {Act:2,RoomType:"Boss"})||
-            !run.Visits.Any(v=>v.Id==next.Visit&&v is {Act:2,MapType:"Victory",RoomType:"Event",Model:"EVENT.THE_ARCHITECT"}))return false;
+            !run.Visits.Any(v=>IsNativeFinalEventEntry(v,next)))return false;
         var after=JsonNode.Parse(first.After);var before=JsonNode.Parse(next.Before);
         if(after?["event_state"] is not JsonObject entry||before?["event_state"] is not JsonObject ready||
             entry["Model"]?.GetValue<string>()!="EVENT.THE_ARCHITECT"||ready["Model"]?.GetValue<string>()!="EVENT.THE_ARCHITECT"||
@@ -115,9 +133,31 @@ internal sealed class RunStore(string root)
     }
     internal static bool HasUnrecordedAfter(RunDocument run,int start)=>run.Operations.Any(o=>o.Sequence>=start&&
         (o.Kind=="gap"||o.Status!="complete"));
+    internal static bool ResourcesMatch(string expected,string actual)
+    {
+        if(expected==actual)return true;
+        // Native save/load omits empty LocString variable maps in event-choice history.
+        // Keep nonempty variables and every other resource or RNG field in the comparison.
+        static JsonNode? Normalize(string json)
+        {
+            var root=JsonNode.Parse(json);
+            if(root is not JsonObject obj||obj["map_point_history"] is not JsonArray acts)return root;
+            foreach(var act in acts.OfType<JsonArray>())
+                foreach(var entry in act.OfType<JsonObject>())
+                    if(entry["player_stats"] is JsonArray players)
+                        foreach(var player in players.OfType<JsonObject>())
+                            if(player["event_choices"] is JsonArray choices)
+                                foreach(var choice in choices.OfType<JsonObject>())
+                                    if(choice["variables"] is JsonObject {Count:0})choice.Remove("variables");
+            return root;
+        }
+        if(!expected.Contains("\"variables\":{}",StringComparison.Ordinal)&&!actual.Contains("\"variables\":{}",StringComparison.Ordinal))return false;
+        return JsonNode.DeepEquals(Normalize(expected),Normalize(actual));
+    }
     internal static int[] ResourceDiscontinuities(RunDocument run)=>run.Operations.Zip(run.Operations.Skip(1))
         .Where(pair=>pair.First is {Status:"complete",After:not null}&&pair.Second is {Status:"complete",Before:not null}&&
-            pair.First.After!=pair.Second.Before&&!NativeFinalOpening(run,pair.First,pair.Second))
+            !ResourcesMatch(pair.First.After,pair.Second.Before)&&!NativeFinalOpening(run,pair.First,pair.Second)&&
+            !run.Continuations.Any(c=>c.BeforeOperation==pair.Second.Sequence&&RunRoutes.CompletedAncientChoice(run,c)==pair.First))
         .Select(pair=>pair.Second.Sequence).ToArray();
     internal void Save(RunDocument run)
     {
@@ -139,6 +179,12 @@ internal sealed class RunStore(string root)
         Codec.Require(run.Format==1&&Regex.IsMatch(run.Id,"^[a-f0-9]{32}$")&&run.Visits.Count<=256&&run.Operations.Count<=2048,"unsupported-run-file");
         Codec.Require(run.Operations.Select(o=>o.Sequence).SequenceEqual(Enumerable.Range(1,run.Operations.Count)),"run-operation-order");
         Codec.Require(run.Operations.All(o=>run.Visits.Any(v=>v.Id==o.Visit)),"run-operation-visit-missing");
+        Codec.Require(run.Operations.All(o=>o.Kind=="use-potion"?
+            o.Argument.PotionUse is {Slot:>=0 and <16,PlayerIndex:0} potion&&potion.Model is {Length:>7 and <=128}&&
+                potion.Model.StartsWith("POTION.",StringComparison.Ordinal)&&
+                (potion.Context is "rewards" or "map" or "rest" or "treasure" or "merchant" or "merchant-inventory" or "event")&&
+                (o.Status!="complete"||o is {Before.Length:>0,After.Length:>0}):
+            o.Argument.PotionUse is null),"run-potion-use-argument-invalid");
         Codec.Require(run.Operations.All(o=>o.Terminal is null||o is {After:not null,Status:"complete"}&&
             (o is {Terminal:"victory",Kind:"event-choice"}&&
                 run.Visits.Any(v=>v.Id==o.Visit&&v is {Act:2,MapType:"Victory",RoomType:"Event",Model:"EVENT.THE_ARCHITECT"})||
@@ -151,8 +197,11 @@ internal sealed class RunStore(string root)
             opening.GameMode=="Standard"&&opening.Ascension==0&&opening.Progress.Length>0&&opening.Prefs.Length>0&&
             (opening.Preparation is null?opening.NeowDebugOption is null or "NEW_LEAF":
                 opening.Character=="CHARACTER.IRONCLAD"&&opening.Acts.Length==3&&
-                (opening.Preparation==RunStartInput.IroncladBlockDeck&&opening.NeowDebugOption is null||
-                 opening.Preparation==RunStartInput.IroncladRewardsTest&&opening.NeowDebugOption=="NEOWS_BONES")),"run-opening-input-unsupported");
+                (opening.Preparation==RunStartInput.IroncladBlockDeck&&opening.NeowDebugOption is null or "KALEIDOSCOPE" or "HEFTY_TABLET" or "LARGE_CAPSULE"||
+                 opening.Preparation==RunStartInput.IroncladRewardsTest&&opening.NeowDebugOption=="NEOWS_BONES"||
+                 opening.Preparation==RunStartInput.IroncladBundleEnchantTest&&opening.NeowDebugOption=="SCROLL_BOXES"||
+                 opening.Preparation is RunStartInput.IroncladSeaGlassTest or RunStartInput.IroncladAncientEnchantTest&&
+                    opening.NeowDebugOption=="GOLDEN_PEARL")),"run-opening-input-unsupported");
         Codec.Require(run.Continuations.All(c=>(c.Visit==0||run.Visits.Any(v=>v.Id==c.Visit))&&
             (c.BeforeOperation is null||c.BeforeOperation>=1&&c.BeforeOperation<=run.Operations.Count+1&&
              (c.Visit==0||c.BeforeOperation>run.Operations.Count||run.Operations[c.BeforeOperation.Value-1].Visit==c.Visit))),"run-continuation-position");

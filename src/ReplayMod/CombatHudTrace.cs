@@ -107,6 +107,8 @@ internal static class CombatHudTrace
         if(NCombatRoom.Instance?.Ui?.EndTurnButton is not {} button||!button.IsNodeReady())return;
         var loc=new LocString("gameplay_ui","END_TURN_BUTTON");loc.Add("turnNumber",LiveState.Turn);
         ((MegaLabel)Get(button,"_label")!).SetTextAutoSize(loc.GetFormattedText());
+        button.RefreshEnabled();
+        AccessTools.DeclaredMethod(typeof(NEndTurnButton),"StartOrStopPulseVfx",[]).Invoke(button,null);
     }
     internal sealed class View : IDisposable
     {

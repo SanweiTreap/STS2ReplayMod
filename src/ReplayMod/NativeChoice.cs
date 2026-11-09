@@ -21,6 +21,8 @@ internal static class NativeChoice
 {
     private static bool _driving;
     private static int _inputDepth;
+    private const ulong SmallChoiceClickGuardMilliseconds=351;
+    private static readonly FieldInfo SmallChoiceOpened=AccessTools.Field(typeof(NChooseACardSelectionScreen),"_openedTicks");
     private static object? Field(object o,string name)=>AccessTools.Field(o.GetType(),name)?.GetValue(o);
     private static object? Call(object o,string name,params object?[] args)=>AccessTools.Method(o.GetType(),name).Invoke(o,args);
     internal static void Install(Harmony h)
@@ -130,7 +132,7 @@ internal static class NativeChoice
         else throw new InvalidDataException("route-native-preview-kind-not-supported");
         return (await task).ToArray();
     }
-    internal static async Task WaitReady(ChoiceScope view)
+    internal static async Task WaitReady(ChoiceScope view,Func<bool>? retiringPresentation=null)
     {
         var started=Stopwatch.GetTimestamp();
         if(view.Ui is NCardGridSelectionScreen ui)
@@ -147,7 +149,27 @@ internal static class NativeChoice
         }
         // Native small-choice clicks reject the first 350ms; hand mode animates its backstop for 200ms.
         var minimum=view.Ui is NPlayerHand?.2:.36;
-        while(Stopwatch.GetElapsedTime(started).TotalSeconds<minimum)await Runtime.NextFrame();
+        while(Stopwatch.GetElapsedTime(started).TotalSeconds<minimum)
+        {
+            if(retiringPresentation?.Invoke()==true&&(view.Ui is NPlayerHand||
+                view.Ui is NChooseACardSelectionScreen screen&&screen.IsNodeReady()&&Time.GetTicksMsec()>=SmallChoiceClickGuardMilliseconds))break;
+            await Runtime.NextFrame();
+        }
+    }
+    private static void SelectSmallChoice(NChooseACardSelectionScreen screen,NCardHolder holder)
+    {
+        var now=Time.GetTicksMsec();
+        var opened=(ulong)SmallChoiceOpened.GetValue(screen)!;
+        if(!NativeSeek.RetiringPresentation&&!NativeSeek.RebuildingTurn||
+            now<SmallChoiceClickGuardMilliseconds||now-opened>=SmallChoiceClickGuardMilliseconds)
+        {Call(screen,"SelectHolder",holder);return;}
+        // Retiring replays a verified recorded selection under cover. Let the
+        // native click handler and completion run without its pointer debounce.
+        SmallChoiceOpened.SetValue(screen,now-SmallChoiceClickGuardMilliseconds);
+        try{Call(screen,"SelectHolder",holder);}
+        finally{SmallChoiceOpened.SetValue(screen,opened);}
+        Runtime.Log("retired-small-choice-click-guard",new{NativeSelectHolder=true,GuardMilliseconds=SmallChoiceClickGuardMilliseconds-1,
+            ColdTurn=NativeSeek.RebuildingTurn});
     }
     internal static void Prefix(ChoiceScope view,int stage)
     {
@@ -231,13 +253,13 @@ internal static class NativeChoice
                 else if(e.Kind=="Confirm")Call(hand,"OnSelectModeConfirmButtonPressed",Field(hand,"_selectModeConfirmButton"));
                 else throw new InvalidDataException("unsupported-hand-process-event");
             }
-            else if(ui is NChooseACardSelectionScreen)
+            else if(ui is NChooseACardSelectionScreen smallChoice)
             {
                 if(e.Kind=="Select")
                 {
                     ((NPeekButton)Field(ui,"_peekButton")!).SetPeeking(false);
                     var holder=((Node)Field(ui,"_cardRow")!).GetChildren().OfType<NCardHolder>().Single(h=>ReferenceEquals(h.CardModel,card));
-                    holder.TryGrabFocus();Call(ui,"SelectHolder",holder);
+                    holder.TryGrabFocus();SelectSmallChoice(smallChoice,holder);
                 }
                 else if(e.Kind=="Skip")Call(ui,"OnSkipButtonReleased",Field(ui,"_skipButton"));
                 else throw new InvalidDataException("unsupported-small-choice-event");

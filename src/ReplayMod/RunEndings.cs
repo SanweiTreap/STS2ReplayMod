@@ -23,7 +23,6 @@ internal static class RunEndings
     private static int? _operation;
     private static bool _gameOver;
     private static bool _historyCreated;
-    private static SerializableRun? _actualTerminalRun;
     private static bool _continueInvoking;
     internal static bool GameOverActive=>PlayerLoop.Active&&_gameOver&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState());
     internal static bool DeathActive=>PlayerLoop.Active&&_kind=="death"&&ReferenceEquals(_owner,RunManager.Instance.DebugOnlyGetState());
@@ -35,9 +34,7 @@ internal static class RunEndings
     private static readonly HashSet<Task> ClipTasks=[];
     internal static bool SummaryComplete=>_summary?.IsCompletedSuccessfully==true;
     internal static bool SummaryStarted=>_summary is not null;
-    internal static SerializableRun ActualTerminalRun=>_actualTerminalRun??throw new InvalidDataException("native-terminal-run-not-captured");
-    internal static void ResetSummary(){_summary=null;_summaryAuto=false;_continueInvoking=false;}
-    internal static void Clear(){_owner=null;_kind=null;_state=null;_operation=null;_gameOver=false;_historyCreated=false;_actualTerminalRun=null;_openingModel=null;_opening=null;_openingEntry=null;ResetSummary();ClipTasks.Clear();EndingPlayback.Clear();RunAbandon.Clear();}
+    internal static void Clear(){_owner=null;_kind=null;_state=null;_operation=null;_gameOver=false;_historyCreated=false;_openingModel=null;_opening=null;_openingEntry=null;_summary=null;_summaryAuto=false;_continueInvoking=false;ClipTasks.Clear();EndingPlayback.Clear();RunAbandon.Clear();}
     internal static void Install(Harmony h)
     {
         RunAbandon.Install(h);
@@ -161,7 +158,6 @@ internal static class RunEndings
             // uploads and Continue deletion. Run ONLY the factory against the current
             // isolated manager, using the ACTUAL result of this native OnEnded call.
             RunHistoryUtilities.CreateRunHistoryEntry(__result,isVictory,__instance.IsAbandoned,__instance.NetService.Platform);
-            _actualTerminalRun=__result;
             var history=__instance.History;
             Codec.Require(history is not null&&history.Win==isVictory&&history.WasAbandoned==__instance.IsAbandoned&&
                 (_kind!="death"||_owner.CurrentRoom is CombatRoom room&&history.KilledByEncounter==room.Encounter.Id),

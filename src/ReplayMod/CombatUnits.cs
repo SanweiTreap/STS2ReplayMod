@@ -15,7 +15,13 @@ internal static class CombatUnits
 {
     internal static bool IsOsty(Creature creature)=>LiveState.Format>=8&&creature.Monster is Osty&&ReferenceEquals(creature.PetOwner,LiveState.Player)&&
         creature.Side==CombatSide.Player;
+    internal static bool IsRetainedSegment(Creature creature)=>LiveState.Format>=10&&creature.IsEnemy&&creature.Monster is DecimillipedeSegment&&
+        creature.CombatState?.ContainsCreature(creature)==true&&creature.HasPower<ReattachPower>();
+    internal static bool IsRetainedIllusion(Creature creature)=>LiveState.Format>=10&&creature.IsEnemy&&creature.Monster is EyeWithTeeth or Parafright&&
+        creature.CombatState?.ContainsCreature(creature)==true&&creature.HasPower<IllusionPower>();
     internal static bool Restorable(Creature creature)=>creature.IsAlive||IsOsty(creature)||
+        IsRetainedSegment(creature)&&creature.Monster!.NextMove?.Id is "DEAD_MOVE" or "REATTACH_MOVE"||
+        IsRetainedIllusion(creature)&&creature.GetPower<IllusionPower>() is {IsReviving:true}&&creature.Monster!.NextMove?.Id=="REVIVE_MOVE"||
         LiveState.Format>=10&&creature.IsEnemy&&creature.Monster is TestSubject&&
         creature.CombatState?.ContainsCreature(creature)==true&&creature.HasPower<AdaptablePower>()&&
         creature.Monster.NextMove?.Id=="RESPAWN_MOVE";

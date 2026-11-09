@@ -20,6 +20,12 @@ internal sealed class RetiringPhaseWait(Action<Exception> lateFault)
         if(Active){Skipped++;_ =Observe(timer);return Task.CompletedTask;}
         return Await(timer,_release.Task);
     }
+    internal Task Skip(Task timer)
+    {
+        if(timer.IsCompleted)return timer;
+        _=Observe(timer);
+        return Task.CompletedTask;
+    }
     private async Task Await(Task timer,Task release)
     {
         var winner=await Task.WhenAny(timer,release);

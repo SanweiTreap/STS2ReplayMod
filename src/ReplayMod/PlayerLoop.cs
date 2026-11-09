@@ -17,6 +17,12 @@ namespace ReplayMod;
 internal static class PlayerLoop
 {
     internal static bool Active,Dispatching,TearingDown,Loading,CleaningRoom;
+    internal static bool FromHistory {get;private set;}
+    private static bool _roomJumpTransition;
+    internal static bool RoomJumpInTransition=>_roomJumpTransition;
+    internal static void BeginRoomJumpTransition()=>_roomJumpTransition=true;
+    internal static void CompleteRoomJumpTransition()=>_roomJumpTransition=false;
+    internal static bool HistoryMenuOpen=>FromHistory&&NativeHistoryUi.PauseOpen;
     internal static bool Prequeuing;
     internal static int DispatchIndex=-1;
     private static Clip? _playingClip;
@@ -47,6 +53,7 @@ internal static class PlayerLoop
     internal static void Control(string control)
     {
         var cursor=Cursor;if(!Active||cursor is null||TearingDown)return;
+        if(control is "previous-turn" or "next-turn"){NativeSeek.JumpTurn(control=="next-turn");return;}
         if(EndingPlayback.Active&&control!="stop"){EndingPlayback.Control(control);return;}
         if(RunPlayback.Active&&(RunPlayback.NonCombat||control=="stop"||NativeSeek.Finished&&control is "fine" or "step" or "auto"))
         {RunPlayback.Control(control);return;}
@@ -93,12 +100,12 @@ internal static class PlayerLoop
         if(Active)return;
         if(fromFile){nativeSeek=false;entry="state-file";}
         var exited=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);_exitSignal=exited;
-        Active=true;TearingDown=false;Loading=true;VictoryReached=false;ChoiceAbort=false;IsolatedManager=null;Error=null;Cursor=null;Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;Prequeued.Clear();Committed.Clear();
+        Active=true;FromHistory=entry=="history";TearingDown=false;Loading=true;VictoryReached=false;ChoiceAbort=false;IsolatedManager=null;Error=null;Cursor=null;Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;Prequeued.Clear();Committed.Clear();
         MemorySession? memory=null;var checks=new List<string>();var restored=false;var complete=false;var started=Stopwatch.GetTimestamp();
         try
         {
             Runtime.CheckEnvironment();Codec.Require(RunManager.Instance.DebugOnlyGetState() is null,"open-from-main-menu-only");
-            RunEndings.Clear();
+            RunEndings.Clear();RunRoomEntryCache.Clear();
             if(chain is not null)RunPlayback.Begin(chain,chainStart);
             var clip=Runtime.ReadClip(id);
             Codec.Require(!clip.Operations.Any(o=>o.Defeat)||nativeSeek,"death-playback-requires-native-actions");
@@ -116,7 +123,7 @@ internal static class PlayerLoop
             if(fromOpening)
             {
                 await RunOpening.Load(chain!.Opening!);Loading=false;checks.Add("native-pre-reward-opening");
-                complete=await RunPlayback.Run();checks.Add("native-run-chain");Cursor.Stop();return;
+                complete=await PlayRunChain(chain!,memory);checks.Add("native-run-chain");Cursor.Stop();return;
             }
             if(nativeSeek)
             {
@@ -143,7 +150,7 @@ internal static class PlayerLoop
                     TotalOperations=clip.Operations.Length,ExpectedVictory=clip.Operations[^1].Victory,InitialMatched=true,
                     InitialChoices=(clip.Choices??[]).Count(c=>c.Boundary==0),FixedClipIdRequired=false,DisplayTracePlayed=false,
                     ControlModel="D131-two-modes",PublicPlayPause=false});
-                if(chain is not null){complete=await RunPlayback.Run();checks.Add("native-run-chain");}
+                if(chain is not null){complete=await PlayRunChain(chain,memory);checks.Add("native-run-chain");}
                 else {await NativeSeek.Run();complete=NativeSeek.AllMatched;checks.Add("native-complete-single-battle");}
                 Cursor.Stop();return;
             }
@@ -204,6 +211,14 @@ internal static class PlayerLoop
             {
                 if(memory is not null){await ClearRoom(memory);await RunPlayback.DrainAfterSceneExit();await RunEndings.DrainAfterSceneExit();await memory.Drain();restored=memory.Restore();Codec.Require(restored,"normal-Continue-or-original-progress-changed");}
                 var load=(Task)AccessTools.Method(typeof(NGame),"LoadMainMenu",[typeof(bool)]).Invoke(NGame.Instance,[false])!;await load;
+                var transition=Runtime.Game.Transition;
+                if(_roomJumpTransition&&(transition.InTransition||transition.MouseFilter==Godot.Control.MouseFilterEnum.Stop))
+                {
+                    // Scene replacement leaves the global transition node in place.
+                    await transition.RoomFadeIn();
+                    transition.MouseFilter=Godot.Control.MouseFilterEnum.Ignore;
+                    Runtime.Log("run-room-jump-transition-released",new{TransitionEnded=!transition.InTransition,MenuInputRestored=true});
+                }
                 if(Error is null)Runtime.Status=complete?"回放完成并退出。正常Continue保留，可再次打开":"回放已停止。正常Continue保留，可再次打开";
             }
             catch(Exception ex){Error="teardown-"+ex.GetType().Name;Runtime.Status="退出回放异常："+Error;Runtime.Log("teardown-failed",new{Reason=Error});}
@@ -214,11 +229,59 @@ internal static class PlayerLoop
                 Runtime.Log("playback-closed",new{Id=id,Entry=entry,Core=NativeSeek.Enabled?"native-actions":nativeSeek?"not-started":"legacy-tool",TotalOperations=_playingClip?.Operations.Length,
                     Checks=checks,Position=NativeSeek.Enabled?(int?)NativeSeek.Position:Cursor?.Rebuilding==true?(int?)null:Cursor?.Position,Opening=NativeSeek.Enabled&&NativeSeek.Opening,AllOperationsMatched=complete,VictoryReached,Error,NativeSeek=NativeSeek.Enabled,OriginalManagerRestored=memory is not null&&ReferenceEquals(SaveManager.Instance,memory.Original),NormalContinueAndOriginalProgressUnchanged=restored,OriginalProgressFileIncluded=true,WallMilliseconds=Stopwatch.GetElapsedTime(started).TotalMilliseconds});
                 if(chain is not null)Runtime.Log("run-playback-closed",new{chain.Id,Complete=complete,Error,OriginalContextRestored=restored});
-                RunPlayback.Clear();Active=false;TearingDown=false;ChoiceAbort=false;Prequeuing=false;DispatchIndex=-1;_playingClip=null;Prequeued.Clear();Committed.Clear();IsolatedManager=null;_memory=null;Ui.ClosePlayback();ActionMonitor.Reset();ChoiceTape.Clear();NativeSeek.Clear();DecisionRoute.Clear();Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;
+                _roomJumpTransition=false;RunRoomEntryCache.Clear();ReplayMap.Clear();RunPlayback.Clear();Active=false;FromHistory=false;TearingDown=false;ChoiceAbort=false;Prequeuing=false;DispatchIndex=-1;_playingClip=null;Prequeued.Clear();Committed.Clear();IsolatedManager=null;_memory=null;Ui.ClosePlayback();ActionMonitor.Reset();ChoiceTape.Clear();NativeSeek.Clear();DecisionRoute.Clear();Checkpoints.Clear();_roster=null;_fileBindings=null;InjectOnContinue=false;
                 OrbState.Reset();await Runtime.FlushLog();
             }
             }
-            finally{exited.TrySetResult();}
+            finally
+            {
+                try{SeekAudio.End();}
+                finally{exited.TrySetResult();}
+            }
+        }
+    }
+
+    private static async Task<bool> PlayRunChain(RunDocument raw,MemorySession memory)
+    {
+        while(true)
+        {
+            var complete=await RunPlayback.Run();
+            if(Cursor?.StopRequested==true||RunPlayback.TakeRoomJump() is not {} jump)return complete;
+            Loading=true;Ui.Refresh();
+            if(Cursor?.StopRequested==true)return false;
+            await ClearRoom(memory);await RunPlayback.DrainAfterSceneExit();
+            if(Cursor?.StopRequested==true)return false;
+
+            ReplayMap.Clear();RunPlayback.Clear();ChoiceTape.Clear();NativeSeek.Clear();
+            _roster=null;_fileBindings=null;Checkpoints.Clear();Prequeued.Clear();Committed.Clear();
+            OrbState.Reset();BattleEnd.Reset();VictoryReached=false;ChoiceAbort=false;
+            memory.Restart();IsolatedManager=memory.Isolated;
+            var clip=jump.Anchor;
+            _playingClip=clip;LiveState.Format=clip.Format;Cursor=new(clip.Operations.Length);
+            RunPlayback.Begin(raw,jump.Target.StartSource,cachedRoom:jump.Cached is null?null:jump.Target);
+            var opening=jump.Target.StartSource==0;
+            var progress=jump.Cached?.Progress??(opening?raw.Opening!.Progress:RunPlayback.InitialProgress());
+            if(progress is not null)MemorySession.ApplyRecordedProgress(progress);
+            if(!opening&&jump.Cached is null){NativeSeek.Start(clip);ChoiceTape.Play(clip);}
+            RunPlayback.BeginRoomLanding(jump);
+            if(jump.Cached is {} cached)
+            {
+                await LoadRunAtAnchor(cached.Checkpoint,clip.Character);
+                Loading=false;
+            }
+            else if(opening)
+            {
+                await RunOpening.Load(raw.Opening!);Loading=false;
+            }
+            else
+            {
+                if(RunPlayback.WarmingRoom)NativeSeek.AutoForWarmup();
+                if(!await NativeSeek.LoadOpening(()=>LoadRoom(clip),async()=>{ChoiceAbort=true;await ClearRoom(memory);}))return false;
+                if(RunPlayback.WarmingRoom)await Runtime.Game.Transition.RoomFadeIn();
+                Loading=false;
+            }
+            if(jump.Direct)await RunPlayback.FinishRoomLanding();
+            if(Cursor.StopRequested)return false;
         }
     }
 
@@ -227,23 +290,29 @@ internal static class PlayerLoop
         Runtime.Log("playback-room-load",new{clip.Id,Reason="open",Position=0});
         OrbState.Reset();
         ActionMonitor.Reset();
-        var parsed=JsonSerializationUtility.FromJson<SerializableRun>(clip.Checkpoint);
+        await LoadRunAtAnchor(clip.Checkpoint,clip.Character);
+        await WaitReady();LiveState.Supported();LiveState.BattleContext(clip);ChoiceTape.AssertBoundary(0);Check("initial",clip.Initial,LiveState.Capture());BattleEnd.Begin();
+        Runtime.Log("playback-character-verified",new{Character=LiveState.Player.Character.Id.ToString(),RecordedCharacter=clip.Character,
+            Relics=LiveState.Player.Relics.Select(r=>r.Id.ToString()).ToArray(),NativeCharacterAssets=true,Authority=clip.Authority});
+        EnsureRoster();
+        if(DecisionRoute.Enabled)await NativeDisplayTrace.WaitForOpeningPresentation();
+    }
+
+    private static async Task LoadRunAtAnchor(string checkpoint,string character)
+    {
+        var parsed=JsonSerializationUtility.FromJson<SerializableRun>(checkpoint);
         Codec.Require(parsed.Success&&parsed.SaveData is not null,"checkpoint-parse");var save=parsed.SaveData!;
-        Codec.Require(save.Players.Count==1&&save.Players[0].CharacterId?.ToString()==clip.Character,"checkpoint-character-mismatch");
+        Codec.Require(save.Players.Count==1&&save.Players[0].CharacterId?.ToString()==character,"checkpoint-character-mismatch");
         var state=RunState.FromSerializable(save);
-        Codec.Require(state.Players.Count==1&&state.Players[0].Character.Id.ToString()==clip.Character,"rebuilt-character-mismatch");
+        Codec.Require(state.Players.Count==1&&state.Players[0].Character.Id.ToString()==character,"rebuilt-character-mismatch");
         await RunManager.Instance.SetUpSavedSingleplayer(state,save);
+        RunOpening.BindBattleAnchor(state,RunPlayback.OpeningInput);
         AccessTools.Property(typeof(RunManager),nameof(RunManager.ShouldSave)).SetValue(RunManager.Instance,false);
         RunManager.Instance.CombatStateSynchronizer.IsDisabled=true;RunManager.Instance.CombatReplayWriter.IsEnabled=false;
         await PreloadManager.LoadRunAssets(state.Players.Select(p=>p.Character));await PreloadManager.LoadActAssets(state.Act);
         RunManager.Instance.Launch();NAudioManager.Instance?.StopMusic();Runtime.Game.RootSceneContainer.SetCurrentScene(NRun.Create(state));
         await RunManager.Instance.GenerateMap();
         await RunManager.Instance.LoadIntoLatestMapCoord(AbstractRoom.FromSerializable(save.PreFinishedRoom,state));
-        await WaitReady();LiveState.Supported();LiveState.BattleContext(clip);ChoiceTape.AssertBoundary(0);Check("initial",clip.Initial,LiveState.Capture());BattleEnd.Begin();
-        Runtime.Log("playback-character-verified",new{Character=LiveState.Player.Character.Id.ToString(),RecordedCharacter=clip.Character,
-            Relics=LiveState.Player.Relics.Select(r=>r.Id.ToString()).ToArray(),NativeCharacterAssets=true,Authority=clip.Authority});
-        EnsureRoster();
-        if(DecisionRoute.Enabled)await NativeDisplayTrace.WaitForOpeningPresentation();
     }
 
     // Continue the existing native run after map travel. Never load the next
@@ -252,9 +321,9 @@ internal static class PlayerLoop
     {
         Loading=true;RunPlayback.NonCombat=false;_roster=null;Checkpoints.Clear();Prequeued.Clear();Committed.Clear();
         _playingClip=clip;LiveState.Format=clip.Format;VictoryReached=false;Cursor=new(clip.Operations.Length);
-        OrbState.Reset();ActionMonitor.Reset();NativeSeek.Start(clip);ChoiceTape.Play(clip);
-        if(RunPlayback.Auto)NativeSeek.Control("auto");
-        else if(RunPlayback.CompletingOperation)NativeSeek.Control("step");
+        OrbState.Reset();ActionMonitor.Reset();NativeSeek.Start(clip,preserveAudio:true);ChoiceTape.Play(clip);
+        if(RunPlayback.WarmingRoom)NativeSeek.AutoForWarmup();
+        else if(RunPlayback.Auto)NativeSeek.Control("auto");
         async Task Load()
         {
             await enter();await WaitReady();LiveState.Supported();LiveState.BattleContext(clip);ChoiceTape.AssertBoundary(0);
@@ -274,19 +343,27 @@ internal static class PlayerLoop
             RunPlayback.CheckStop();throw new InvalidDataException("run-next-battle-opening-stopped");
         }
     }
+    internal enum ComputedLoadKind { MapBattle, EventBattle, Ancient }
+
     // Re-enact an evidenced Load using this playback's OWN native save-boundary
     // result. No recorded battle checkpoint or expected world state enters here.
-    internal static async Task LoadComputedContinuation(string json,bool completedMap=false)
+    internal static async Task LoadComputedContinuation(string json,ComputedLoadKind kind)
     {
         var memory=_memory??throw new InvalidDataException("computed-load-without-memory-session");
         var manager=IsolatedManager;
         Codec.Require(Active&&RunPlayback.Active&&ReferenceEquals(manager,SaveManager.Instance),"computed-load-save-owner");
         var parsed=JsonSerializationUtility.FromJson<SerializableRun>(json);
-        Codec.Require(parsed.Success&&parsed.SaveData?.PreFinishedRoom is {IsPreFinished:true} completed&&
-            (completedMap?completed.ParentEventId is null&&LiveState.CombatRoomType(completed.RoomType):
-                completed is {ParentEventId:not null,ShouldResumeParentEvent:true}),"computed-load-parent-stage");
-        var encounter=parsed.SaveData!.PreFinishedRoom!.EncounterId??throw new InvalidDataException("computed-load-encounter-missing");
-        Codec.Require(completedMap||!ModelDb.GetById<EncounterModel>(encounter).ShouldGiveRewards,"computed-load-extra-reward-stage-unsupported");
+        Codec.Require(parsed.Success&&parsed.SaveData?.PreFinishedRoom is {IsPreFinished:true},"computed-load-not-pre-finished");
+        var completed=parsed.SaveData!.PreFinishedRoom!;
+        Codec.Require(kind switch
+        {
+            ComputedLoadKind.MapBattle=>completed.ParentEventId is null&&completed.EncounterId is not null&&LiveState.CombatRoomType(completed.RoomType),
+            ComputedLoadKind.EventBattle=>completed is {ParentEventId:not null,ShouldResumeParentEvent:true,EncounterId:{} encounter}&&
+                !ModelDb.GetById<EncounterModel>(encounter).ShouldGiveRewards,
+            ComputedLoadKind.Ancient=>completed is {RoomType:RoomType.Event,EventId:{} id}&&ModelDb.GetById<EventModel>(id) is AncientEventModel,
+            _=>false
+        },"computed-load-parent-stage");
+        var returnFromBattle=kind==ComputedLoadKind.EventBattle;
         Loading=true;
         try
         {
@@ -294,7 +371,7 @@ internal static class PlayerLoop
             // The native parent-room Resume owns the ONE subsequent fade-in.
             await Runtime.Game.Transition.RoomFadeOut();RunPlayback.CheckStop();
             await ClearRoom(memory);RunPlayback.CheckStop();
-            if(completedMap)RunPatches.Clear();
+            if(!returnFromBattle)RunPatches.Clear();
             _roster=null;_fileBindings=null;Checkpoints.Clear();Prequeued.Clear();Committed.Clear();OrbState.Reset();BattleEnd.Reset();
             var save=parsed.SaveData!;var state=RunState.FromSerializable(save);
             await RunManager.Instance.SetUpSavedSingleplayer(state,save);RunPlayback.CheckStop();
@@ -303,17 +380,18 @@ internal static class PlayerLoop
             await PreloadManager.LoadRunAssets(state.Players.Select(p=>p.Character));await PreloadManager.LoadActAssets(state.Act);RunPlayback.CheckStop();
             RunManager.Instance.Launch();Runtime.Game.RootSceneContainer.SetCurrentScene(NRun.Create(state));
             await RunManager.Instance.GenerateMap();RunPlayback.CheckStop();
-            if(!completedMap)EventReturnPresentation.Begin(state);
+            if(returnFromBattle)EventReturnPresentation.Begin(state);
             var load=RunManager.Instance.LoadIntoLatestMapCoord(AbstractRoom.FromSerializable(save.PreFinishedRoom,state));
-            RunPlayback.Track(load);if(!completedMap)EventReturnPresentation.TestStopDuringLoad(load);
+            RunPlayback.Track(load);if(returnFromBattle)EventReturnPresentation.TestStopDuringLoad(load);
             await load;
-            Runtime.Log(completedMap?"run-computed-combat-load-settled":"run-computed-event-load-settled",new{NativeLoadCompleted=load.IsCompletedSuccessfully,
+            Runtime.Log(kind switch{ComputedLoadKind.MapBattle=>"run-computed-combat-load-settled",ComputedLoadKind.EventBattle=>"run-computed-event-load-settled",
+                _=>"run-computed-ancient-load-settled"},new{NativeLoadCompleted=load.IsCompletedSuccessfully,
                 StopRequested=Cursor?.StopRequested==true,PlayerLoop.Loading,SameIsolatedSaveManager=ReferenceEquals(manager,SaveManager.Instance)});
             RunPlayback.CheckStop();
-            if(completedMap)await Runtime.Game.Transition.RoomFadeIn();else await EventReturnPresentation.Finish();
+            if(returnFromBattle)await EventReturnPresentation.Finish();else await Runtime.Game.Transition.RoomFadeIn();
             Codec.Require(ReferenceEquals(manager,IsolatedManager)&&ReferenceEquals(manager,SaveManager.Instance),"computed-load-replaced-save-manager");
         }
-        finally{if(!completedMap)EventReturnPresentation.End();Loading=false;}
+        finally{if(returnFromBattle)EventReturnPresentation.End();Loading=false;}
     }
     internal static void ReleaseBattleForTravel()
     {
