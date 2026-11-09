@@ -4,7 +4,7 @@ param(
     [string] $AssemblyPath = 'C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2\data_sts2_windows_x86_64\sts2.dll',
 
     [Parameter()]
-    [string] $OutputRoot = 'C:\Example\STS2ReplayMod-local\decompiled'
+    [string] $OutputRoot
 )
 
 Set-StrictMode -Version Latest
@@ -20,6 +20,9 @@ $DecompilerVersion = '9.1.0.7988'
 $GameInstallRoot = 'C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2'
 $ToolManifestPath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\.config\dotnet-tools.json'))
 $WorkspaceRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
+if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
+    $OutputRoot = Join-Path (Split-Path -Parent $WorkspaceRoot) 'STS2ReplayMod-local\decompiled'
+}
 
 function Get-NormalizedPath {
     param([Parameter(Mandatory)][string] $Path)

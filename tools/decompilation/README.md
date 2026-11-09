@@ -3,7 +3,7 @@
 `Invoke-DecompileSts2.ps1` 为固定的 STS2 `v0.111.0` / commit `41cef1ea` / `sts2.dll` SHA-256 建立版本隔离的本地导航缓存。反编译输出只写到 workspace 外；默认位置为：
 
 ```text
-C:\Example\STS2ReplayMod-local\decompiled\v0.111.0-41cef1ea-0861BFA1\
+<仓库上一级>\STS2ReplayMod-local\decompiled\v0.111.0-41cef1ea-0861BFA1\
 ```
 
 ## 运行

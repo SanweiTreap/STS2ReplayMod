@@ -1,54 +1,26 @@
 # STS2 Replay Mod
 
-《Slay the Spire 2》本地 Replay Mode 项目。目标是在正常游戏中低开销自动录制，并从独立入口观看，提供手动/自动播放、精细/整项前进、后退及后续时间轴导航。
+《Slay the Spire 2》录像模组。单人对局自动录制，通过游戏内「百科大全 → 历史记录」观看。可手动推进、自动播放、后退，以及通过地图和战斗回合控件定位。
 
-目前为开发原型，固定目标 **STS2 public-beta v0.111.0**。**CONTENT-005五角色基础战斗支持已按代表样本阶段验收**：自动录制、独立原生回放、选择界面、已访问操作点恢复和原生续播；已测储君资源/可变牌、球、Osty首次创建/死亡重召及Doom结算。
+这是面向 **STS2 public-beta v0.111.0** 的开发快照。代表性单人三幕录像已从涅奥播到原生胜利详情，并可退出回同一条历史。跨房间及回合跳转已用代表样本验证，首次访问某些旧片落点仍需重建。多人、卡册导入导出与跨版本播放仍在规划。
 
-[RUN-003首段](project-management/investigation-reports/RUN-003-report.md)已验证涅奥开局和整局观看入口：主页“回放”进入整局列表/详情，具备真实奖励前输入的新记录可从开局观看；旧记录保持已有合法起点及分场入口，准备归开发区。铁甲A0新叶样本沿原生初始化、候选/单张变形、地图到首战胜利，状态/RNG匹配；选择中Stop、首战入场途中Stop、重开及战斗Back重做已有证据，菜单/战斗音乐切换已听测。仅此代表范围，其他涅奥奖励/选牌类型、Neow SL及全部界面组合未全覆盖；非战斗Back与跨房间Seek仍未开放。
+## 构建
 
-[RUN-004代表跨幕链](project-management/investigation-reports/RUN-004-report.md)已实测铁甲A0从精英合法起点，经Boss、原生奖励与换幕、第二幕Orobas第二项RadiantPearl至首个普通战斗胜利，动作/资源/RNG及后两战自然初态匹配；精英Back重做、真正退出后Continue续录、换幕加载中Stop及重开通过。有实际完成战斗Save/Continue证据时，先核本次播放战斗，再由本次播放原生保存边界的自算快照重建；不载录制后战checkpoint或注入预期资源。本次短准备未提供从涅奥播放，其他精英/Boss/古神组合及完整通关未覆盖；两次SL重建暗亮是暂留呈现偏差，最终demo应剪去其观看过程，后台必要恢复保留。
-
-[RUN-002：宝箱、商店、问号与SL尝试归属](project-management/investigation-reports/RUN-002-report.md)已按单人A0首幕铁甲代表样本完成（DONE_WITH_LIMITATIONS）。宝箱已验证成功存盘锚点匹配、连续SL的独立尝试、白星领取/跳过及下一普通战斗原生播放、待选时Stop和重开；默认只播放最终延续路线，旧尝试原件保留。新记录保存实际账户Progress输入，以正确重现提示/SL保留的发现记录；缺少关键上下文的旧样本保持明确缺口，不忽略资源差异。
-
-商店代表样本已验证原生买卡/药水/遗物、会员卡动态折扣、删牌取消和确认，核库存/价格/资源/RNG；真实入口SL后改买其他牌，最终路线不带入已放弃交易/删牌效果，原生衔接下一战并匹配初态/RNG。货架待购买时Stop及重开已测；商店删牌窗口进行中的Stop、特殊遗物附加选择/自动套购等未单独覆盖。其他宝箱遗物/附加奖励未全覆盖，以下RUN-001结论保持原有代表样本边界。
-
-普通事件代表样本已验证问号原生进入浴场、多页及重复停留选项；真实入口SL改选后保留旧事实，最终路线经光暗门原生删牌自然进入下一战，严格匹配事件页、资源、RNG及后战初态。暗门删牌未确认时Stop和重开一步Stop已测；复用旧片的问号普通战斗分流及亮门随机升级也有原生观看证据。
-
-事件内部战斗已用假人第二档验证入战、胜利、返回及随机升级，未完成/完成子战斗的实际保存位置、独立恢复尝试和最终路线已有证。完成子战斗SL从播放自身原生保存边界的计算快照重建，严格核恢复前后状态与RNG；遮罩、原生升级动画、内部Back重做及恢复后自然下一战通过。已测新Run重建的原生加载途中接受Stop，允许已提交加载到安全边界收尾，随后清理任务/场景、恢复原context并重开一步Stop。快速排队跨击杀时按稳定目标身份核对执行边界位置；所测原生队列保持。自定义布局、附加奖励、其他切换时机和全部事件组合未全覆盖。
-
-已验收基线CONTENT-005：开场可见地自然进入选择，支持精细/整段推进及整体Back；所测EndTurn在途Back五次总到达约0.56–0.65秒，非发布性能保证。CONTENT-006已有后续普通弱怪/群怪录制、资源承接、真正退出后的Continue与新attempt、代表敌方召援及原生观看/Back/退出实测，按代表样本阶段验收，具体边界见项目状态。
-
-RUN-001已完成铁甲A0首幕两条短路线的代表验证：同一观看会话以`>`、`>>`或Auto原生顺播普通战斗胜利、领奖或跳卡、地图选路、营火升级或休息及下一普通战斗，下一战初态与RNG自然产生并核对。合法战斗完成保存点的真正重启Continue、后续领奖续录与完整回放通过，原房间/战斗没有重复；奖励和营火选牌中的Stop、重开亦有实测。Auto到记录终点关闭并保留画面，手动Stop恢复原观看前上下文。战外Back/跨房间Seek暂未开放，旧Continue记录只兼容能够唯一确定位置的完成房间边界。
-
-尚未完成完整整局通关、全部内容/难度、所有敌方召唤/多阶段、任意文件点恢复或可移植导入。公开的是开发快照，不是正式发布包。当前状态/版本边界见[项目状态](project-management/CURRENT_STATUS.md)、[战斗录制报告](project-management/investigation-reports/CONTENT-006-report.md)与[当前任务报告](project-management/investigation-reports/RUN-004-report.md)。
-
-## 目录
-
-- `src/ReplayMod/`：当前模组及相关检查、准备工具；[构建与测试说明](src/ReplayMod/README.md)。
-- `project-management/`：产品目标、状态、决策、调查报告和任务交接。
-- `experiments/`：历史调查/探针源码。旧实验已结束，不能将它们直接当作当前测试模组运行。
-- `tools/`：开发辅助工具，包括本地反编译缓存生成工具。
-- `references/README.md`：第三方参考实现的来源、版本与许可证记录；下载的快照不提交。
-- `evidence/README.md`：本地证据与仓库源码的边界；原始证据不上传。
-
-## 构建当前模组
-
-需要.NET 9 SDK，以及本地安装的匹配游戏版本。游戏提供的`sts2.dll`、`GodotSharp.dll`和`0Harmony.dll`从本机游戏目录引用，不包含在仓库中。
+需要 Windows、.NET 9 SDK 和目标版本游戏。源码从本机安装读取 `sts2.dll`、`GodotSharp.dll`、`0Harmony.dll`。
 
 ```powershell
 dotnet build ./src/ReplayMod/ReplayMod.csproj -c Release
 ```
 
-游戏不在默认Steam路径时：
+自定义安装目录可传 `-p:GameDir=<游戏目录>`。见[构建、安装和开发测试](src/ReplayMod/README.md)。
 
-```powershell
-dotnet build ./src/ReplayMod/ReplayMod.csproj -c Release '-p:GameDir=D:/SteamLibrary/steamapps/common/Slay the Spire 2'
-```
+## 仓库结构
 
-构建不等于对应版本已获游戏实测。安装与测试前先备份，游戏由用户手动启动/操作；项目工作方式见[WORKFLOW](project-management/WORKFLOW.md)。
+- [src/ReplayMod](src/ReplayMod/) 是当前模组、桌宠素材及开发测试。
+- [project-management](project-management/) 保留项目状态、设计、技术调查与交接。
+- [experiments](experiments/) 是早期探针与验证源码的归档，日常开发从当前模组工程开始。
+- [tools](tools/) 包含为本机游戏版本生成只读反编译缓存的辅助工具。
+- [references](references/README.md) 记录第三方参考来源。
+- [evidence](evidence/README.md) 说明本地运行证据的边界。真实存档、录像、日志、备份和游戏资源留在本地。
 
-## Git与本地数据
-
-仓库用于保存项目源码和长期文档。构建输出、真实存档/录像、原始运行证据、恢复备份、第三方源码快照与游戏反编译缓存留在本地，不随Git提交。历史文档中部分证据链接因此只在原开发机可用；克隆仓库不会自动恢复这些数据。
-
-Git不是游戏存档备份的替代品。仓库于2026-10-29按用户要求改为公开，展示开发源码与项目文档；原始录像/存档/日志、游戏反编译缓存和构建依赖仍仅留本地。当前开发快照不是正式发布包。
+项目阶段与近期任务见[项目状态](project-management/CURRENT_STATUS.md)和[路线图](project-management/ROADMAP.md)。
